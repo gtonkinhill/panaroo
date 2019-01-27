@@ -8,3 +8,4 @@ An updated pipeline for pan-genome investigation
 2. Order inferred gene sequences from largest to smallest
 3. Cluster from largest to smallest using jackhmmer
 4. Classify resulting models using profile hmm vs profile hmm tool that I need to find again.
+5. Alternatively generate the most likely sequence for each hmm model and classify using the prokka pipeline
