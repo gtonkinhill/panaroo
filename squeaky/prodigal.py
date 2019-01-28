@@ -1,6 +1,6 @@
 import subprocess
 
-def run_prodigal(trans_file, nuc_file, output_type, input_file, output_file,
+def run_prodigal(trans_file, nuc_file, input_file, output_file,
     mode="single",
     shine_dalgarno=True,
     mask_sequence=False,
@@ -43,3 +43,7 @@ def run_prodigal(trans_file, nuc_file, output_type, input_file, output_file,
     subprocess.run(cmd, shell=True, check=True)
 
     return
+
+
+
+# prodigal.run_prodigal(trans_file="./test_processed_files/test_trans_file.txt", nuc_file="./test_processed_files/test_nuc_file.txt", input_file="../test_data/mycobacterium_tuberculosis_H37Rv/GCA_000195955.2_ASM19595v2_genomic.fna", output_file="./test_processed_files/test_output_file.txt")
