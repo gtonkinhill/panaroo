@@ -17,33 +17,33 @@ def run_jackhmmer(seqfile, seqdb, output_file,
     quiet=False):
 
     cmd = ("jackhmmer" +
-        " --cpu " + n_cpu +
-        " -N " + n_iter +
+        " --cpu " + str(n_cpu) +
+        " -N " + str(n_iter) +
         " -o " + output_file)
 
     if not E is None:
-        cmd += " -E " + E
+        cmd += " -E " + str(E)
 
     if not T is None:
-        cmd += " -T " + T
+        cmd += " -T " + str(T)
 
     if not domE is None:
-        cmd += " --domE " + domE
+        cmd += " --domE " + str(domE)
 
     if not domT is None:
-        cmd += " --domT " + domT
+        cmd += " --domT " + str(domT)
 
     if not incE is None:
-        cmd += " --incE " + incE
+        cmd += " --incE " + str(incE)
 
     if not incT is None:
-        cmd += " --incT " + incT
+        cmd += " --incT " + str(incT)
 
     if not incdomE is None:
-        cmd += " --incdomE " + incdomE
+        cmd += " --incdomE " + str(incdomE)
 
     if not incdomT is None:
-        cmd += " --incdomT " + incdomT
+        cmd += " --incdomT " + str(incdomT)
 
     if not align_file is None:
         cmd += " -A " + align_file
@@ -54,12 +54,14 @@ def run_jackhmmer(seqfile, seqdb, output_file,
     if not domtblout is None:
         cmd += " --domtblout " + domtblout
 
-    cmd += seqfile + " " + seqdb
+    cmd += " " + seqfile + " " + seqdb
 
     if not quiet:
         print("running cmd: " + cmd)
 
-
     subprocess.run(cmd, shell=True, check=True)
 
     return
+
+
+# hmmer.run_jackhmmer("./test_processed_files/test_query.fasta", "./test_processed_files/test_trans_file.fasta", "./test_processed_files/test_hmmer.txt")
