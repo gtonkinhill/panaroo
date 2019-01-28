@@ -1,0 +1,72 @@
+# Assembly Statistics Report
+# Assembly name:  ASM19595v2
+# Organism name:  Mycobacterium tuberculosis H37Rv (high GC Gram+)
+# Infraspecific name:  strain=H37Rv
+# Taxid:          83332
+# BioSample:      SAMEA3138326
+# BioProject:     PRJNA224
+# Submitter:      Sanger Institute
+# Date:           2013-2-1
+# Assembly type:  n/a
+# Release type:   major
+# Assembly level: Complete Genome
+# Genome representation: full
+# Relation to type material: assembly from type material
+# RefSeq category: Reference Genome
+# GenBank assembly accession: GCA_000195955.2
+# RefSeq assembly accession: GCF_000195955.2
+# RefSeq assembly and GenBank assemblies identical: yes
+#
+## Assembly-Units:
+## GenBank Unit Accession	RefSeq Unit Accession	Assembly-Unit name
+## GCA_000195965.2	GCF_000195965.2	Primary Assembly
+#
+# Statistic Types
+# Statistic	Description
+# molecule-count	Number of chromosomes and plasmids in full assembly
+# region-count	Number of genomic regions defined in full assembly
+# spanned-gaps	Number of spanned gaps. Spanned gaps are gaps within a scaffold
+# top-level-count	Number of chromosomes or plasmids, unplaced/unlocalized scaffolds, alt-loci scaffolds, and patch scaffolds
+# total-gap-length	Total length of gaps
+# total-length	Total sequence length including bases and gaps
+# ungapped-length	Total length excluding gaps
+# unspanned-gaps	Number of unspanned gaps. Unspanned gaps are gaps between scaffolds
+#
+# Sequence-type Description
+# all	statistic covers all the sequences in the unit-assembly and molecule(s) specified.
+# molecule	statistic covers the specified molecule. molecule-name and molecule-type/loc will be given.
+# unlocalized	statistic covers the sequences assigned to a molecule but with no position. molecule-name and molecule-type/loc will be given.
+# unplaced	statistic covers the sequences not assigned to any molecule in the assembly.
+#
+# unit-name	molecule-name	molecule-type/loc	sequence-type	statistic	value
+all	all	all	all	total-length	4411532
+all	all	all	all	spanned-gaps	0
+all	all	all	all	unspanned-gaps	0
+all	all	all	all	region-count	0
+all	all	all	all	total-gap-length	0
+all	all	all	all	molecule-count	1
+all	all	all	all	top-level-count	1
+Primary Assembly	all	all	all	total-length	4411532
+Primary Assembly	all	all	all	ungapped-length	4411532
+Primary Assembly	all	all	all	spanned-gaps	0
+Primary Assembly	all	all	all	unspanned-gaps	0
+Primary Assembly	all	all	assembled-molecule	total-length	4411532
+Primary Assembly	all	all	assembled-molecule	ungapped-length	4411532
+Primary Assembly	all	all	assembled-molecule	spanned-gaps	0
+Primary Assembly	all	all	assembled-molecule	unspanned-gaps	0
+Primary Assembly	all	all	unlocalized-scaffold	total-length	0
+Primary Assembly	all	all	unlocalized-scaffold	ungapped-length	0
+Primary Assembly	all	all	unlocalized-scaffold	spanned-gaps	0
+Primary Assembly	all	all	unlocalized-scaffold	unspanned-gaps	0
+Primary Assembly	na	Chromosome	all	total-length	4411532
+Primary Assembly	na	Chromosome	all	ungapped-length	4411532
+Primary Assembly	na	Chromosome	all	spanned-gaps	0
+Primary Assembly	na	Chromosome	all	unspanned-gaps	0
+Primary Assembly	na	Chromosome	assembled-molecule	total-length	4411532
+Primary Assembly	na	Chromosome	assembled-molecule	ungapped-length	4411532
+Primary Assembly	na	Chromosome	assembled-molecule	spanned-gaps	0
+Primary Assembly	na	Chromosome	assembled-molecule	unspanned-gaps	0
+Primary Assembly	na	Chromosome	unlocalized-scaffold	total-length	0
+Primary Assembly	na	Chromosome	unlocalized-scaffold	ungapped-length	0
+Primary Assembly	na	Chromosome	unlocalized-scaffold	spanned-gaps	0
+Primary Assembly	na	Chromosome	unlocalized-scaffold	unspanned-gaps	0
