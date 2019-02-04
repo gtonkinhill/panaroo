@@ -9,6 +9,7 @@ def convert(gfffile, fastafile, outputfile):
     with open(outputfile, 'w') as outfile:
         outfile.write("##gff-version 3\n")
         for h,s in FastaReader(fastafile):
+            h=h.split()[0]
             outfile.write(" ".join(["##sequence-region", h, "1", str(len(s))]) + "\n")
 
         with open(gfffile, 'rU') as infile:
@@ -18,9 +19,10 @@ def convert(gfffile, fastafile, outputfile):
 
         outfile.write("##FASTA\n")
 
-        with open(fastafile, 'rU') as infile:
-            for line in infile:
-                outfile.write(line)
+        for h,s in FastaReader(fastafile):
+            h=h.split()[0]
+            outfile.write(">"+h+"\n"+s+"\n")
+
 
     return
 
