@@ -61,7 +61,7 @@ def run_prodigal_multi(input_files, out_dir, temp_dir,
         run_prodigal(trans_file="/dev/null", nuc_file="/dev/null",
             input_file=temp_file.name, output_file="/dev/null",
             training_file=training_file,
-            mode=mode, shine_dalgarno=shine_dalgarno,
+            shine_dalgarno=shine_dalgarno,
             mask_sequence=mask_sequence, tr_table=tr_table,
             closed_ends=closed_ends,
             quiet=quiet)

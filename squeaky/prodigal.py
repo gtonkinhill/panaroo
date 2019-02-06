@@ -10,6 +10,7 @@ def run_prodigal(trans_file, nuc_file, input_file, output_file,
     quiet=False,
     start_file=None,
     training_file=None):
+    
 
     cmd = ("prodigal" +
         " -a " + trans_file +
