@@ -1,7 +1,10 @@
-from prodigal import run_prodigal
+from multi_prodigal import run_prodigal_multi
 from cdhit import run_cdhit
 import os
 import argparse
+import tempfile
+from Bio import SeqIO
+import shutil
 
 
 def is_valid_file(parser, arg):
@@ -26,9 +29,9 @@ def main():
                     help="sequence identity threshold (default=0.95)",
                     type=float, default=0.95)
 
-    parser.add_argument("-i", "--input", dest="input_file", required=True,
-                    help="input file",
-                    type=lambda x: is_valid_file(parser, x))
+    parser.add_argument("-i", "--input", dest="input_files", required=True,
+                    help="input files",
+                    type=argparse.FileType('rU'), nargs='+')
 
     parser.add_argument("-p", "--train_dir", dest="train_dir",
                     help=("location of a training directory (a previous run" +
@@ -46,20 +49,57 @@ def main():
     args = parser.parse_args()
 
     # Get prefix
-    prefix = os.path.splitext(os.path.basename(args.input_file))[0]
-    prot_file = args.output_dir + "/" + prefix + "_prot_CDS.fasta"
+    # prefix = os.path.splitext(os.path.basename(args.input_file))[0]
+
+    # Create temporary directory
+    temp_dir = tempfile.mkdtemp(dir=args.output_dir)
+
+    # Rename sequences for simplicity later on and keep a record of it
+    ref_file = args.output_dir + "/" + "sequence_name_reference.csv"
+
+    # read in existing reference file if it exists
+    prev_files = set()
+    reference_list = []
+    if os.path.exists(ref_file):
+        with open(ref_file, 'rU') as infile:
+            for line in infile:
+                prev_files.add(line.split(",")[0])
+                reference_list.append(line.strip().split(","))
+
+    file_count = len(prev_files) - 1
+    temp_input_files = []
+    for f in args.input_files:
+        temp_file = tempfile.NamedTemporaryFile(delete = False, dir=temp_dir,
+                                                mode='w+t')
+        contig_count=0
+        file_count+=1
+        for rec in SeqIO.parse(f, "fasta"):
+            new_id = "_".join([str(file_count), str(contig_count)])
+            temp_file.writelines([">" + new_id + "\n", str(rec.seq) + "\n"])
+            reference_list.append((os.path.splitext(os.path.basename(
+                f.name))[0], str(rec.id), file_count, contig_count))
+            contig_count+=1
+        temp_input_files.append(temp_file.name)
+        temp_file.close()
+
+    # write out updated reference file
+    with open(ref_file, 'w') as outfile:
+        for ref in reference_list:
+            outfile.write(",".join(map(str,ref)) + "\n")
 
     # Run prodigal on new sequences
-    run_prodigal(trans_file=prot_file,
-        nuc_file=args.output_dir + "/" + prefix + "_dna_CDS.fasta",
-        input_file=args.input_file,
-        output_file=args.output_dir + "/" + prefix + "_prodigal.txt")
+    run_prodigal_multi(temp_input_files, args.output_dir, temp_dir, args.n_cpu)
 
     # Cluster protein sequences using cdhit
-    run_cdhit(input_file=prot_file,
-        output_file=args.output_dir + "/" + prefix + "_cdhit_out.txt",
+    cd_hit_out = args.output_dir + "/" + "combined_protein_cdhit_out.txt"
+    run_cdhit(input_file=args.output_dir + "combined_protein_CDS.fasta",
+        output_file=cd_hit_out,
         id=args.id,
         n_cpu=args.n_cpu)
+
+    # remove temp TemporaryDirectory
+    shutil.rmtree(temp_dir)
+
 
     return
 
