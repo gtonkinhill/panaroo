@@ -6,6 +6,7 @@ import argparse
 import tempfile
 from Bio import SeqIO
 import shutil
+import networkx as nx
 
 
 def is_valid_file(parser, arg):
@@ -99,12 +100,15 @@ def main():
         id=args.id,
         n_cpu=args.n_cpu)
 
-    edges = generate_network(cd_hit_out+".clstr",
-        args.output_dir + "combined_protein_CDS.fasta")
+    G = generate_network(cd_hit_out+".clstr",
+            args.output_dir + "combined_protein_CDS.fasta",
+            args.output_dir + "combined_DNA_CDS.fasta")
 
-    with open(args.output_dir + "/" + "network_edges.txt", 'w') as outfile:
-        for e in edges:
-            outfile.write(",".join(map(str, [e[0], e[1], edges[e]])) + "\n")
+    with open(args.output_dir + "/" + "network_edges.csv", 'w') as outfile:
+        outfile.write("source,target,count\n")
+        for node1, node2, data in G.edges(data=True):
+            outfile.write(",".join(map(str, [node1, node2, data['weight']])) +
+                "\n")
 
     # remove temp TemporaryDirectory
     shutil.rmtree(temp_dir)
