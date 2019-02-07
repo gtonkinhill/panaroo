@@ -1,5 +1,6 @@
 from multi_prodigal import run_prodigal_multi
 from cdhit import run_cdhit
+from generate_network import generate_network
 import os
 import argparse
 import tempfile
@@ -97,6 +98,13 @@ def main():
         output_file=cd_hit_out,
         id=args.id,
         n_cpu=args.n_cpu)
+
+    edges = generate_network(cd_hit_out+".clstr",
+        args.output_dir + "combined_protein_CDS.fasta")
+
+    with open(args.output_dir + "/" + "network_edges.txt", 'w') as outfile:
+        for e in edges:
+            outfile.write(",".join(map(str, [e[0], e[1], edges[e]])) + "\n")
 
     # remove temp TemporaryDirectory
     shutil.rmtree(temp_dir)
