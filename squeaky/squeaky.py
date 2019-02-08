@@ -1,6 +1,7 @@
 from multi_prodigal import run_prodigal_multi
 from cdhit import run_cdhit
 from generate_network import generate_network
+from clean_network import *
 import os
 import argparse
 import tempfile
@@ -35,7 +36,7 @@ def main():
                     help="input files",
                     type=argparse.FileType('rU'), nargs='+')
 
-    parser.add_argument("-p", "--train_dir", dest="train_dir",
+    parser.add_argument("--train_dir", dest="train_dir",
                     help=("location of a training directory (a previous run" +
                         " of squeaky)"),
                     type=lambda x: is_valid_folder(parser, x))
@@ -43,6 +44,18 @@ def main():
     parser.add_argument("-o", "--out_dir", dest="output_dir", required=True,
                     help="location of an output directory",
                     type=lambda x: is_valid_folder(parser, x))
+
+    parser.add_argument("--min_trailing_support",
+                    dest="min_trailing_support",
+                    help=("minimum cluster size to keep a gene called at the "
+                        + "end of a contig (default=2)"),
+                    type=int, default=2)
+
+    parser.add_argument("--json",
+                    dest="write_json",
+                    help="write final graph out in JSON format.",
+                    action='store_true',
+                    default=False)
 
     parser.add_argument("-t", "--threads", dest="n_cpu",
                     help="number of threads to use (default=1)",
@@ -100,19 +113,49 @@ def main():
         id=args.id,
         n_cpu=args.n_cpu)
 
+    # generate network from clusters and adjacency information
     G = generate_network(cd_hit_out+".clstr",
             args.output_dir + "combined_protein_CDS.fasta",
             args.output_dir + "combined_DNA_CDS.fasta")
 
+    # write out raw edge list prior to filtering
+    with open(args.output_dir + "/" + "network_edges_prefilter.csv", 'w') as outfile:
+        outfile.write("source,target,count\n")
+        for node1, node2, data in G.edges(data=True):
+            outfile.write(",".join(map(str, [node1, node2, data['weight']])) +
+                "\n")
+
+    # remove low support trailing ends
+    G = trim_low_support_trailing_ends(G, min_support=args.min_trailing_support,
+        max_recursive=2)
+
+
+    # write out final edge list and node attributes
     with open(args.output_dir + "/" + "network_edges.csv", 'w') as outfile:
         outfile.write("source,target,count\n")
         for node1, node2, data in G.edges(data=True):
             outfile.write(",".join(map(str, [node1, node2, data['weight']])) +
                 "\n")
 
+    with open(args.output_dir + "/" + "gene_cluster_attributes.csv", 'w') as outfile:
+        outfile.write("Id,Label,size,centroid,protein,DNA\n")
+        for node, data in G.nodes(data=True):
+            outfile.write(",".join(map(str, [node,
+                                             data['centroid'],
+                                             data['size'],
+                                             data['centroid'],
+                                             data['protein'],
+                                             data['dna']])) + "\n")
+
+    # write out graph in GEXF format
+    nx.write_gexf(G, args.output_dir + "/" + "final_graph.gexf")
+
+    # # optionally write out graph in JSON format
+    # if args.write_json:
+
+
     # remove temp TemporaryDirectory
     shutil.rmtree(temp_dir)
-
 
     return
 
