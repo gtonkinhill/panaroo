@@ -15,6 +15,7 @@ An updated pipeline for pan-genome investigation
     * Gene presence/absence (or count) matrix with and without genes being collapsed into families
     * Pan genome reference fasta
     * Optional MSA of each gene cluster (split out as a seperate script)
+    * Output for visulaisation in Gephi (add paths if requested)
 
 ### Potential downstream analysis
 
