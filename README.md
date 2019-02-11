@@ -9,7 +9,7 @@ An updated pipeline for pan-genome investigation
 3. Build a pan-population pan-genome graph using the cd-hit clusters and adjaceny information from the assemblies
 4. Split paralogs into multiple nodes
 5. Trim genes that have low support and appear at the ends of the graph. These are likely false positive occuring as a result of the difficulty in calling genes near the end of contigs.
-6. Collapse 'bubbles' into gene families based on a second more relaxed cut-off
+6. Collapse 'bubbles' into gene families based on a second more relaxed cut-off. Perhaps use fastbaps here.
 7. Prepare suitable output files for further downstream analysis
     * Core genome alignment (split out as a seperate script)
     * Gene presence/absence (or count) matrix with and without genes being collapsed into families
