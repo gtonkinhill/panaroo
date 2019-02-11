@@ -138,17 +138,18 @@ def main():
                 "\n")
 
     with open(args.output_dir + "/" + "gene_cluster_attributes.csv", 'w') as outfile:
-        outfile.write("Id,Label,size,centroid,protein,DNA\n")
+        outfile.write("Id,Label,size,centroid,is_paralog,protein,DNA\n")
         for node, data in G.nodes(data=True):
             outfile.write(",".join(map(str, [node,
                                              data['centroid'],
                                              data['size'],
                                              data['centroid'],
+                                             data['paralog'],
                                              data['protein'],
                                              data['dna']])) + "\n")
 
     # write out graph in GEXF format
-    nx.write_gexf(G, args.output_dir + "/" + "final_graph.gexf")
+    # nx.write_gexf(G, args.output_dir + "/" + "final_graph.gexf")
 
     # # optionally write out graph in JSON format
     # if args.write_json:
