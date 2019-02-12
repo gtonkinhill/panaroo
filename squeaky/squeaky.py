@@ -132,13 +132,13 @@ def main():
 
     # write out final edge list and node attributes
     with open(args.output_dir + "/" + "network_edges.csv", 'w') as outfile:
-        outfile.write("source,target,count\n")
+        outfile.write("source,target,count,members\n")
         for node1, node2, data in G.edges(data=True):
-            outfile.write(",".join(map(str, [node1, node2, data['weight']])) +
-                "\n")
+            outfile.write(",".join(map(str, [node1, node2, data['weight'],
+                ";" + ";".join(data['members']) + ";"])) + "\n")
 
     with open(args.output_dir + "/" + "gene_cluster_attributes.csv", 'w') as outfile:
-        outfile.write("Id,Label,size,centroid,is_paralog,protein,DNA\n")
+        outfile.write("Id,Label,size,centroid,is_paralog,protein,DNA,members\n")
         for node, data in G.nodes(data=True):
             outfile.write(",".join(map(str, [node,
                                              data['centroid'],
@@ -146,7 +146,9 @@ def main():
                                              data['centroid'],
                                              data['paralog'],
                                              data['protein'],
-                                             data['dna']])) + "\n")
+                                             data['dna'],
+                                             ";" + ";".join(data['members']) + ";"]))
+                                              + "\n")
 
     # write out graph in GEXF format
     # nx.write_gexf(G, args.output_dir + "/" + "final_graph.gexf")
