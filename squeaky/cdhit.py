@@ -3,6 +3,7 @@ import subprocess
 def run_cdhit(input_file, output_file,
     id=0.95,
     n_cpu=1,
+    s=0.0, # length difference cutoff (%), default 0.0
     aL=0.0, # alignment coverage for the longer sequence
     AL=99999999, # alignment coverage control for the longer sequence
     aS=0.0, # alignment coverage for the shorter sequence
@@ -16,6 +17,7 @@ def run_cdhit(input_file, output_file,
         " -i " + input_file +
         " -o " + output_file +
         " -c " + str(id) +
+        " -s " + str() +
         " -aL " + str(aL) +
         " -AL " + str(AL) +
         " -aS " + str(aS) +

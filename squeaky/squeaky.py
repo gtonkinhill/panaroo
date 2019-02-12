@@ -32,6 +32,10 @@ def main():
                     help="sequence identity threshold (default=0.95)",
                     type=float, default=0.95)
 
+    parser.add_argument("", "--len_dif_percent", dest="len_dif_percent",
+                    help="length difference cutoff % (default=0.95)",
+                    type=float, default=0.95)
+
     parser.add_argument("-i", "--input", dest="input_files", required=True,
                     help="input files",
                     type=argparse.FileType('rU'), nargs='+')
@@ -111,6 +115,7 @@ def main():
     run_cdhit(input_file=args.output_dir + "combined_protein_CDS.fasta",
         output_file=cd_hit_out,
         id=args.id,
+        s=args.len_dif_percent,
         n_cpu=args.n_cpu)
 
     # generate network from clusters and adjacency information
