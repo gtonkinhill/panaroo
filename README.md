@@ -5,7 +5,7 @@ An updated pipeline for pan-genome investigation
 ### Pipeline
 
 1. Run prodigal on full dataset (so as not to run into issue with its model inference step). We will also take Prokka output as input.
-2. Cluster using cd-hit with option -G 0
+2. Cluster using cd-hit
 3. Build a pan-population pan-genome graph using the cd-hit clusters and adjaceny information from the assemblies
 4. Split paralogs into multiple nodes
 5. Trim genes that have low support and appear at the ends of the graph. These are likely false positive occuring as a result of the difficulty in calling genes near the end of contigs.
