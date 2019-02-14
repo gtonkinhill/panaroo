@@ -32,7 +32,7 @@ def main():
                     help="sequence identity threshold (default=0.95)",
                     type=float, default=0.95)
 
-    parser.add_argument("", "--len_dif_percent", dest="len_dif_percent",
+    parser.add_argument("--len_dif_percent", dest="len_dif_percent",
                     help="length difference cutoff % (default=0.95)",
                     type=float, default=0.95)
 
@@ -157,6 +157,7 @@ def main():
 
     # write out graph in GEXF format
     # nx.write_gexf(G, args.output_dir + "/" + "final_graph.gexf")
+    nx.write_gpickle(G, "test.gpickle")
 
     # # optionally write out graph in JSON format
     # if args.write_json:
