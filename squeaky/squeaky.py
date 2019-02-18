@@ -117,16 +117,16 @@ def main():
             outfile.write(",".join(map(str,ref)) + "\n")
 
     # Run prodigal on new sequences
-    # run_prodigal_multi(temp_input_files, args.output_dir, temp_dir,
-    #     n_cpu=args.n_cpu)
+    run_prodigal_multi(temp_input_files, args.output_dir, temp_dir,
+        n_cpu=args.n_cpu)
 
     # Cluster protein sequences using cdhit
     cd_hit_out = args.output_dir + "/" + "combined_protein_cdhit_out.txt"
-    # run_cdhit(input_file=args.output_dir + "combined_protein_CDS.fasta",
-    #     output_file=cd_hit_out,
-    #     id=args.id,
-    #     s=args.len_dif_percent,
-    #     n_cpu=args.n_cpu)
+    run_cdhit(input_file=args.output_dir + "combined_protein_CDS.fasta",
+        output_file=cd_hit_out,
+        id=args.id,
+        s=args.len_dif_percent,
+        n_cpu=args.n_cpu)
 
     # generate network from clusters and adjacency information
     G = generate_network(cd_hit_out+".clstr",
