@@ -165,8 +165,6 @@ def main():
                                              ";" + ";".join(data['members']) + ";"]))
                                               + "\n")
 
-    nx.write_gpickle(G, "test.gpickle")
-
     # clean up translation errors and gene families
     G = collapse_families(G,
         cycle_threshold=args.max_cycle_size,
