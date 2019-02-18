@@ -36,6 +36,8 @@ def run_cdhit(input_file, output_file,
 
     if not quiet:
         print("running cmd: " + cmd)
+    else:
+        cmd += " > /dev/null"
 
     subprocess.run(cmd, shell=True, check=True)
 
@@ -77,6 +79,8 @@ def run_cdhit_est(input_file, output_file,
 
         if not quiet:
             print("running cmd: " + cmd)
+        else:
+            cmd += " > /dev/null"
 
         subprocess.run(cmd, shell=True, check=True)
 
@@ -96,17 +100,18 @@ def cluster_nodes_cdhit(G, nodes, outdir, id=0.95, dna=False,
     # create the files we will need
     centroids_to_nodes = {}
     temp_input_file = tempfile.NamedTemporaryFile(delete = False, dir=outdir)
-    for node in nodes:
-        temp_input_file.write(">" + G.node[node]["centroid"] + "\n")
-        centroids_to_nodes[G.node[node]["centroid"]] = node
-        if dna:
-            temp_input_file.write(G.node[node]["dna"] + "\n")
-        else:
-            temp_input_file.write(G.node[node]["protein"] + "\n")
     temp_input_file.close()
-
     temp_output_file = tempfile.NamedTemporaryFile(delete = False, dir=outdir)
     temp_output_file.close()
+
+    with open(temp_input_file.name, 'w') as outfile:
+        for node in nodes:
+            outfile.write(">" + G.node[node]["centroid"] + "\n")
+            centroids_to_nodes[G.node[node]["centroid"]] = node
+            if dna:
+                outfile.write(G.node[node]["dna"] + "\n")
+            else:
+                outfile.write(G.node[node]["protein"] + "\n")
 
     # run cd-hit
     if dna:
@@ -130,6 +135,7 @@ def cluster_nodes_cdhit(G, nodes, outdir, id=0.95, dna=False,
                 c=[]
             else:
                 c.append(centroids_to_nodes[line.split(">")[1].split("...")[0]])
+        clusters.append(c)
     clusters = clusters[1:]
 
     # remove temporary files

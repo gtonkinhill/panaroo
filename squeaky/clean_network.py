@@ -1,4 +1,6 @@
 import networkx as nx
+from cdhit import cluster_nodes_cdhit
+from merge_nodes import merge_nodes
 
 # Genes at the end of contigs are more likely to be false positives thus
 # we can remove those with low support
@@ -33,15 +35,16 @@ def trim_low_support_trailing_ends(G, min_support=3, max_recursive=2):
 # family_threshold pairwise sequence identity
 def collapse_families(G, cycle_threshold, family_threshold, outdir,
     dna_error_threshold=0.95,
-    correct_mistranslations=True):
+    correct_mistranslations=True
+    quiet=False):
 
-    node_count = max(G.nodes())+1
+    node_count = max(list(G.nodes()))+10
 
     # find all the cycles shorter than cycle_threshold
     complete_basis = []
     for c in nx.connected_components(G):
         sub_G = G.subgraph(c)
-        basis = nx.cycle_basis(sub_G, sub_G.nodes()[0])
+        basis = nx.cycle_basis(sub_G, list(sub_G.nodes())[0])
         complete_basis += [set(b) for b in basis if len(b) < cycle_threshold]
 
     # remove paralogs and resulting cycles that are too short
@@ -64,10 +67,10 @@ def collapse_families(G, cycle_threshold, family_threshold, outdir,
             is_merged = True
             rest2 = []
             for r in rest:
-                if len(first.intersection(r)>1):
+                if len(first.intersection(r))>1:
                      first |= set(r)
                      is_merged = False
-                 else:
+                else:
                      rest2.append(r)
             rest = rest2
         merged_basis.append(first)
@@ -80,6 +83,9 @@ def collapse_families(G, cycle_threshold, family_threshold, outdir,
         for b in merged_basis:
             clusters = cluster_nodes_cdhit(G, b, outdir, id=dna_error_threshold,
                 quiet=True, dna=True)
+            if not quiet:
+                print("cycle:", b)
+                print("clusters:", clusters)
             # now merge nodes that clustered
             temp_b = set()
             for c in clusters:
@@ -90,7 +96,7 @@ def collapse_families(G, cycle_threshold, family_threshold, outdir,
                         if G.node[node]["size"]>top_size:
                             top=node
                             top_size=G.node[node]["size"]
-                    temp_c = c
+                    temp_c = c.copy()
                     if top==c[0]:
                         G = merge_nodes(G, top, c[1], node_count)
                         temp_c.remove(top)
@@ -103,30 +109,35 @@ def collapse_families(G, cycle_threshold, family_threshold, outdir,
                         G = merge_nodes(G, node_count, temp_c[0], node_count+1)
                         node_count+=1
                         temp_c.remove(temp_c[0])
-                    temp_b.add(node_count-1)
+                    temp_b.add(node_count)
+                    node_count+=1
                 else:
-                    temp_b.add(c)
+                    temp_b.add(c[0])
             cleaned_merged_basis.append(temp_b)
     else:
         cleaned_merged_basis = merged_basis
 
     # merge nodes based on the family_threshold by clustering at the protein
     # level
-    for b in merged_basis:
+    for b in cleaned_merged_basis:
         clusters = cluster_nodes_cdhit(G, b, outdir, id=family_threshold,
             quiet=True, dna=False)
+        if not quiet:
+            print("cycle:", b)
+            print("fam clusters:", clusters)
         # now merge nodes that clustered
         for c in clusters:
             if len(c)>1:
                 # keep the centroid with the highest support
-                temp_c = c
+                temp_c = c.copy()
                 G = merge_nodes(G, c[0], c[1], node_count,
                         multi_centroid=True)
                 temp_c.remove(c[0])
                 temp_c.remove(c[1])
                 while (len(temp_c)>0):
-                    G = merge_nodes(G, node_count, temp_c[0], node_count+1)
+                    G = merge_nodes(G, node_count, temp_c[0], node_count+1,
+                        multi_centroid=True)
                     node_count+=1
-
+            node_count+=1
 
     return G

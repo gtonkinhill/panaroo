@@ -3,10 +3,13 @@ def merge_nodes(G, nodeA, nodeB, newNode, multi_centroid=False):
     if multi_centroid:
         G.add_node(newNode,
             size=G.node[nodeA]['size'] + G.node[nodeB]['size'],
-            centroid=set(G.node[nodeA]['centroid'], G.node[nodeB]['centroid']),
+            centroid=";".join(set(G.node[nodeA]['centroid'].split(";") +
+                G.node[nodeB]['centroid'].split(";"))),
             members=G.node[nodeA]['members'] + G.node[nodeB]['members'],
-            protein=set(G.node[nodeA]['protein'], G.node[nodeB]['protein']),
-            dna=set(G.node[nodeA]['dna'], G.node[nodeB]['dna']),
+            protein=";".join(set(G.node[nodeA]['protein'].split(";") +
+                G.node[nodeB]['protein'].split(";"))),
+            dna=";".join(set(G.node[nodeA]['dna'].split(";") +
+                G.node[nodeB]['dna'].split(";"))),
             paralog=(G.node[nodeA]['paralog'] or G.node[nodeB]['paralog']))
     else:
         G.add_node(newNode,
