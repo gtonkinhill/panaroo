@@ -170,7 +170,7 @@ def main():
         cycle_threshold=args.max_cycle_size,
         family_threshold=args.family_threshold,
         outdir=temp_dir,
-        dna_error_threshold=0.95,
+        dna_error_threshold=0.99,
         correct_mistranslations=True)
 
 

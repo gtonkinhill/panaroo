@@ -34,7 +34,7 @@ def trim_low_support_trailing_ends(G, min_support=3, max_recursive=2):
 # Look for cycles and collapse nodes within those that are within
 # family_threshold pairwise sequence identity
 def collapse_families(G, cycle_threshold, family_threshold, outdir,
-    dna_error_threshold=0.95,
+    dna_error_threshold=0.99,
     correct_mistranslations=True
     quiet=False):
 

@@ -45,7 +45,7 @@ def run_cdhit(input_file, output_file,
 
 
 def run_cdhit_est(input_file, output_file,
-        id=0.95,
+        id=0.99,
         n_cpu=1,
         s=0.0, # length difference cutoff (%), default 0.0
         aL=0.0, # alignment coverage for the longer sequence
@@ -68,6 +68,7 @@ def run_cdhit_est(input_file, output_file,
             " -aS " + str(aS) +
             " -AS " + str(AS) +
             " -r " + str(strand) +
+            " -mask NX " +
             " -M 0 -d 999"
             )
 
