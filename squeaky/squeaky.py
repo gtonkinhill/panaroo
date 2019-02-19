@@ -32,7 +32,11 @@ def main():
                     help="sequence identity threshold (default=0.95)",
                     type=float, default=0.95)
 
-    parser.add_argument("", "--len_dif_percent", dest="len_dif_percent",
+    parser.add_argument("-f", "--family_threshold", dest="family_threshold",
+                    help="protein family sequence identity threshold (default=0.7)",
+                    type=float, default=0.7)
+
+    parser.add_argument("--len_dif_percent", dest="len_dif_percent",
                     help="length difference cutoff % (default=0.95)",
                     type=float, default=0.95)
 
@@ -54,6 +58,12 @@ def main():
                     help=("minimum cluster size to keep a gene called at the "
                         + "end of a contig (default=2)"),
                     type=int, default=2)
+
+    parser.add_argument("--max_cycle_size",
+                    dest="max_cycle_size",
+                    help=("maximum cycle  size for collapsing gene families "
+                        + "(default=20)"),
+                    type=int, default=20)
 
     parser.add_argument("--json",
                     dest="write_json",
@@ -124,7 +134,7 @@ def main():
             args.output_dir + "combined_DNA_CDS.fasta")
 
     # write out raw edge list prior to filtering
-    with open(args.output_dir + "/" + "network_edges_prefilter.csv", 'w') as outfile:
+    with open(args.output_dir + "/" + "network_edges_pretrim.csv", 'w') as outfile:
         outfile.write("source,target,count\n")
         for node1, node2, data in G.edges(data=True):
             outfile.write(",".join(map(str, [node1, node2, data['weight']])) +
@@ -133,6 +143,35 @@ def main():
     # remove low support trailing ends
     G = trim_low_support_trailing_ends(G, min_support=args.min_trailing_support,
         max_recursive=2)
+
+
+    # write out intermediate edge list and node attributes
+    with open(args.output_dir + "/" + "network_edges_pre_filt.csv", 'w') as outfile:
+        outfile.write("source,target,count,members\n")
+        for node1, node2, data in G.edges(data=True):
+            outfile.write(",".join(map(str, [node1, node2, data['weight'],
+                ";" + ";".join(data['members']) + ";"])) + "\n")
+
+    with open(args.output_dir + "/" + "gene_cluster_attributes_pre_filt.csv", 'w') as outfile:
+        outfile.write("Id,Label,size,centroid,is_paralog,protein,DNA,members\n")
+        for node, data in G.nodes(data=True):
+            outfile.write(",".join(map(str, [node,
+                                             data['centroid'],
+                                             data['size'],
+                                             data['centroid'],
+                                             data['paralog'],
+                                             data['protein'],
+                                             data['dna'],
+                                             ";" + ";".join(data['members']) + ";"]))
+                                              + "\n")
+
+    # clean up translation errors and gene families
+    G = collapse_families(G,
+        cycle_threshold=args.max_cycle_size,
+        family_threshold=args.family_threshold,
+        outdir=temp_dir,
+        dna_error_threshold=0.99,
+        correct_mistranslations=True)
 
 
     # write out final edge list and node attributes
@@ -155,11 +194,6 @@ def main():
                                              ";" + ";".join(data['members']) + ";"]))
                                               + "\n")
 
-    # write out graph in GEXF format
-    # nx.write_gexf(G, args.output_dir + "/" + "final_graph.gexf")
-
-    # # optionally write out graph in JSON format
-    # if args.write_json:
 
 
     # remove temp TemporaryDirectory
