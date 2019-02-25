@@ -45,6 +45,9 @@ def run_prodigal(trans_file, nuc_file, input_file, output_file,
 
     return
 
-
-
-# prodigal.run_prodigal(trans_file="./test_processed_files/test_trans_file.txt", nuc_file="./test_processed_files/test_nuc_file.txt", input_file="../test_data/mycobacterium_tuberculosis_H37Rv/GCA_000195955.2_ASM19595v2_genomic.fna", output_file="./test_processed_files/test_output_file.txt")
+if __name__ == "__main__":
+    #For test running prodigal on a single assembly with this script
+    from sys import argv
+    script, prodigal_input = argv
+    filename = prodigal_input.split('/')[-1].split('.')[0]
+    run_prodigal(trans_file="./prodigal_test/"+filename+"_protTrans.fasta", nuc_file="./prodigal_test/"+filename+"nucFileTest.fasta", input_file=prodigal_input, output_file="./prodigal_test/"+filename.split(".")[0]+'.gff')
