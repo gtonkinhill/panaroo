@@ -35,7 +35,7 @@ def trim_low_support_trailing_ends(G, min_support=3, max_recursive=2):
 # family_threshold pairwise sequence identity
 def collapse_families(G, cycle_threshold, family_threshold, outdir,
     dna_error_threshold=0.99,
-    correct_mistranslations=True
+    correct_mistranslations=True,
     quiet=False):
 
     node_count = max(list(G.nodes()))+10
