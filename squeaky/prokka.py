@@ -79,7 +79,8 @@ def translate_sequences(sequence_dic):
             print(sequence_record)
             print(protien_sequence)
             raise ValueError("Premature stop codon in a gene!")
-        protein_record = SeqRecord(protien_sequence, id=strain_id)
+        protein_record = SeqRecord(protien_sequence, id=strain_id,
+            description=strain_id)
         protein_list.append(protein_record)
     return protein_list
 
@@ -112,8 +113,7 @@ def process_prokka_input(gff_list, output_dir):
         protienHandle = open(output_dir + "combined_protein_CDS.fasta", 'w+')
         DNAhandle = open(output_dir + "combined_DNA_CDS.fasta", 'w+')
         csvHandle = open(output_dir + "gene_data.csv", 'w+')
-        csvHandle.write(output_dir +
-            "clustering_id,annotation_id,prot_sequence,dna_sequence,gene_name,description\n")
+        csvHandle.write("clustering_id,annotation_id,prot_sequence,dna_sequence,gene_name,description\n")
         for gff_no, gff in enumerate(gff_list):
             gene_sequences = get_gene_sequences(gff, gff_no)
             output_files(gene_sequences, protienHandle, DNAhandle, csvHandle)

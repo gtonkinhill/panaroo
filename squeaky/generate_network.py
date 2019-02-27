@@ -4,7 +4,7 @@ import networkx as nx
 from merge_nodes import merge_nodes
 
 
-def generate_network(cluster_file, prot_seq_file, dna_seq_file,
+def generate_network(cluster_file, data_file, prot_seq_file,
     split_paralogs=True):
 
     # associate sequences with their clusters
@@ -29,21 +29,20 @@ def generate_network(cluster_file, prot_seq_file, dna_seq_file,
         if len(genomes) != len(set(genomes)):
             paralogs.add(clust)
 
-    # identify DNA seq centroids
-    cluster_centroid_dna_seq = {}
-    with open(dna_seq_file, 'rU') as infile:
-        for rec in SeqIO.parse(infile, "fasta"):
-            id = str(rec.id)
-            if cluster_centroids[seq_to_cluster[id]]==id:
-                cluster_centroid_dna_seq[seq_to_cluster[id]] = str(rec.seq)
-
-    # identify protein seq centroids
-    cluster_centroid_prot_seq = {}
-    with open(prot_seq_file, 'rU') as infile:
-        for rec in SeqIO.parse(infile, "fasta"):
-            id = str(rec.id)
-            if cluster_centroids[seq_to_cluster[id]]==id:
-                cluster_centroid_prot_seq[seq_to_cluster[id]] = str(rec.seq)
+    # Load meta data such as sequence and annotation
+    cluster_centroid_data = {}
+    with open(data_file, 'rU') as infile:
+        next(infile) # skip header
+        for line in infile:
+            line = line.strip().split(",")
+            if line[0] in seq_to_cluster:
+                # this is a cluster centroid so keep it
+                cluster_centroid_data[seq_to_cluster[line[0]]] = {
+                    'prot_sequence': line[2],
+                    'dna_sequence': line[3],
+                    'gene_name': line[4],
+                    'description': line[5],
+                }
 
     # load headers which contain adjacency information
     seq_ids = []
@@ -59,7 +58,7 @@ def generate_network(cluster_file, prot_seq_file, dna_seq_file,
     for i, id in enumerate(seq_ids):
         current_cluster = seq_to_cluster[id]
         genome_id = id.split("_")[0]
-        if id.split("_")[-1]=="1":
+        if id.split("_")[-1]=="0":
             # we're at the start of a contig
             prev = current_cluster
             if G.has_node(prev):
@@ -76,8 +75,8 @@ def generate_network(cluster_file, prot_seq_file, dna_seq_file,
                     size=1,
                     centroid=cluster_centroids[current_cluster],
                     members=[genome_id],
-                    protein=cluster_centroid_prot_seq[current_cluster],
-                    dna=cluster_centroid_dna_seq[current_cluster],
+                    protein=cluster_centroid_data[current_cluster]['prot_sequence'],
+                    dna=cluster_centroid_data[current_cluster]['dna_sequence'],
                     paralog=(current_cluster in paralogs))
         else:
             is_paralog = current_cluster in paralogs
@@ -90,8 +89,8 @@ def generate_network(cluster_file, prot_seq_file, dna_seq_file,
                     size=1,
                     centroid=cluster_centroids[current_cluster],
                     members=[genome_id],
-                    protein=cluster_centroid_prot_seq[current_cluster],
-                    dna=cluster_centroid_dna_seq[current_cluster],
+                    protein=cluster_centroid_data[current_cluster]['prot_sequence'],
+                    dna=cluster_centroid_data[current_cluster]['dna_sequence'],
                     paralog=True)
                 # add edge between nodes
                 G.add_edge(prev, neighbour,
@@ -104,8 +103,8 @@ def generate_network(cluster_file, prot_seq_file, dna_seq_file,
                         size=1,
                         centroid=cluster_centroids[current_cluster],
                         members=[genome_id],
-                        protein=cluster_centroid_prot_seq[current_cluster],
-                        dna=cluster_centroid_dna_seq[current_cluster],
+                        protein=cluster_centroid_data[current_cluster]['prot_sequence'],
+                        dna=cluster_centroid_data[current_cluster]['dna_sequence'],
                         paralog=is_paralog)
                     # add edge between nodes
                     G.add_edge(prev, current_cluster,
