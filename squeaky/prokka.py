@@ -24,16 +24,15 @@ def get_gene_sequences(gff_file, file_number):
     sequence_dictionary = OrderedDict()
 
     #Split file and parse
-    with open(gff_file) as temp_gff:
-        lines = temp_gff.read()
-        split = lines.split('##FASTA')
-        with StringIO(split[1]) as temp_fasta:
-            sequences = list(SeqIO.parse(temp_fasta, 'fasta'))
+    lines = gff_file.read()
+    split = lines.split('##FASTA')
+    with StringIO(split[1]) as temp_fasta:
+        sequences = list(SeqIO.parse(temp_fasta, 'fasta'))
 
-        parsed_gff = gff.create_db(clean_gff_string(split[0]), dbfn=":memory:",
-            force=True,
-            keep_order=True,
-            from_string=True)
+    parsed_gff = gff.create_db(clean_gff_string(split[0]), dbfn=":memory:",
+        force=True,
+        keep_order=True,
+        from_string=True)
 
     #Get genes per scaffold
     scaffold_genes= {}
@@ -112,11 +111,11 @@ def process_prokka_input(gff_list, output_dir):
     try:
         protienHandle = open(output_dir + "combined_protein_CDS.fasta", 'w+')
         DNAhandle = open(output_dir + "combined_DNA_CDS.fasta", 'w+')
-        csvHandle = open(output_dir + "sequence_name_reference.csv", 'w+')
+        csvHandle = open(output_dir + "gene_data.csv", 'w+')
         csvHandle.write(output_dir +
             "clustering_id,annotation_id,prot_sequence,dna_sequence,gene_name,description\n")
-        for gff_no in range(len(gff_list)):
-            gene_sequences = get_gene_sequences(gff_list[gff_no], gff_no)
+        for gff_no, gff in enumerate(gff_list):
+            gene_sequences = get_gene_sequences(gff, gff_no)
             output_files(gene_sequences, protienHandle, DNAhandle, csvHandle)
         protienHandle.close()
         DNAhandle.close()
@@ -125,6 +124,7 @@ def process_prokka_input(gff_list, output_dir):
     except:
         print("Error reading prokka input!")
         raise RuntimeError("Error reading prokka input!")
+
 
 if __name__ == "__main__":
     #used for debugging purpopses
