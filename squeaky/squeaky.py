@@ -194,6 +194,8 @@ def main():
                                              ";" + ";".join(data['members']) + ";"]))
                                               + "\n")
 
+    # # write out graph in GML format
+    # nx.write_gml(G, args.output_dir + "/" + "final_graph.gml")
 
 
     # remove temp TemporaryDirectory
