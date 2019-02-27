@@ -15,18 +15,17 @@ def run_cdhit(input_file, output_file,
     use_local=False, #whether to use local or global sequence alignment
     quiet=False):
 
-    cmd = ("cd-hit" +
-        " -T " + str(n_cpu) +
-        " -i " + input_file +
-        " -o " + output_file +
-        " -c " + str(id) +
-        " -s " + str(s) +
-        " -aL " + str(aL) +
-        " -AL " + str(AL) +
-        " -aS " + str(aS) +
-        " -AS " + str(AS) +
-        " -M 0 -d 999"
-        )
+    cmd = "cd-hit"
+    cmd += " -T " + str(n_cpu)
+    cmd += " -i " + input_file
+    cmd += " -o " + output_file
+    cmd += " -c " + str(id)
+    cmd += " -s " + str(s)
+    cmd += " -aL " + str(aL)
+    cmd += " -AL " + str(AL)
+    cmd += " -aS " + str(aS)
+    cmd += " -AS " + str(AS)
+    cmd += " -M 0 -d 999"
 
     if use_local:
         cmd += " -G 0"
@@ -57,20 +56,19 @@ def run_cdhit_est(input_file, output_file,
         strand=1, # default do both +/+ & +/- alignments if set to 0, only +/+
         quiet=False):
 
-        cmd = ("cd-hit-est" +
-            " -T " + str(n_cpu) +
-            " -i " + input_file +
-            " -o " + output_file +
-            " -c " + str(id) +
-            " -s " + str(s) +
-            " -aL " + str(aL) +
-            " -AL " + str(AL) +
-            " -aS " + str(aS) +
-            " -AS " + str(AS) +
-            " -r " + str(strand) +
-            " -mask NX " +
-            " -M 0 -d 999"
-            )
+        cmd = "cd-hit-est"
+        cmd += " -T " + str(n_cpu)
+        cmd += " -i " + input_file
+        cmd += " -o " + output_file
+        cmd += " -c " + str(id)
+        cmd += " -s " + str(s)
+        cmd += " -aL " + str(aL)
+        cmd += " -AL " + str(AL)
+        cmd += " -aS " + str(aS)
+        cmd += " -AS " + str(AS)
+        cmd += " -r " + str(strand)
+        cmd += " -mask NX "
+        cmd += " -M 0 -d 999"
 
         if use_local:
             cmd += " -G 0"
