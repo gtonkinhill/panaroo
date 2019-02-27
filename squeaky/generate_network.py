@@ -40,7 +40,7 @@ def generate_network(cluster_file, data_file, prot_seq_file,
                 cluster_centroid_data[seq_to_cluster[line[0]]] = {
                     'prot_sequence': line[2],
                     'dna_sequence': line[3],
-                    'gene_name': line[4],
+                    'annotation': line[4],
                     'description': line[5],
                 }
 
@@ -77,6 +77,8 @@ def generate_network(cluster_file, data_file, prot_seq_file,
                     members=[genome_id],
                     protein=cluster_centroid_data[current_cluster]['prot_sequence'],
                     dna=cluster_centroid_data[current_cluster]['dna_sequence'],
+                    annotation=cluster_centroid_data[current_cluster]['annotation'],
+                    description=cluster_centroid_data[current_cluster]['description'],
                     paralog=(current_cluster in paralogs))
         else:
             is_paralog = current_cluster in paralogs
@@ -91,6 +93,8 @@ def generate_network(cluster_file, data_file, prot_seq_file,
                     members=[genome_id],
                     protein=cluster_centroid_data[current_cluster]['prot_sequence'],
                     dna=cluster_centroid_data[current_cluster]['dna_sequence'],
+                    annotation=cluster_centroid_data[current_cluster]['annotation'],
+                    description=cluster_centroid_data[current_cluster]['description'],
                     paralog=True)
                 # add edge between nodes
                 G.add_edge(prev, neighbour,
@@ -105,6 +109,8 @@ def generate_network(cluster_file, data_file, prot_seq_file,
                         members=[genome_id],
                         protein=cluster_centroid_data[current_cluster]['prot_sequence'],
                         dna=cluster_centroid_data[current_cluster]['dna_sequence'],
+                        annotation=cluster_centroid_data[current_cluster]['annotation'],
+                        description=cluster_centroid_data[current_cluster]['description'],
                         paralog=is_paralog)
                     # add edge between nodes
                     G.add_edge(prev, current_cluster,

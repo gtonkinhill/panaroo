@@ -94,37 +94,12 @@ def main():
             prot_seq_file = args.output_dir + "combined_protein_CDS.fasta",
             split_paralogs = args.split_paralogs)
 
-    # write out raw edge list prior to filtering
-    with open(args.output_dir + "/" + "network_edges_pretrim.csv", 'w') as outfile:
-        outfile.write("source,target,count\n")
-        for node1, node2, data in G.edges(data=True):
-            outfile.write(",".join(map(str, [node1, node2, data['weight']])) +
-                "\n")
+    # write out pre-filter graph in GML format
+    nx.write_gml(G, args.output_dir + "pre_filt_graph.gml")
 
     # remove low support trailing ends
     G = trim_low_support_trailing_ends(G, min_support=args.min_trailing_support,
         max_recursive=2)
-
-
-    # write out intermediate edge list and node attributes
-    with open(args.output_dir + "/" + "network_edges_pre_filt.csv", 'w') as outfile:
-        outfile.write("source,target,count,members\n")
-        for node1, node2, data in G.edges(data=True):
-            outfile.write(",".join(map(str, [node1, node2, data['weight'],
-                ";" + ";".join(data['members']) + ";"])) + "\n")
-
-    with open(args.output_dir + "/" + "gene_cluster_attributes_pre_filt.csv", 'w') as outfile:
-        outfile.write("Id,Label,size,centroid,is_paralog,protein,DNA,members\n")
-        for node, data in G.nodes(data=True):
-            outfile.write(",".join(map(str, [node,
-                                             data['centroid'],
-                                             data['size'],
-                                             data['centroid'],
-                                             data['paralog'],
-                                             data['protein'],
-                                             data['dna'],
-                                             ";" + ";".join(data['members']) + ";"]))
-                                              + "\n")
 
     # clean up translation errors and gene families
     G = collapse_families(G,
@@ -134,30 +109,8 @@ def main():
         dna_error_threshold=0.99,
         correct_mistranslations=True)
 
-
-    # write out final edge list and node attributes
-    with open(args.output_dir + "/" + "network_edges.csv", 'w') as outfile:
-        outfile.write("source,target,count,members\n")
-        for node1, node2, data in G.edges(data=True):
-            outfile.write(",".join(map(str, [node1, node2, data['weight'],
-                ";" + ";".join(data['members']) + ";"])) + "\n")
-
-    with open(args.output_dir + "/" + "gene_cluster_attributes.csv", 'w') as outfile:
-        outfile.write("Id,Label,size,centroid,is_paralog,protein,DNA,members\n")
-        for node, data in G.nodes(data=True):
-            outfile.write(",".join(map(str, [node,
-                                             data['centroid'],
-                                             data['size'],
-                                             data['centroid'],
-                                             data['paralog'],
-                                             data['protein'],
-                                             data['dna'],
-                                             ";" + ";".join(data['members']) + ";"]))
-                                              + "\n")
-
-    # # write out graph in GML format
-    # nx.write_gml(G, args.output_dir + "/" + "final_graph.gml")
-
+    # write out graph in GML format
+    nx.write_gml(G, args.output_dir + "final_graph.gml")
 
     # remove temp TemporaryDirectory
     shutil.rmtree(temp_dir)

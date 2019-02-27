@@ -10,6 +10,10 @@ def merge_nodes(G, nodeA, nodeB, newNode, multi_centroid=False):
                 G.node[nodeB]['protein'].split(";"))),
             dna=";".join(set(G.node[nodeA]['dna'].split(";") +
                 G.node[nodeB]['dna'].split(";"))),
+            annotation=";".join(set(G.node[nodeA]['annotation'].split(";") +
+                G.node[nodeB]['annotation'].split(";"))),
+            description=";".join(set(G.node[nodeA]['description'].split(";") +
+                G.node[nodeB]['description'].split(";"))),
             paralog=(G.node[nodeA]['paralog'] or G.node[nodeB]['paralog']))
     else:
         G.add_node(newNode,
@@ -18,6 +22,8 @@ def merge_nodes(G, nodeA, nodeB, newNode, multi_centroid=False):
             members=G.node[nodeA]['members'] + G.node[nodeB]['members'],
             protein=G.node[nodeA]['protein'],
             dna=G.node[nodeA]['dna'],
+            annotation=G.node[nodeA]['annotation'],
+            description=G.node[nodeA]['description'],
             paralog=(G.node[nodeA]['paralog'] or G.node[nodeB]['paralog']))
 
     # Now iterate through neighbours of each node and add them to the new node
