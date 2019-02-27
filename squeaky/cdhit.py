@@ -3,17 +3,19 @@ import tempfile
 import os
 
 
-def run_cdhit(input_file, output_file,
-    id=0.95,
-    n_cpu=1,
-    s=0.0, # length difference cutoff (%), default 0.0
-    aL=0.0, # alignment coverage for the longer sequence
-    AL=99999999, # alignment coverage control for the longer sequence
-    aS=0.0, # alignment coverage for the shorter sequence
-    AS=99999999, # alignment coverage control for the shorter sequence
-    accurate=True, # use the slower but more accurate options
-    use_local=False, #whether to use local or global sequence alignment
-    quiet=False):
+def run_cdhit(
+        input_file,
+        output_file,
+        id=0.95,
+        n_cpu=1,
+        s=0.0,  # length difference cutoff (%), default 0.0
+        aL=0.0,  # alignment coverage for the longer sequence
+        AL=99999999,  # alignment coverage control for the longer sequence
+        aS=0.0,  # alignment coverage for the shorter sequence
+        AS=99999999,  # alignment coverage control for the shorter sequence
+        accurate=True,  # use the slower but more accurate options
+        use_local=False,  #whether to use local or global sequence alignment
+        quiet=False):
 
     cmd = "cd-hit"
     cmd += " -T " + str(n_cpu)
@@ -43,64 +45,72 @@ def run_cdhit(input_file, output_file,
     return
 
 
-def run_cdhit_est(input_file, output_file,
+def run_cdhit_est(
+        input_file,
+        output_file,
         id=0.99,
         n_cpu=1,
-        s=0.0, # length difference cutoff (%), default 0.0
-        aL=0.0, # alignment coverage for the longer sequence
-        AL=99999999, # alignment coverage control for the longer sequence
-        aS=0.0, # alignment coverage for the shorter sequence
-        AS=99999999, # alignment coverage control for the shorter sequence
-        accurate=True, # use the slower but more accurate options
-        use_local=False, #whether to use local or global sequence alignment
-        strand=1, # default do both +/+ & +/- alignments if set to 0, only +/+
+        s=0.0,  # length difference cutoff (%), default 0.0
+        aL=0.0,  # alignment coverage for the longer sequence
+        AL=99999999,  # alignment coverage control for the longer sequence
+        aS=0.0,  # alignment coverage for the shorter sequence
+        AS=99999999,  # alignment coverage control for the shorter sequence
+        accurate=True,  # use the slower but more accurate options
+        use_local=False,  #whether to use local or global sequence alignment
+        strand=1,  # default do both +/+ & +/- alignments if set to 0, only +/+
         quiet=False):
 
-        cmd = "cd-hit-est"
-        cmd += " -T " + str(n_cpu)
-        cmd += " -i " + input_file
-        cmd += " -o " + output_file
-        cmd += " -c " + str(id)
-        cmd += " -s " + str(s)
-        cmd += " -aL " + str(aL)
-        cmd += " -AL " + str(AL)
-        cmd += " -aS " + str(aS)
-        cmd += " -AS " + str(AS)
-        cmd += " -r " + str(strand)
-        cmd += " -mask NX "
-        cmd += " -M 0 -d 999"
+    cmd = "cd-hit-est"
+    cmd += " -T " + str(n_cpu)
+    cmd += " -i " + input_file
+    cmd += " -o " + output_file
+    cmd += " -c " + str(id)
+    cmd += " -s " + str(s)
+    cmd += " -aL " + str(aL)
+    cmd += " -AL " + str(AL)
+    cmd += " -aS " + str(aS)
+    cmd += " -AS " + str(AS)
+    cmd += " -r " + str(strand)
+    cmd += " -mask NX "
+    cmd += " -M 0 -d 999"
 
-        if use_local:
-            cmd += " -G 0"
+    if use_local:
+        cmd += " -G 0"
 
-        if accurate:
-            cmd += " -g 1 -n 2"
+    if accurate:
+        cmd += " -g 1 -n 2"
 
-        if not quiet:
-            print("running cmd: " + cmd)
-        else:
-            cmd += " > /dev/null"
+    if not quiet:
+        print("running cmd: " + cmd)
+    else:
+        cmd += " > /dev/null"
 
-        subprocess.run(cmd, shell=True, check=True)
+    subprocess.run(cmd, shell=True, check=True)
 
-        return
+    return
 
-def cluster_nodes_cdhit(G, nodes, outdir, id=0.95, dna=False,
-    s=0.0, # length difference cutoff (%), default 0.0
-    aL=0.0, # alignment coverage for the longer sequence
-    AL=99999999, # alignment coverage control for the longer sequence
-    aS=0.0, # alignment coverage for the shorter sequence
-    AS=99999999, # alignment coverage control for the shorter sequence
-    accurate=True, # use the slower but more accurate options
-    use_local=False, #whether to use local or global sequence alignment
-    strand=1, # default do both +/+ & +/- alignments if set to 0, only +/+
-    quiet=False):
+
+def cluster_nodes_cdhit(
+        G,
+        nodes,
+        outdir,
+        id=0.95,
+        dna=False,
+        s=0.0,  # length difference cutoff (%), default 0.0
+        aL=0.0,  # alignment coverage for the longer sequence
+        AL=99999999,  # alignment coverage control for the longer sequence
+        aS=0.0,  # alignment coverage for the shorter sequence
+        AS=99999999,  # alignment coverage control for the shorter sequence
+        accurate=True,  # use the slower but more accurate options
+        use_local=False,  #whether to use local or global sequence alignment
+        strand=1,  # default do both +/+ & +/- alignments if set to 0, only +/+
+        quiet=False):
 
     # create the files we will need
     centroids_to_nodes = {}
-    temp_input_file = tempfile.NamedTemporaryFile(delete = False, dir=outdir)
+    temp_input_file = tempfile.NamedTemporaryFile(delete=False, dir=outdir)
     temp_input_file.close()
-    temp_output_file = tempfile.NamedTemporaryFile(delete = False, dir=outdir)
+    temp_output_file = tempfile.NamedTemporaryFile(delete=False, dir=outdir)
     temp_output_file.close()
 
     with open(temp_input_file.name, 'w') as outfile:
@@ -114,26 +124,42 @@ def cluster_nodes_cdhit(G, nodes, outdir, id=0.95, dna=False,
 
     # run cd-hit
     if dna:
-        run_cdhit_est(input_file=temp_input_file.name,
+        run_cdhit_est(
+            input_file=temp_input_file.name,
             output_file=temp_output_file.name,
-            id=id, s=s, aL=aL, AL=AL, aS=AS, accurate=accurate,
-            use_local=use_local, strand=strand, quiet=quiet)
+            id=id,
+            s=s,
+            aL=aL,
+            AL=AL,
+            aS=AS,
+            accurate=accurate,
+            use_local=use_local,
+            strand=strand,
+            quiet=quiet)
     else:
-        run_cdhit(input_file=temp_input_file.name,
+        run_cdhit(
+            input_file=temp_input_file.name,
             output_file=temp_output_file.name,
-            id=id, s=s, aL=aL, AL=AL, aS=AS, accurate=accurate,
-            use_local=use_local, quiet=quiet)
+            id=id,
+            s=s,
+            aL=aL,
+            AL=AL,
+            aS=AS,
+            accurate=accurate,
+            use_local=use_local,
+            quiet=quiet)
 
     # process the output
     clusters = []
     with open(temp_output_file.name + ".clstr", 'rU') as infile:
         c = []
         for line in infile:
-            if line[0]==">":
+            if line[0] == ">":
                 clusters.append(c)
-                c=[]
+                c = []
             else:
-                c.append(centroids_to_nodes[line.split(">")[1].split("...")[0]])
+                c.append(
+                    centroids_to_nodes[line.split(">")[1].split("...")[0]])
         clusters.append(c)
     clusters = clusters[1:]
 
