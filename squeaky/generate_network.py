@@ -48,9 +48,8 @@ def generate_network(cluster_file,
 
     # load headers which contain adjacency information
     seq_ids = []
-    with open(prot_seq_file, 'rU') as infile:
-        for rec in SeqIO.parse(prot_seq_file, "fasta"):
-            seq_ids.append(str(rec.id))
+    for rec in SeqIO.parse(prot_seq_file, "fasta"):
+        seq_ids.append(str(rec.id))
 
     # build graph using adjacency information and optionally split paralogs
     G = nx.Graph()
@@ -65,6 +64,7 @@ def generate_network(cluster_file,
             if G.has_node(prev):
                 G.node[prev]['size'] += 1
                 G.node[prev]['members'].append(genome_id)
+                G.node[prev]['seqIDs'].append(id)
             else:
                 if (prev in paralogs) and split_paralogs:
                     # create a new paralog
@@ -77,6 +77,7 @@ def generate_network(cluster_file,
                     size=1,
                     centroid=cluster_centroids[current_cluster],
                     members=[genome_id],
+                    seqIDs=[id],
                     protein=cluster_centroid_data[current_cluster]
                     ['prot_sequence'],
                     dna=cluster_centroid_data[current_cluster]['dna_sequence'],
@@ -97,6 +98,7 @@ def generate_network(cluster_file,
                     size=1,
                     centroid=cluster_centroids[current_cluster],
                     members=[genome_id],
+                    seqIDs=[id],
                     protein=cluster_centroid_data[current_cluster]
                     ['prot_sequence'],
                     dna=cluster_centroid_data[current_cluster]['dna_sequence'],
@@ -116,6 +118,7 @@ def generate_network(cluster_file,
                         size=1,
                         centroid=cluster_centroids[current_cluster],
                         members=[genome_id],
+                        seqIDs=[id],
                         protein=cluster_centroid_data[current_cluster]
                         ['prot_sequence'],
                         dna=cluster_centroid_data[current_cluster]
@@ -131,6 +134,7 @@ def generate_network(cluster_file,
                 else:
                     G.node[current_cluster]['size'] += 1
                     G.node[current_cluster]['members'].append(genome_id)
+                    G.node[current_cluster]['seqIDs'].append(id)
                     if G.has_edge(prev, current_cluster):
                         G[prev][current_cluster]['weight'] += 1
                         G[prev][current_cluster]['members'].append(genome_id)

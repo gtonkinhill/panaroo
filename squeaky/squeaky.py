@@ -77,6 +77,14 @@ def main():
         default=2)
 
     parser.add_argument(
+        "--trailing_recursive",
+        dest="trailing_recursive",
+        help=("number of times to perform recursive triming of low support " +
+              "nodes near the end of contigs (default=2)"),
+        type=int,
+        default=2)
+
+    parser.add_argument(
         "--max_cycle_size",
         dest="max_cycle_size",
         help=("maximum cycle  size for collapsing gene families " +
@@ -131,7 +139,9 @@ def main():
 
     # remove low support trailing ends
     G = trim_low_support_trailing_ends(
-        G, min_support=args.min_trailing_support, max_recursive=2)
+        G,
+        min_support=args.min_trailing_support,
+        max_recursive=args.trailing_recursive)
 
     # clean up translation errors and gene families
     G = collapse_families(
