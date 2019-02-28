@@ -8,7 +8,9 @@ from Bio import SeqIO
 def generate_roary_gene_presence_absence(G, file_names, dna_file, output_dir):
 
     # clean file names
-    file_names = [os.path.splitext(os.path.basename(f.name)) for f in file_names]
+    file_names = [
+        os.path.splitext(os.path.basename(f.name)) for f in file_names
+    ]
     file_names = [f.replace(",", "") for f in file_names]
 
     # calculate node average, min and max lengths
@@ -67,8 +69,13 @@ def generate_roary_gene_presence_absence(G, file_names, dna_file, output_dir):
 
     return
 
+
 def generate_pan_genome_reference(G, output_dir, split_paralogs=False):
 
     # need to treat paralogs differently?
+    with open(out_dir + "pan_genome_reference.fa") as outfile:
+        for node in G.nodes():
+            outfile.write(">" + G.node[node]['centroid'] + "\n")
+            outfile.write(G.node[node]['dna_sequence'] + "\n")
 
     return
