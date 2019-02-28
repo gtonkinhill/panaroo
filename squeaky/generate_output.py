@@ -3,13 +3,16 @@ from collections import defaultdict
 import numpy as np
 import os
 from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
+from Bio.Alphabet import generic_dna
 
 
 def generate_roary_gene_presence_absence(G, file_names, dna_file, output_dir):
 
     # clean file names
     file_names = [
-        os.path.splitext(os.path.basename(f.name)) for f in file_names
+        os.path.splitext(os.path.basename(f.name))[0] for f in file_names
     ]
     file_names = [f.replace(",", "") for f in file_names]
 
@@ -19,7 +22,7 @@ def generate_roary_gene_presence_absence(G, file_names, dna_file, output_dir):
         seq_lengths[str(rec.id)] = len(rec.seq)
     node_lengths = defaultdict(list)
     for node in G.nodes():
-        for seq in G.node[node][seqIDs]:
+        for seq in G.node[node]['seqIDs']:
             node_lengths[node].append(seq_lengths[seq])
 
     # generate file
@@ -34,7 +37,7 @@ def generate_roary_gene_presence_absence(G, file_names, dna_file, output_dir):
         outfile.write(",".join(header) + "\n")
 
         # Iterate through coponents writing out to file
-        used_gene_names = set()
+        used_gene_names = set([""])
         unique_id_count = 0
         frag = 0
         for component in nx.connected_components(G):
@@ -42,9 +45,10 @@ def generate_roary_gene_presence_absence(G, file_names, dna_file, output_dir):
             count = 0
             for node in component:
                 count += 1
-                if G.node[node]['annotation'] not in used_gene_names:
-                    entry = [G.node[node]['annotation']]
-                    used_gene_names.add(G.node[node]['annotation'])
+                name = G.node[node]['annotation'].strip()
+                if name not in used_gene_names:
+                    entry = [name]
+                    used_gene_names.add(name)
                 else:
                     entry = ["group_" + str(unique_id_count)]
                     unique_id_count += 1
@@ -56,7 +60,7 @@ def generate_roary_gene_presence_absence(G, file_names, dna_file, output_dir):
                     set(G.node[node]['members'])))
                 entry.append(frag)
                 entry.append(count)
-                entry.append(["", "", ""])
+                entry += ["", "", ""]
                 entry.append(np.min(node_lengths[node]))
                 entry.append(np.max(node_lengths[node]))
                 entry.append(np.mean(node_lengths[node]))
@@ -64,18 +68,44 @@ def generate_roary_gene_presence_absence(G, file_names, dna_file, output_dir):
                 for seq in G.node[node]['seqIDs']:
                     sample_id = int(seq.split("_")[0])
                     pres_abs[sample_id] = seq
-                entry.append(pres_abs)
-                outfile.write(",".join(entry) + "\n")
+                entry += pres_abs
+                outfile.write(",".join([str(e) for e in entry]) + "\n")
 
     return
 
 
+# def generate_pan_genome_reference(G, output_dir, split_paralogs=False):
+#
+#     # need to treat paralogs differently?
+#     centroids = set()
+#     records = []
+#     with open(output_dir + "pan_genome_reference.fa", 'w') as outfile:
+#         for node in G.nodes():
+#             if not split_paralogs and G.node[node]['centroid'] in centroids:
+#                 continue
+#             # outfile.write(">" + G.node[node]['centroid'] + "\n")
+#             # outfile.write(G.node[node]['dna'] + '\n')
+#             records.append((G.node[node]['centroid'], G.node[node]['dna']))
+#             centroids.add(G.node[node]['centroid'])
+#
+#     return
+
 def generate_pan_genome_reference(G, output_dir, split_paralogs=False):
 
     # need to treat paralogs differently?
-    with open(out_dir + "pan_genome_reference.fa") as outfile:
-        for node in G.nodes():
-            outfile.write(">" + G.node[node]['centroid'] + "\n")
-            outfile.write(G.node[node]['dna_sequence'] + "\n")
+    centroids = set()
+    records = []
+
+    for node in G.nodes():
+        if not split_paralogs and G.node[node]['centroid'] in centroids:
+            continue
+        records.append(SeqRecord(Seq(G.node[node]['dna'],
+                       generic_dna),
+                   id=G.node[node]['centroid'],
+                   description=""))
+        centroids.add(G.node[node]['centroid'])
+
+    with open(output_dir + "pan_genome_reference.fa", 'w') as outfile:
+        SeqIO.write(records, outfile, "fasta")
 
     return

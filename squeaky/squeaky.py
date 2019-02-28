@@ -1,7 +1,7 @@
 from prokka import process_prokka_input
 from cdhit import run_cdhit
 from generate_network import generate_network
-from generate_output import generate_roary_gene_presence_absence
+from generate_output import *
 from clean_network import *
 import os
 import argparse
@@ -161,7 +161,11 @@ def main():
         G,
         file_names=args.input_files,
         dna_file=args.output_dir + "combined_DNA_CDS.fasta",
-        output_dir = args.output_dir)
+        output_dir=args.output_dir)
+
+    # write pan genome reference fasta file
+    generate_pan_genome_reference(
+        G, output_dir=args.output_dir, split_paralogs=False)
 
     # remove temp TemporaryDirectory
     shutil.rmtree(temp_dir)
