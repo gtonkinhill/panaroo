@@ -45,9 +45,9 @@ def generate_roary_gene_presence_absence(G, file_names, dna_file,
                     unique_id_count += 1
                 entry.append(G.node[node]['annotation'])
                 entry.append(G.node[node]['description'])
+                entry.append(len(G.node[node]['seqIDs']))
                 entry.append(len(set(G.node[node]['members'])))
-                entry.append(len(G.node[node]['members']))
-                entry.append((1.0*len(G.node[node]['members']))/
+                entry.append((1.0*len(G.node[node]['seqIDs']))/
                     len(set(G.node[node]['members'])))
                 entry.append(frag)
                 entry.append(count)
