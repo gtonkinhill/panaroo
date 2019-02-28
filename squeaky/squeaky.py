@@ -1,6 +1,7 @@
 from prokka import process_prokka_input
 from cdhit import run_cdhit
 from generate_network import generate_network
+from generate_output import generate_roary_gene_presence_absence
 from clean_network import *
 import os
 import argparse
@@ -154,6 +155,13 @@ def main():
 
     # write out graph in GML format
     nx.write_gml(G, args.output_dir + "final_graph.gml")
+
+    # write out roary like gene_presence_absence.csv
+    generate_roary_gene_presence_absence(
+        G,
+        file_names=args.input_files,
+        dna_file=args.output_dir + "combined_DNA_CDS.fasta",
+        output_dir = args.output_dir)
 
     # remove temp TemporaryDirectory
     shutil.rmtree(temp_dir)
