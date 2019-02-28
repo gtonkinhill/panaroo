@@ -74,21 +74,6 @@ def generate_roary_gene_presence_absence(G, file_names, dna_file, output_dir):
     return
 
 
-# def generate_pan_genome_reference(G, output_dir, split_paralogs=False):
-#
-#     # need to treat paralogs differently?
-#     centroids = set()
-#     records = []
-#     with open(output_dir + "pan_genome_reference.fa", 'w') as outfile:
-#         for node in G.nodes():
-#             if not split_paralogs and G.node[node]['centroid'] in centroids:
-#                 continue
-#             # outfile.write(">" + G.node[node]['centroid'] + "\n")
-#             # outfile.write(G.node[node]['dna'] + '\n')
-#             records.append((G.node[node]['centroid'], G.node[node]['dna']))
-#             centroids.add(G.node[node]['centroid'])
-#
-#     return
 
 def generate_pan_genome_reference(G, output_dir, split_paralogs=False):
 
