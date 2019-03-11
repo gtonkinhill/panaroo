@@ -37,13 +37,13 @@ def generate_network(cluster_file,
         next(infile)  # skip header
         for line in infile:
             line = line.strip().split(",")
-            if line[0] in seq_to_cluster:
+            if line[2] in seq_to_cluster:
                 # this is a cluster centroid so keep it
-                cluster_centroid_data[seq_to_cluster[line[0]]] = {
-                    'prot_sequence': line[2],
-                    'dna_sequence': line[3],
-                    'annotation': line[4],
-                    'description': line[5],
+                cluster_centroid_data[seq_to_cluster[line[2]]] = {
+                    'prot_sequence': line[4],
+                    'dna_sequence': line[5],
+                    'annotation': line[6],
+                    'description': line[7],
                 }
 
     # load headers which contain adjacency information

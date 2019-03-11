@@ -61,7 +61,8 @@ def get_gene_sequences(gff_file, file_number):
                                    gene_sequence,
                                    id=entry.id,
                                    description=gene_description,
-                                   name=gene_name))
+                                   name=gene_name,
+                                   annotations={"scaffold":scaffold_id}))
                 scaffold_genes[scaffold_id] = scaffold_genes.get(
                     scaffold_id, [])
                 scaffold_genes[scaffold_id].append(gene_record)
@@ -98,7 +99,8 @@ def translate_sequences(sequence_dic):
     return protein_list
 
 
-def output_files(dna_dictionary, prot_handle, dna_handle, csv_handle):
+def output_files(dna_dictionary, prot_handle, dna_handle, csv_handle,
+    gff_filename):
     #Simple output for protien list
     protien_list = translate_sequences(dna_dictionary)
     SeqIO.write(protien_list, prot_handle, 'fasta')
@@ -111,11 +113,14 @@ def output_files(dna_dictionary, prot_handle, dna_handle, csv_handle):
             description=clusteringid)
         clustering_id_records.append(clean_record)
     SeqIO.write(clustering_id_records, dna_handle, 'fasta')
+    gff_name = os.path.splitext(os.path.basename(gff_filename.name))[0]
+
     #Combine everything to a csv and output it
     for protien in protien_list:
         clustering_id = protien.id
         relevant_seqrecord = dna_dictionary[clustering_id]
         out_list = [
+            gff_name, relevant_seqrecord.annotations["scaffold"],
             clustering_id, relevant_seqrecord.id,
             str(protien.seq),
             str(relevant_seqrecord.seq),
@@ -133,11 +138,11 @@ def process_prokka_input(gff_list, output_dir):
         DNAhandle = open(output_dir + "combined_DNA_CDS.fasta", 'w+')
         csvHandle = open(output_dir + "gene_data.csv", 'w+')
         csvHandle.write(
-            "clustering_id,annotation_id,prot_sequence,dna_sequence,gene_name,description\n"
+            "gff_file,scaffold_name,clustering_id,annotation_id,prot_sequence,dna_sequence,gene_name,description\n"
         )
         for gff_no, gff in enumerate(gff_list):
             gene_sequences = get_gene_sequences(gff, gff_no)
-            output_files(gene_sequences, protienHandle, DNAhandle, csvHandle)
+            output_files(gene_sequences, protienHandle, DNAhandle, csvHandle, gff)
         protienHandle.close()
         DNAhandle.close()
         csvHandle.close()
