@@ -1,4 +1,10 @@
-def merge_nodes(G, nodeA, nodeB, newNode, multi_centroid=False):
+def merge_nodes(G, nodeA, nodeB, newNode, multi_centroid=False,
+    check_merge_mems=True):
+
+    if check_merge_mems:
+        if len(set(G.node[nodeA]['members']) & set(G.node[nodeB]['members']))>0:
+            raise ValueError("merging nodes with the same genome IDs!")
+
     # First create a new node and combine the attributes
     if multi_centroid:
         G.add_node(
