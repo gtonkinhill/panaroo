@@ -55,7 +55,17 @@ def get_gene_sequences(gff_file, file_number):
                     gene_name = entry.attributes["gene"][0]
                 except KeyError:
                     gene_name = " "
-                gene_description = ";".join(entry.attributes["product"])
+                if gene_name == " ":
+                    try:
+                        gene_name = entry.attributes["name"][0]
+                    except KeyError:
+                        gene_name = " "
+
+                try:
+                    gene_description = ";".join(entry.attributes["product"])
+                except KeyError:
+                    gene_description = " "
+
                 gene_record = (entry.start,
                                SeqRecord(
                                    gene_sequence,
