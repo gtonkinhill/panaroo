@@ -135,40 +135,40 @@ def main():
         prot_seq_file=args.output_dir + "combined_protein_CDS.fasta",
         split_paralogs=args.split_paralogs)
 
-    # write out pre-filter graph in GML format
-    nx.write_gml(G, args.output_dir + "pre_filt_graph.gml")
-
-    # remove low support trailing ends
-    G = trim_low_support_trailing_ends(
-        G,
-        min_support=args.min_trailing_support,
-        max_recursive=args.trailing_recursive)
-
-    # clean up translation errors and gene families
-    G = collapse_families(
-        G,
-        cycle_threshold=args.max_cycle_size,
-        family_threshold=args.family_threshold,
-        outdir=temp_dir,
-        dna_error_threshold=0.99,
-        correct_mistranslations=True)
-
-    # add helpful attributes and write out graph in GML format
-    for node in G.nodes():
-        G.node[node]['genomeIDs'] = ";".join(G.node[node]['members'])
-        G.node[node]['degrees'] = G.degree[node]
-    nx.write_gml(G, args.output_dir + "final_graph.gml")
-
-    # write out roary like gene_presence_absence.csv
-    generate_roary_gene_presence_absence(
-        G,
-        file_names=args.input_files,
-        dna_file=args.output_dir + "combined_DNA_CDS.fasta",
-        output_dir=args.output_dir)
-
-    # write pan genome reference fasta file
-    generate_pan_genome_reference(
-        G, output_dir=args.output_dir, split_paralogs=False)
+    # # write out pre-filter graph in GML format
+    # nx.write_gml(G, args.output_dir + "pre_filt_graph.gml")
+    #
+    # # remove low support trailing ends
+    # G = trim_low_support_trailing_ends(
+    #     G,
+    #     min_support=args.min_trailing_support,
+    #     max_recursive=args.trailing_recursive)
+    #
+    # # clean up translation errors and gene families
+    # G = collapse_families(
+    #     G,
+    #     cycle_threshold=args.max_cycle_size,
+    #     family_threshold=args.family_threshold,
+    #     outdir=temp_dir,
+    #     dna_error_threshold=0.99,
+    #     correct_mistranslations=True)
+    #
+    # # add helpful attributes and write out graph in GML format
+    # for node in G.nodes():
+    #     G.node[node]['genomeIDs'] = ";".join(G.node[node]['members'])
+    #     G.node[node]['degrees'] = G.degree[node]
+    # nx.write_gml(G, args.output_dir + "final_graph.gml")
+    #
+    # # write out roary like gene_presence_absence.csv
+    # generate_roary_gene_presence_absence(
+    #     G,
+    #     file_names=args.input_files,
+    #     dna_file=args.output_dir + "combined_DNA_CDS.fasta",
+    #     output_dir=args.output_dir)
+    #
+    # # write pan genome reference fasta file
+    # generate_pan_genome_reference(
+    #     G, output_dir=args.output_dir, split_paralogs=False)
 
     # remove temp TemporaryDirectory
     shutil.rmtree(temp_dir)
