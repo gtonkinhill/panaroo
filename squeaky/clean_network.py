@@ -53,16 +53,7 @@ def collapse_families(G,
         basis = nx.cycle_basis(sub_G, list(sub_G.nodes())[0])
         complete_basis += [set(b) for b in basis if len(b) < cycle_threshold]
 
-    # remove paralogs and resulting cycles that are too short
-    # temp_basis = []
-    # for i, b in enumerate(complete_basis):
-    #     new_b = set()
-    #     for node in b:
-    #         if not G.node[node]["paralog"]:
-    #             new_b.add(node)
-    #     if len(new_b) > 1:
-    #         temp_basis.append(new_b)
-    # complete_basis = temp_basis
+    # remove cycles that are too short
     complete_basis = [b for b in complete_basis if len(b) > 1]
 
     # merge cycles with more than one node in common (nested)
@@ -91,8 +82,14 @@ def collapse_families(G,
             b = merged_basis.pop()
             print("basis: ", b)
             clusters = cluster_nodes_cdhit(
-                G, b, outdir, id=dna_error_threshold, quiet=True, dna=True,
-                use_local=True, aS=0.9)
+                G,
+                b,
+                outdir,
+                id=dna_error_threshold,
+                quiet=True,
+                dna=True,
+                use_local=True,
+                aS=0.9)
             if not quiet:
                 print("cycle:", b)
                 print("clusters:", clusters)
@@ -197,28 +194,23 @@ def collapse_families(G,
     para_clusters = defaultdict(list)
     for node, data in G.nodes(data=True):
         if data['paralog']:
-            context = tuple([data['centroid']] + sorted(
-                [n for n in G.neighbors(node)]))
+            context = tuple([data['centroid']] +
+                            sorted([n for n in G.neighbors(node)]))
             para_clusters[context].append(node)
     # now merge
     for context in para_clusters:
         if len(para_clusters[context]) > 1:
             G = merge_nodes(G, para_clusters[context].pop(),
-                para_clusters[context].pop(), node_count+1)
+                            para_clusters[context].pop(), node_count + 1)
             while len(para_clusters[context]) > 0:
                 node_count += 1
                 G = merge_nodes(G, para_clusters[context].pop(), node_count,
-                    node_count+1)
+                                node_count + 1)
 
     return G
 
 
-
-
-
-def collapse_paralogs(G,
-                      cycle_threshold,
-                      quiet=False):
+def collapse_paralogs(G, cycle_threshold, quiet=False):
 
     node_count = max(list(G.nodes())) + 10
 
@@ -228,7 +220,6 @@ def collapse_paralogs(G,
         sub_G = G.subgraph(c)
         basis = nx.cycle_basis(sub_G, list(sub_G.nodes())[0])
         complete_basis += [set(b) for b in basis if len(b) < cycle_threshold]
-
 
     complete_basis = [b for b in complete_basis if len(b) > 1]
 
@@ -250,7 +241,6 @@ def collapse_paralogs(G,
         merged_basis.append(first)
         complete_basis = rest
 
-
     # merge nodes based on the family_threshold by clustering at the protein
     # level
     node_count += 1
@@ -264,17 +254,10 @@ def collapse_paralogs(G,
             if len(c) > 1:
                 # keep the centroid with the highest support
                 temp_c = c.copy()
-                G = merge_nodes(
-                    G,
-                    temp_c.pop(),
-                    temp_c.pop(),
-                    node_count)
+                G = merge_nodes(G, temp_c.pop(), temp_c.pop(), node_count)
                 while (len(temp_c) > 0):
-                    G = merge_nodes(
-                        G,
-                        node_count,
-                        temp_c.pop(),
-                        node_count + 1)
+                    G = merge_nodes(G, node_count, temp_c.pop(),
+                                    node_count + 1)
                     node_count += 1
                 temp_b.append(node_count)
             else:
@@ -292,12 +275,12 @@ def collapse_paralogs(G,
 
     return G
 
+
 def group_paralogs(G, basis):
     clusters = defaultdict(list)
     for b in basis:
         clusters[G.node[b]['centroid']].append(b)
     clusters = [clusters[c] for c in clusters]
-
 
     basis = list(basis)
     # set up node to cluster dict
@@ -344,6 +327,6 @@ def group_paralogs(G, basis):
     clusters = []
     for c1 in new_clusters:
         for c2 in new_clusters[c1]:
-             clusters.append(c2)
+            clusters.append(c2)
 
     return clusters

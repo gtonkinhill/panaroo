@@ -4,6 +4,7 @@ import os
 from collections import defaultdict
 import networkx as nx
 
+
 def run_cdhit(
         input_file,
         output_file,
@@ -118,11 +119,11 @@ def cluster_nodes_cdhit(
         for node in nodes:
             outfile.write(">" + str(node) + "\n")
             if dna:
-                outfile.write(max(G.node[node]["dna"].split(";"), key=len) +
-                    "\n")
+                outfile.write(
+                    max(G.node[node]["dna"].split(";"), key=len) + "\n")
             else:
-                outfile.write(max(G.node[node]["protein"].split(";"), key=len) +
-                    "\n")
+                outfile.write(
+                    max(G.node[node]["protein"].split(";"), key=len) + "\n")
 
     # run cd-hit
     if dna:
@@ -160,22 +161,18 @@ def cluster_nodes_cdhit(
                 clusters.append(c)
                 c = []
             else:
-                c.append(
-                    int(line.split(">")[1].split("...")[0]))
+                c.append(int(line.split(">")[1].split("...")[0]))
         clusters.append(c)
     clusters = clusters[1:]
 
     # optionally split clusters to ensure we don't collapse paralogs
     if prevent_para:
         nodes = list(nodes)
-        print("nodes:", nodes)
         # set up node to cluster dict
         cluster_dict = {}
         for i, c in enumerate(clusters):
             for n in c:
                 cluster_dict[n] = i
-        print("clusters:", clusters)
-        print("cluster_dict:", cluster_dict)
 
         # set up subgraph and new_cluster dict
         sub_G = G.subgraph(nodes)
@@ -183,7 +180,6 @@ def cluster_nodes_cdhit(
             raise ValueError("Sub graph is not connected!")
 
         new_clusters = defaultdict(list)
-        print("sub_G.nodes():", sub_G.nodes())
 
         # ref node with max size and degree > 2
         ref_node = nodes[0]
@@ -194,7 +190,6 @@ def cluster_nodes_cdhit(
 
         # nodes in Breadth First Search order
         nodes_BFS = [ref_node] + [v for u, v in nx.bfs_edges(sub_G, ref_node)]
-        print("nodes_BFS:", nodes_BFS)
 
         # iterate through making new clusters that satisfy conditions
         for node in nodes_BFS:
@@ -217,7 +212,7 @@ def cluster_nodes_cdhit(
         clusters = []
         for c1 in new_clusters:
             for c2 in new_clusters[c1]:
-                 clusters.append(c2)
+                clusters.append(c2)
 
     # check all nodes are accounted for
     clust_node_set = set([item for sublist in clusters for item in sublist])
@@ -228,15 +223,14 @@ def cluster_nodes_cdhit(
             raise ValueError('Clusters are missing a node!')
 
     # DEBUG: check
-    for c in clusters:
-        members = [G.node[n]['members'] for n in c]
-        members = [item for sublist in members for item in sublist]
-        seen = set()
-        for m in members:
-            if m in seen:
-                raise ValueError("duplicate members!")
-            seen.add(m)
-
+    # for c in clusters:
+    #     members = [G.node[n]['members'] for n in c]
+    #     members = [item for sublist in members for item in sublist]
+    #     seen = set()
+    #     for m in members:
+    #         if m in seen:
+    #             raise ValueError("duplicate members!")
+    #         seen.add(m)
 
     # remove temporary files
     os.remove(temp_input_file.name)
@@ -244,6 +238,7 @@ def cluster_nodes_cdhit(
     os.remove(temp_output_file.name + ".clstr")
 
     return clusters
+
 
 def is_valid(G, node, cluster):
     found = True

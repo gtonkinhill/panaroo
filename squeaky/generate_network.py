@@ -149,32 +149,7 @@ def generate_network(cluster_file,
 
     processed = set()
 
-    # if split_paralogs:
-    #     # iterate through nodes and merge paralogs
-    #     for node in temp_nodes:
-    #         if node not in processed:
-    #             # Merge neighbouring nodes if their centroids and edges match
-    #             paths = nx.single_source_shortest_path_length(
-    #                 G, source=node, cutoff=2)
-    #             merge_list = []
-    #             n_neigh = set(
-    #                 [G.node[n]['centroid'] for n in G.neighbors(node)])
-    #             for (v, l) in paths.items():
-    #                 if (l == 2) and (
-    #                         G.node[v]['centroid'] == G.node[node]['centroid']):
-    #                     v_neigh = set(
-    #                         [G.node[n]['centroid'] for n in G.neighbors(v)])
-    #                     if v_neigh == n_neigh:  # edges match by centroid
-    #                         merge_list.append(v)
-    #             processed.add(node)
-    #             for m in merge_list:
-    #                 n_nodes += 1
-    #                 processed.add(m)
-    #                 merge_nodes(G, m, node, n_nodes)
-    #                 node = n_nodes
     if split_paralogs:
         collapse_paralogs(G, 20)
 
     return G
-
-# if len(set(G.node[v]['members']) & set(G.node[v]['members'])) == 0:
