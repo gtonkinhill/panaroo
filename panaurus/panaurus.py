@@ -160,6 +160,7 @@ def main():
     # add helpful attributes and write out graph in GML format
     for node in G.nodes():
         G.node[node]['genomeIDs'] = ";".join(G.node[node]['members'])
+        G.node[node]['geneIDs'] = ";".join(G.node[node]['seqIDs'])
         G.node[node]['degrees'] = G.degree[node]
     nx.write_gml(G, args.output_dir + "final_graph.gml")
 

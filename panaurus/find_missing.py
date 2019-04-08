@@ -8,64 +8,75 @@ from collections import defaultdict
 
 def find_missing(G, gff_file_handles):
 
-
-
     # find all the cycles shorter than cycle_threshold
-    complete_basis = []
+    complete_basis = set()
     all_pairs = dict(nx.all_pairs_shortest_path(G, cutoff=2))
     for source in all_pairs:
         for sink in all_pairs[source]:
             if len(all_pairs[source][sink])==3:
-                complete_basis.append(all_pairs[source][sink])
-    print(complete_basis)
-
-    # atm only check small cycles to greatly simplify things
-    # cycle_threshold=3
-    # for c in nx.connected_components(G):
-    #     sub_G = G.subgraph(c)
-    #     basis = nx.cycle_basis(sub_G, list(sub_G.nodes())[0])
-    #     complete_basis += [b for b in basis if len(b) == cycle_threshold]
+                mid_size = G.node[all_pairs[source][sink][1]]['size']
+                if (G.node[source]['size'] > mid_size) or (
+                    G.node[sink]['size'] > mid_size):
+                    path = all_pairs[source][sink]
+                    complete_basis.add((min(path[0], path[2]), path[1], max(path[0], path[2])))
 
     # For each cycle check if it looks like somethings missing
     search_lists = defaultdict(list)
     for b in complete_basis:
-        # find node with smallest support
-        smallest_support = 99999999
-        for n in b:
-            if G.node[n]['size'] < smallest_support:
-                smallest = n
-                smallest_support = G.node[n]['size']
-        b.remove(smallest)
-
         # identify which genomes are missing the smallest supported node
-        surrounding_members = set(G.node[b[0]]['members']) & set(G.node[b[1]]['members'])
+        surrounding_members = set(G.node[b[0]]['members']) & set(G.node[b[2]]['members'])
         for member in surrounding_members:
-            if member not in G.node[smallest]['members']:
-                search_lists[member].append((smallest, b))
+            if member not in G.node[b[1]]['members']:
+                # we have a possible search target. First check if theres another
+                # path between the nodes
+                paths = list(nx.all_shortest_paths(G, b[0], b[2]))
+                good_target=True
+                for path in paths:
+                    if len(path)<3: continue
+                    if member in (set(G.node[path[0]]['members']) & set(G.node[path[1]]['members']) & set(G.node[path[2]]['members'])):
+                        good_target=False
+                if good_target:
+                    search_lists[member].append(b)
+
+        print(G.node[b[0]]['size'])
+        print(G.node[b[1]]['size'])
+        print(G.node[b[2]]['size'])
 
     # find position of each search by genome to save reading in the same gff3
     # more than once
     for member in search_lists:
         neighbour_id_list = []
         search_sequence_list = []
-        for mis in search_lists[member]:
+        missing = []
+        for b in search_lists[member]:
             neighbour_ids = []
-            for n in mis[1]:
-                for id in G.node[n]['seqIDs']:
+            for n in [0,2]:
+                for id in G.node[b[n]]['seqIDs']:
                     if id.split("_")[0]==member:
                         neighbour_ids.append(id)
             neighbour_id_list.append(neighbour_ids)
-            search_sequence_list.append(max(G.node[mis[0]]["dna"].split(";"),
+            search_sequence_list.append(max(G.node[b[1]]["dna"].split(";"),
                 key=len))
+            missing.append(b)
 
-        hit = search_seq_gff(gff_handle=gff_file_handles[int(member)],
+        hits = search_seq_gff(gff_handle=gff_file_handles[int(member)],
             neighbour_id_list=neighbour_id_list,
-            search_sequence_list=search_sequence_list)
+            search_sequence_list=search_sequence_list,
+            missing=missing)
+
+        for b, hit in zip(search_lists[member], hits):
+            if hit=="": continue
+            G.node[b[1]]['members'] += [member]
+            G.node[b[1]]['size'] += 1
+            G.node[b[1]]['dna']=";".join(
+                set(G.node[b[1]]['dna'].split(";") +
+                    [hit]))
 
     return G
 
 
 def search_seq_gff(gff_handle, neighbour_id_list, search_sequence_list,
+    missing,
     prop_match=0.3):
 
     # reset file handle to the beginning
@@ -95,7 +106,7 @@ def search_seq_gff(gff_handle, neighbour_id_list, search_sequence_list,
             contig_names.remove(record)
 
     hits = []
-    for neighbour_ids, seq in zip(neighbour_id_list, search_sequence_list):
+    for neighbour_ids, seq, mis in zip(neighbour_id_list, search_sequence_list, missing):
         found_dna =  ""
         gene_locations = [(int(tid.split("_")[1]),
                             int(tid.split("_")[2])) for tid in neighbour_ids]
@@ -107,66 +118,63 @@ def search_seq_gff(gff_handle, neighbour_id_list, search_sequence_list,
         metaB = contig_records[contigB]['annotations'][gene_num_B]
 
         # determine search area in contigs
+        found_dna = ""
         if contigA==contigB:
             # the flanking genes are on the same contig, search inbetween
-            bounds = list(getattr(metaA, 'bounds')[0]) + list(getattr(metaB, 'bounds')[0])
-            search_sequence = contig_records[contigA]['seq'][min(bounds):max(bounds)]
-
-            msa = max([local_pairwise_align_ssw(DNA(seq), DNA(search_sequence)),
-                    local_pairwise_align_ssw(DNA(seq).reverse_complement(), DNA(search_sequence))],
-                key=lambda x: x[1])
-
-            best_hit_bounds = msa[2][1]
-            if abs(best_hit_bounds[1]-best_hit_bounds[0]) > (prop_match*len(seq)):
-                # we've found a decent match, return it
-                found_dna = search_sequence[best_hit_bounds[0]:best_hit_bounds[1]]
+            l_bound = min(getattr(metaA, 'bounds')[0][1], getattr(metaB, 'bounds')[0][1])
+            r_bound = max(getattr(metaA, 'bounds')[0][0], getattr(metaB, 'bounds')[0][0])
+            search_sequence = contig_records[contigA]['seq'][l_bound:r_bound]
+            found_dna = search_dna(seq, search_sequence, prop_match)
         else:
             # if it looks like the genes are near the terminal ends search here
-            if gene_num_A==0:
-            # we're at the start of contigA
-                search_sequence = contig_records[contigA]['seq'][:max(getattr(metaA, 'bounds')[0])]
-            elif gene_num_A==len(contig_records[contigA]['annotations']):
-            # we're at the  end of contigA
-                search_sequence = contig_records[contigA]['seq'][min(getattr(metaA, 'bounds')[0]):]
-            else: continue
-            
-            msa = max([local_pairwise_align_ssw(DNA(seq), DNA(search_sequence)),
-                    local_pairwise_align_ssw(DNA(seq).reverse_complement(), DNA(search_sequence))],
-                key=lambda x: x[1])
-            best_hit_bounds = msa[2][1]
-            if abs(best_hit_bounds[1]-best_hit_bounds[0]) > (prop_match*len(seq)):
-                # we've found a decent match, return it
-                found_dna = search_sequence[best_hit_bounds[0]:best_hit_bounds[1]]
-            if found_dna=="":
-                # look at the second contig§
-                if gene_num_B==0:
+            if gene_num_A<10:
+                # we're at the start of contigA
+                search_sequence = contig_records[contigA]['seq'][:min(getattr(metaA, 'bounds')[0])]
+                found_dna = search_dna(seq, search_sequence, prop_match)
+            if (found_dna=="") and (len(contig_records[contigA]['annotations'])-gene_num_A < 10):
+                # we're at the  end of contigA
+                search_sequence = contig_records[contigA]['seq'][max(getattr(metaA, 'bounds')[0]):]
+                found_dna = search_dna(seq, search_sequence, prop_match)
+            if (found_dna=="") and (gene_num_B<10):
                 # we're at the start of contigB
-                    search_sequence = contig_records[contigB]['seq'][:max(getattr(metaB, 'bounds')[0])]
-                elif gene_num_B==len(contig_records[contigB]['annotations']):
+                search_sequence = contig_records[contigB]['seq'][:min(getattr(metaB, 'bounds')[0])]
+                found_dna = search_dna(seq, search_sequence, prop_match)
+            if (found_dna=="") and (len(contig_records[contigB]['annotations'])-gene_num_B<10):
                 # we're at the  end of contigB
-                    search_sequence = contig_records[contigB]['seq'][min(getattr(metaB, 'bounds')[0]):]
-                msa = max([local_pairwise_align_ssw(DNA(seq), DNA(search_sequence)),
-                        local_pairwise_align_ssw(DNA(seq).reverse_complement(), DNA(search_sequence))],
-                    key=lambda x: x[1])
-                best_hit_bounds = msa[2][1]
-                if abs(best_hit_bounds[1]-best_hit_bounds[0]) > (prop_match*len(seq)):
-                    # we've found a decent match, return it
-                    found_dna = search_sequence[best_hit_bounds[0]:best_hit_bounds[1]]
+                search_sequence = contig_records[contigB]['seq'][max(getattr(metaB, 'bounds')[0]):]
+                found_dna = search_dna(seq, search_sequence, prop_match)
+            if found_dna!="":
+                print("SUCCESSS!!")
 
         # if found_dna=="":
         #     print(neighbour_ids)
+        #     print(len(contig_records[contigA]['annotations']), len(contig_records[contigB]['annotations']))
+        #     print(len(contig_records[contigA]['seq']), len(contig_records[contigB]['seq']))
+        #     print(getattr(metaA, 'bounds')[0], getattr(metaB, 'bounds')[0])
+        #     # print(mis)
         #     print(len(search_sequence), len(seq))
-        #     print(bounds)
-        #     print(min(bounds), max(bounds))
-        #     print(metaA)
-        #     print(metaB)
-        #     print(search_sequence)
+        #     # # print(bounds)
+        #     # # print(min(bounds), max(bounds))
+        #     # print(metaA)
+        #     # print(metaB)
+        #     # print(search_sequence)
         #     print(seq)
-        #     print(msa)
 
         # add results
         hits.append(found_dna)
 
-    print(hits)
+    # print(hits)
 
     return hits
+
+def search_dna(seq, search_sequence, prop_match):
+    found_dna = ""
+    msa = max([local_pairwise_align_ssw(DNA(seq), DNA(search_sequence)),
+            local_pairwise_align_ssw(DNA(seq).reverse_complement(), DNA(search_sequence))],
+        key=lambda x: x[1])
+    best_hit_bounds = msa[2][1]
+    if (abs(best_hit_bounds[1]-best_hit_bounds[0]) > (prop_match*len(seq))):
+        # we've found a decent match, return it
+        found_dna = search_sequence[best_hit_bounds[0]:best_hit_bounds[1]]
+
+    return found_dna
