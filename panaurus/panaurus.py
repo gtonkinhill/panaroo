@@ -161,6 +161,13 @@ def main():
         dna_seq_file=args.output_dir + "combined_DNA_CDS.fasta",
         prot_seq_file=args.output_dir + "combined_protein_CDS.fasta")
 
+    # write out roary like gene_presence_absence.csv
+    G = generate_roary_gene_presence_absence(
+        G,
+        file_names=args.input_files,
+        dna_file=args.output_dir + "combined_DNA_CDS.fasta",
+        output_dir=args.output_dir)
+
     # add helpful attributes and write out graph in GML format
     for node in G.nodes():
         G.node[node]['genomeIDs'] = ";".join(G.node[node]['members'])
@@ -168,18 +175,21 @@ def main():
         G.node[node]['degrees'] = G.degree[node]
     nx.write_gml(G, args.output_dir + "final_graph.gml")
 
-    # write out roary like gene_presence_absence.csv
-    generate_roary_gene_presence_absence(
-        G,
-        file_names=args.input_files,
-        dna_file=args.output_dir + "combined_DNA_CDS.fasta",
-        output_dir=args.output_dir)
-
     # write pan genome reference fasta file
     generate_pan_genome_reference(
         G, output_dir=args.output_dir, split_paralogs=False)
 
-    # remove temp TemporaryDirectory
+    # write out csv indicating the mobility of each gene
+    generate_gene_mobility(G, output_dir=args.output_dir)
+
+    # write out common structural differences in a matrix format
+    generate_common_struct_presence_absence(
+        G,
+        output_dir=args.output_dir,
+        n_members=len(args.input_files),
+        min_variant_support=2)
+
+    # remove temporary directory
     shutil.rmtree(temp_dir)
 
     return

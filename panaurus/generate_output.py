@@ -6,6 +6,7 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import generic_dna
+import itertools as iter
 
 
 def generate_roary_gene_presence_absence(G, file_names, dna_file, output_dir):
@@ -49,8 +50,10 @@ def generate_roary_gene_presence_absence(G, file_names, dna_file, output_dir):
                 if name not in used_gene_names:
                     entry = [name]
                     used_gene_names.add(name)
+                    G.node[node]['name'] = name
                 else:
-                    entry = ["group_" + str(unique_id_count)]
+                    G.node[node]['name'] = "group_" + str(unique_id_count)
+                    entry = [G.node[node]['name']]
                     unique_id_count += 1
                 entry.append(G.node[node]['annotation'])
                 entry.append(G.node[node]['description'])
@@ -71,7 +74,7 @@ def generate_roary_gene_presence_absence(G, file_names, dna_file, output_dir):
                 entry += pres_abs
                 outfile.write(",".join([str(e) for e in entry]) + "\n")
 
-    return
+    return G
 
 
 def generate_pan_genome_reference(G, output_dir, split_paralogs=False):
@@ -92,5 +95,53 @@ def generate_pan_genome_reference(G, output_dir, split_paralogs=False):
 
     with open(output_dir + "pan_genome_reference.fa", 'w') as outfile:
         SeqIO.write(records, outfile, "fasta")
+
+    return
+
+
+# TODO: come with a nice weighting to account for the number of observations
+def generate_gene_mobility(G, output_dir):
+
+    with open(output_dir + "gene_mobility.csv", 'w') as outfile:
+        outfile.write("gene_id,annotation,count,degree\n")
+        for node in G.nodes():
+            outfile.write(",".join([
+                G.node[node]['name'], G.node[node]['annotation'],
+                str(G.node[node]['size']),
+                str(G.degree[node])
+            ]) + "\n")
+
+
+def generate_common_struct_presence_absence(G,
+                                            output_dir,
+                                            n_members,
+                                            min_variant_support=2):
+
+    struct_variants = {}
+    for node in G.nodes():
+        if G.degree[node] < 3: continue  #skip as linear
+        for path in iter.combinations(G.edges(node), 2):
+            in_both = (set(G[path[0][0]][path[0][1]]['members']) & set(
+                G[path[1][0]][path[1][1]]['members']))
+            if len(in_both) >= min_variant_support:
+                struct_variants[(path[0][0], path[0][1], path[1][1])] = in_both
+
+    header = []
+    for variant in struct_variants:
+        header.append("-".join([
+            G.node[variant[1]]['name'], G.node[variant[0]]['name'],
+            G.node[variant[2]]['name']
+        ]))
+
+    with open(output_dir + "struct_presence_absence.csv", 'w') as outfile:
+        outfile.write(",".join(header) + "\n")
+        for member in range(n_members):
+            variant_calls = []
+            for variant in struct_variants:
+                if str(member) in struct_variants[variant]:
+                    variant_calls.append("1")
+                else:
+                    variant_calls.append("0")
+            outfile.write(",".join(variant_calls) + "\n")
 
     return
