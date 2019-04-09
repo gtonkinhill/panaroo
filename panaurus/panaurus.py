@@ -95,6 +95,14 @@ def main():
         default=20)
 
     parser.add_argument(
+        "--min_edge_support_sv",
+        dest="min_edge_support_sv",
+        help=("minimum edge support required to call structural variants" +
+              " in the presence/absence sv file"),
+        type=int,
+        default=2)
+
+    parser.add_argument(
         "--no_split",
         dest="split_paralogs",
         help="don't split paralogs",
@@ -187,7 +195,7 @@ def main():
         G,
         output_dir=args.output_dir,
         n_members=len(args.input_files),
-        min_variant_support=2)
+        min_variant_support=args.min_edge_support_sv)
 
     # remove temporary directory
     shutil.rmtree(temp_dir)
