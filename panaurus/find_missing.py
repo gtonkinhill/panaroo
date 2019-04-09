@@ -6,6 +6,7 @@ from skbio.metadata import Interval, IntervalMetadata
 from skbio.alignment import local_pairwise_align_ssw, StripedSmithWaterman
 from collections import defaultdict
 import numpy as np
+from Bio.Seq import translate, reverse_complement
 
 
 def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file):
@@ -121,8 +122,11 @@ def search_seq_gff(gff_handle,
     for ann in gff:
         if ann[0] not in contig_records:
             raise NameError("Mismatch in GFF file!")
-        contig_records[ann[0]]['annotations'] = list(ann[1].query(
+        annotations = list(ann[1].query(
             [(0, 1000000000)]))
+        annotations = [a for a in annotations if getattr(a, 'metadata')['type']=='CDS']
+        if len(annotations)>0:
+            contig_records[ann[0]]['annotations'] = annotations
 
     # TODO: for now skip entries with no annotationas we skip them reading in
     # the GFF3. May want to adjust this in the future
@@ -136,6 +140,7 @@ def search_seq_gff(gff_handle,
         found_dna = ""
         gene_locations = [(int(tid.split("_")[1]), int(tid.split("_")[2]))
                           for tid in neighbour_ids]
+        # print(neighbour_ids)
         contigA = contig_names[gene_locations[0][0]]
         contigB = contig_names[gene_locations[1][0]]
         gene_num_A = gene_locations[0][1]
@@ -234,8 +239,11 @@ def search_dna(seq, search_sequence, prop_match, pairwise_id_thresh):
 
 def translate_to_match(hit, target_prot):
 
-    # translate in all 6 frames
-    proteins = [str(p) for p in DNA(hit).translate_six_frames()]
+    # translate in all 6 frames splitting on unknown
+    dna_seqs = [hit, reverse_complement(hit)]
+
+    proteins = [translate(s[i:].ljust(len(s[i:]) + (3 - len(s[i:]) % 3), 'N')) for i in range(3) for s in dna_seqs]
+
     query = StripedSmithWaterman(target_prot)
 
     alignments = []
