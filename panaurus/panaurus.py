@@ -118,16 +118,16 @@ def main():
     temp_dir = tempfile.mkdtemp(dir=args.output_dir)
 
     # convert input GFF3 files into summary files
-    # process_prokka_input(args.input_files, args.output_dir)
+    process_prokka_input(args.input_files, args.output_dir)
 
     # Cluster protein sequences using cdhit
     cd_hit_out = args.output_dir + "combined_protein_cdhit_out.txt"
-    # run_cdhit(
-    #     input_file=args.output_dir + "combined_protein_CDS.fasta",
-    #     output_file=cd_hit_out,
-    #     id=args.id,
-    #     s=args.len_dif_percent,
-    #     n_cpu=args.n_cpu)
+    run_cdhit(
+        input_file=args.output_dir + "combined_protein_CDS.fasta",
+        output_file=cd_hit_out,
+        id=args.id,
+        s=args.len_dif_percent,
+        n_cpu=args.n_cpu)
 
     # generate network from clusters and adjacency information
     G = generate_network(
@@ -155,7 +155,9 @@ def main():
         correct_mistranslations=True)
 
     # find genes that Prokka has missed
-    find_missing(G, args.input_files)
+    G = find_missing(G, args.input_files,
+        dna_seq_file = args.output_dir + "combined_DNA_CDS.fasta",
+        prot_seq_file = args.output_dir + "combined_protein_CDS.fasta")
 
     # add helpful attributes and write out graph in GML format
     for node in G.nodes():
