@@ -80,7 +80,7 @@ def collapse_families(G,
     if correct_mistranslations:
         while len(merged_basis) > 0:
             b = merged_basis.pop()
-            print("basis: ", b)
+            # print("basis: ", b)
             clusters = cluster_nodes_cdhit(
                 G,
                 b,
@@ -90,9 +90,9 @@ def collapse_families(G,
                 dna=True,
                 use_local=True,
                 aS=0.9)
-            if not quiet:
-                print("cycle:", b)
-                print("clusters:", clusters)
+            # if not quiet:
+            #     print("cycle:", b)
+            #     print("clusters:", clusters)
             # now merge nodes that clustered
             temp_b = []
             swap_dict = {}
@@ -149,12 +149,12 @@ def collapse_families(G,
     node_count += 1
     while len(cleaned_merged_basis) > 0:
         b = cleaned_merged_basis.pop()
-        print("cleaned basis: ", b)
+        # print("cleaned basis: ", b)
         clusters = cluster_nodes_cdhit(
             G, b, outdir, id=family_threshold, quiet=True, dna=False)
-        if not quiet:
-            print("cycle:", b)
-            print("fam clusters:", clusters)
+        # if not quiet:
+        #     print("cycle:", b)
+        #     print("fam clusters:", clusters)
         # now merge nodes that clustered
         temp_b = []
         for c in clusters:
