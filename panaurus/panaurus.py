@@ -155,9 +155,11 @@ def main():
         correct_mistranslations=True)
 
     # find genes that Prokka has missed
-    G = find_missing(G, args.input_files,
-        dna_seq_file = args.output_dir + "combined_DNA_CDS.fasta",
-        prot_seq_file = args.output_dir + "combined_protein_CDS.fasta")
+    G = find_missing(
+        G,
+        args.input_files,
+        dna_seq_file=args.output_dir + "combined_DNA_CDS.fasta",
+        prot_seq_file=args.output_dir + "combined_protein_CDS.fasta")
 
     # add helpful attributes and write out graph in GML format
     for node in G.nodes():
