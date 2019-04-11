@@ -185,8 +185,10 @@ def main():
     G = find_missing(
         G,
         args.input_files,
+        temp_dir=temp_dir,
         dna_seq_file=args.output_dir + "combined_DNA_CDS.fasta",
-        prot_seq_file=args.output_dir + "combined_protein_CDS.fasta")
+        prot_seq_file=args.output_dir + "combined_protein_CDS.fasta",
+        n_cpu=args.n_cpu)
 
     # write out roary like gene_presence_absence.csv
     G = generate_roary_gene_presence_absence(

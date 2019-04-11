@@ -60,6 +60,7 @@ def run_cdhit_est(
         accurate=True,  # use the slower but more accurate options
         use_local=False,  #whether to use local or global sequence alignment
         strand=1,  # default do both +/+ & +/- alignments if set to 0, only +/+
+        print_aln=False, # print alignment overlap in cluster file
         quiet=False):
 
     cmd = "cd-hit-est"
@@ -82,6 +83,9 @@ def run_cdhit_est(
     if accurate:
         cmd += " -g 1 -n 2"
 
+    if print_aln:
+        cmd += " -p 1"
+
     if not quiet:
         print("running cmd: " + cmd)
     else:
@@ -90,7 +94,6 @@ def run_cdhit_est(
     subprocess.run(cmd, shell=True, check=True)
 
     return
-
 
 def cluster_nodes_cdhit(
         G,
@@ -246,3 +249,65 @@ def is_valid(G, node, cluster):
         if len(set(G.node[node]['members']) & set(G.node[n]['members'])) > 0:
             found = False
     return found
+
+def align_dna_cdhit(query,
+    target,
+    temp_dir,
+    id=0.99,
+    n_cpu=1,
+    s=0.0,  # length difference cutoff (%), default 0.0
+    aL=0.0,  # alignment coverage for the longer sequence
+    AL=99999999,  # alignment coverage control for the longer sequence
+    aS=0.0,  # alignment coverage for the shorter sequence
+    AS=99999999,  # alignment coverage control for the shorter sequence
+    accurate=True,  # use the slower but more accurate options
+    use_local=False,  #whether to use local or global sequence alignment
+    strand=1,  # default do both +/+ & +/- alignments if set to 0, only +/+
+    quiet=False):
+
+    # create the files we will need
+    temp_input_file = tempfile.NamedTemporaryFile(delete=False, dir=temp_dir)
+    temp_input_file.close()
+    temp_output_file = tempfile.NamedTemporaryFile(delete=False, dir=temp_dir)
+    temp_output_file.close()
+
+    # prepare files for cdhit
+    with open(temp_input_file.name, 'w') as outfile:
+        outfile.write(">query\n"+query+"\n")
+        outfile.write(">target\n"+target+"\n")
+
+    # run cdhit
+    run_cdhit_est(
+        input_file=temp_input_file.name,
+        output_file=temp_output_file.name,
+        id=id,
+        s=s,
+        aL=aL,
+        AL=AL,
+        aS=AS,
+        accurate=accurate,
+        use_local=use_local,
+        print_aln=True,
+        strand=strand,
+        quiet=True)
+
+    # process resulting alignment
+    # process the output
+    found_seq = ""
+    with open(temp_output_file.name + ".clstr", 'rU') as infile:
+        for line in infile:
+            if "at" in line:
+                align = line.split(" at ")[1].split("/")[0].split(":")
+                if "query" in line:
+                    bounds = sorted([int(align[0]), int(align[1])])
+                else:
+                    bounds = sorted([int(align[2]), int(align[3])])
+                found_seq=query[bounds[0]-1:bounds[1]]
+
+
+    # remove temporary files
+    os.remove(temp_input_file.name)
+    os.remove(temp_output_file.name)
+    os.remove(temp_output_file.name + ".clstr")
+
+    return found_seq
