@@ -163,7 +163,7 @@ def search_seq_gff(gff_handle,
 
         # determine search area in contigs
         found_dna = ""
-        if contigA == contigB:
+        if (contigA == contigB) and (abs(gene_num_A-gene_num_B)<=2) :
             # the flanking genes are on the same contig, search inbetween
             l_bound = min(
                 getattr(metaA, 'bounds')[0][1],
@@ -181,7 +181,7 @@ def search_seq_gff(gff_handle,
                 # we're at the start of contigA
                 search_sequence = contig_records[contigA]['seq'][:min(
                     getattr(metaA, 'bounds')[0])]
-                if len(search_sequence)< max_search_length:
+                if len(search_sequence) < max_search_length:
                     found_dna = search_dna(seq, search_sequence, prop_match,
                                            pairwise_id_thresh, temp_dir, n_cpu)
             if (found_dna == "") and (len(
@@ -189,14 +189,14 @@ def search_seq_gff(gff_handle,
                 # we're at the  end of contigA
                 search_sequence = contig_records[contigA]['seq'][max(
                     getattr(metaA, 'bounds')[0]):]
-                if len(search_sequence)< max_search_length:
+                if len(search_sequence) < max_search_length:
                     found_dna = search_dna(seq, search_sequence, prop_match,
                                            pairwise_id_thresh, temp_dir, n_cpu)
             if (found_dna == "") and (gene_num_B < 20):
                 # we're at the start of contigB
                 search_sequence = contig_records[contigB]['seq'][:min(
                     getattr(metaB, 'bounds')[0])]
-                if len(search_sequence)< max_search_length:
+                if len(search_sequence) < max_search_length:
                     found_dna = search_dna(seq, search_sequence, prop_match,
                                            pairwise_id_thresh, temp_dir, n_cpu)
             if (found_dna == "") and (len(
@@ -204,7 +204,7 @@ def search_seq_gff(gff_handle,
                 # we're at the  end of contigB
                 search_sequence = contig_records[contigB]['seq'][max(
                     getattr(metaB, 'bounds')[0]):]
-                if len(search_sequence)< max_search_length:
+                if len(search_sequence) < max_search_length:
                     found_dna = search_dna(seq, search_sequence, prop_match,
                                            pairwise_id_thresh, temp_dir, n_cpu)
 
