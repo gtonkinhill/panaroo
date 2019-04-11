@@ -117,6 +117,13 @@ def main():
         type=int,
         default=1)
 
+    parser.add_argument(
+        "--verbose",
+        dest="verbose",
+        help="print additional output",
+        action='store_true',
+        default=False)
+
     args = parser.parse_args()
 
     # make sure trailing forward slash is present
@@ -137,6 +144,9 @@ def main():
         s=args.len_dif_percent,
         n_cpu=args.n_cpu)
 
+    if verbose:
+        print("generating initial network...")
+
     # generate network from clusters and adjacency information
     G = generate_network(
         cluster_file=cd_hit_out + ".clstr",
@@ -147,11 +157,17 @@ def main():
     # write out pre-filter graph in GML format
     nx.write_gml(G, args.output_dir + "pre_filt_graph.gml")
 
+    if verbose:
+        print("triming contig ends...")
+
     # remove low support trailing ends
     G = trim_low_support_trailing_ends(
         G,
         min_support=args.min_trailing_support,
         max_recursive=args.trailing_recursive)
+
+    if verbose:
+        print("collapse gene families...")
 
     # clean up translation errors and gene families
     G = collapse_families(
@@ -161,6 +177,9 @@ def main():
         outdir=temp_dir,
         dna_error_threshold=0.99,
         correct_mistranslations=True)
+
+    if verbose:
+        print("refinding genes...")
 
     # find genes that Prokka has missed
     G = find_missing(
