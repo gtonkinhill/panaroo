@@ -176,32 +176,37 @@ def search_seq_gff(gff_handle,
                                    pairwise_id_thresh, temp_dir, n_cpu)
         else:
             # if it looks like the genes are near the terminal ends search here
+            max_search_length = 2*len(seq)
             if gene_num_A < 20:
                 # we're at the start of contigA
                 search_sequence = contig_records[contigA]['seq'][:min(
                     getattr(metaA, 'bounds')[0])]
-                found_dna = search_dna(seq, search_sequence, prop_match,
-                                       pairwise_id_thresh, temp_dir, n_cpu)
+                if len(search_sequence)< max_search_length:
+                    found_dna = search_dna(seq, search_sequence, prop_match,
+                                           pairwise_id_thresh, temp_dir, n_cpu)
             if (found_dna == "") and (len(
                     contig_records[contigA]['annotations']) - gene_num_A < 20):
                 # we're at the  end of contigA
                 search_sequence = contig_records[contigA]['seq'][max(
                     getattr(metaA, 'bounds')[0]):]
-                found_dna = search_dna(seq, search_sequence, prop_match,
-                                       pairwise_id_thresh, temp_dir, n_cpu)
+                if len(search_sequence)< max_search_length:
+                    found_dna = search_dna(seq, search_sequence, prop_match,
+                                           pairwise_id_thresh, temp_dir, n_cpu)
             if (found_dna == "") and (gene_num_B < 20):
                 # we're at the start of contigB
                 search_sequence = contig_records[contigB]['seq'][:min(
                     getattr(metaB, 'bounds')[0])]
-                found_dna = search_dna(seq, search_sequence, prop_match,
-                                       pairwise_id_thresh, temp_dir, n_cpu)
+                if len(search_sequence)< max_search_length:
+                    found_dna = search_dna(seq, search_sequence, prop_match,
+                                           pairwise_id_thresh, temp_dir, n_cpu)
             if (found_dna == "") and (len(
                     contig_records[contigB]['annotations']) - gene_num_B < 20):
                 # we're at the  end of contigB
                 search_sequence = contig_records[contigB]['seq'][max(
                     getattr(metaB, 'bounds')[0]):]
-                found_dna = search_dna(seq, search_sequence, prop_match,
-                                       pairwise_id_thresh, temp_dir, n_cpu)
+                if len(search_sequence)< max_search_length:
+                    found_dna = search_dna(seq, search_sequence, prop_match,
+                                           pairwise_id_thresh, temp_dir, n_cpu)
 
         # if found_dna=="":
         #     print(neighbour_ids)
