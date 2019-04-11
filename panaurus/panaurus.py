@@ -144,7 +144,7 @@ def main():
         s=args.len_dif_percent,
         n_cpu=args.n_cpu)
 
-    if verbose:
+    if args.verbose:
         print("generating initial network...")
 
     # generate network from clusters and adjacency information
@@ -157,7 +157,7 @@ def main():
     # write out pre-filter graph in GML format
     nx.write_gml(G, args.output_dir + "pre_filt_graph.gml")
 
-    if verbose:
+    if args.verbose:
         print("triming contig ends...")
 
     # remove low support trailing ends
@@ -166,7 +166,7 @@ def main():
         min_support=args.min_trailing_support,
         max_recursive=args.trailing_recursive)
 
-    if verbose:
+    if args.verbose:
         print("collapse gene families...")
 
     # clean up translation errors and gene families
@@ -178,7 +178,7 @@ def main():
         dna_error_threshold=0.99,
         correct_mistranslations=True)
 
-    if verbose:
+    if args.verbose:
         print("refinding genes...")
 
     # find genes that Prokka has missed
