@@ -28,6 +28,7 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir, n_c
 
     # For each cycle check if it looks like somethings missing
     print("identify missing nodes...")
+    print("len(complete_basis):", len(complete_basis))
     search_count=0
     search_lists = defaultdict(list)
     for b in complete_basis:
