@@ -120,7 +120,7 @@ def run_prokka_mod(input_file, out_folder, train_file, force, add_cmds):
     # check prokka completed successfully
     with open(out_folder + prefix + "_prokka.log", 'rU') as logfile:
         lines = logfile.read().splitlines()
-        if "Share and enjoy!" not in lines[-1]:
+        if "Annotation finished successfully." not in lines[-6]:
             raise Exception('Prokka did not execute successfully!')
 
     return
