@@ -37,19 +37,21 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir, n_c
             G.node[b[2]]['members'])
         for member in surrounding_members:
             if member not in G.node[b[1]]['members']:
-                # we have a possible search target. First check if theres
-                # another path between the nodes
-                paths = list(nx.all_shortest_paths(G, b[0], b[2]))
-                good_target = True
-                for path in paths:
-                    if len(path) < 3: continue
-                    if member in (set(G.node[path[0]]['members']) & set(
-                            G.node[path[1]]['members']) & set(
-                                G.node[path[2]]['members'])):
-                        good_target = False
-                if good_target:
-                    search_lists[member].append(b)
-                    search_count+=1
+                search_lists[member].append(b)
+                search_count+=1
+                # # we have a possible search target. First check if theres
+                # # another path between the nodes
+                # paths = list(nx.all_shortest_paths(G, b[0], b[2]))
+                # good_target = True
+                # for path in paths:
+                #     if len(path) < 3: continue
+                #     if member in (set(G.node[path[0]]['members']) & set(
+                #             G.node[path[1]]['members']) & set(
+                #                 G.node[path[2]]['members'])):
+                #         good_target = False
+                # if good_target:
+                #     search_lists[member].append(b)
+                #     search_count+=1
 
     print("num searches", search_count)
     print("search for missing nodes...")

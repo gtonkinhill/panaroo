@@ -10,7 +10,7 @@ import tempfile
 from Bio import SeqIO
 import shutil
 import networkx as nx
-from is_valid import *
+from isvalid import *
 
 
 def main():
