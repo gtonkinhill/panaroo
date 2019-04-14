@@ -59,10 +59,15 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir, n_c
     # more than once
     n_found = 0
     hit_dict = {}
+    mem_count =  0
     for member in search_lists:
+        print("processing memeber: ", mem_count)
+        mem_count+=1
+
         neighbour_id_list = []
         search_sequence_list = []
         missing = []
+        print("setting up search...")
         for b in search_lists[member]:
             neighbour_ids = []
             for n in [0, 2]:
@@ -74,6 +79,7 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir, n_c
                 max(G.node[b[1]]["dna"].split(";"), key=len))
             missing.append(b)
 
+        print("searching...")
         hit_dict[member] = search_seq_gff(
             gff_handle=gff_file_handles[int(member)],
             neighbour_id_list=neighbour_id_list,
