@@ -8,7 +8,7 @@ from collections import defaultdict
 import numpy as np
 from Bio.Seq import translate, reverse_complement
 from cdhit import align_dna_cdhit
-from joblib import Parallel, delayed, dump, load
+from joblib import Parallel, delayed
 import os
 
 
@@ -63,13 +63,39 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir,
     n_found = 0
     mem_count = 0
 
-    data_filename_memmap = os.path.join(temp_dir, 'data_memmap')
-    dump(G, data_filename_memmap)
-    dataG = load(data_filename_memmap, mmap_mode='r')
+    print("setting up sample searches")
+    neighbour_dict = {}
+    search_seq_dict = {}
+    missing_dict = {}
+    for member in  search_lists:
+        neighbour_id_list = []
+        search_sequence_list = []
+        missing = []
+
+        for b in search_lists[member]:
+            neighbour_ids = []
+            for n in [0, 2]:
+                for id in G.node[b[n]]['seqIDs']:
+                    if id.split("_")[0] == member:
+                        neighbour_ids.append(id)
+            neighbour_id_list.append(neighbour_ids)
+            search_sequence_list.append(
+                max(G.node[b[1]]["dna"].split(";"), key=len))
+            missing.append(b)
+
+        neighbour_dict[member] = neighbour_id_list
+        search_seq_dict[member] = search_sequence_list
+        missing_dict[member] = missing
 
     hit_list = Parallel(n_jobs=n_cpu)(
-        delayed(search_member_gff)(member, search_lists[member], dataG, gff_file_handles, temp_dir)
-        for member in search_lists)
+        delayed(search_seq_gff)(member,
+            gff_file_handles[int(member)],
+            neighbour_dict[member],
+            search_seq_dict[member],
+            missing_dict[member],
+            temp_dir,
+            1) for member in search_lists)
+
 
     print("translating found hits...")
     trans_list = []
@@ -106,39 +132,8 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir,
 
     return G
 
-
-def search_member_gff(member, search_list_member,
-    G, gff_file_handles, temp_dir):
-
-    neighbour_id_list = []
-    search_sequence_list = []
-    missing = []
-    print("setting up search for sample:", member)
-    for b in search_list_member:
-        neighbour_ids = []
-        for n in [0, 2]:
-            for id in G.node[b[n]]['seqIDs']:
-                if id.split("_")[0] == member:
-                    neighbour_ids.append(id)
-        neighbour_id_list.append(neighbour_ids)
-        search_sequence_list.append(
-            max(G.node[b[1]]["dna"].split(";"), key=len))
-        missing.append(b)
-
-    print("searching...")
-
-    hits = search_seq_gff(
-        gff_handle=gff_file_handles[int(member)],
-        neighbour_id_list=neighbour_id_list,
-        search_sequence_list=search_sequence_list,
-        missing=missing,
-        temp_dir=temp_dir,
-        n_cpu=1)
-
-    return (member, hits)
-
-
-def search_seq_gff(gff_handle,
+def search_seq_gff(member,
+                   gff_handle,
                    neighbour_id_list,
                    search_sequence_list,
                    missing,
@@ -261,7 +256,7 @@ def search_seq_gff(gff_handle,
 
     # print(hits)
 
-    return hits
+    return (member, hits)
 
 
 def search_dna(seq, search_sequence, prop_match, pairwise_id_thresh, temp_dir,
