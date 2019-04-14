@@ -8,7 +8,8 @@ from collections import defaultdict
 import numpy as np
 from Bio.Seq import translate, reverse_complement
 from cdhit import align_dna_cdhit
-from joblib import Parallel, delayed
+from joblib import Parallel, delayed, dump, load
+import os
 
 
 def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir,
@@ -61,8 +62,13 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir,
     # more than once
     n_found = 0
     mem_count = 0
+
+    data_filename_memmap = os.path.join(temp_dir, 'data_memmap')
+    dump(G, data_filename_memmap)
+    dataG = load(data_filename_memmap, mmap_mode='r')
+
     hit_list = Parallel(n_jobs=n_cpu)(
-        delayed(search_member_gff)(member, search_lists, G, gff_file_handles, temp_dir)
+        delayed(search_member_gff)(member, search_lists[member], dataG, gff_file_handles, temp_dir)
         for member in search_lists)
 
     print("translating found hits...")
@@ -101,12 +107,14 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir,
     return G
 
 
-def search_member_gff(member, search_lists, G, gff_file_handles, temp_dir):
+def search_member_gff(member, search_list_member,
+    G, gff_file_handles, temp_dir):
+
     neighbour_id_list = []
     search_sequence_list = []
     missing = []
     print("setting up search for sample:", member)
-    for b in search_lists[member]:
+    for b in search_list_member:
         neighbour_ids = []
         for n in [0, 2]:
             for id in G.node[b[n]]['seqIDs']:
