@@ -1,17 +1,17 @@
-from prokka import process_prokka_input
-from cdhit import run_cdhit
-from generate_network import generate_network
-from generate_output import *
-from clean_network import *
-from find_missing import find_missing
+from panaurus.prokka import process_prokka_input
+from panaurus.cdhit import run_cdhit
+from panaurus.generate_network import generate_network
+from panaurus.generate_output import *
+from panaurus.clean_network import *
+from panaurus.find_missing import find_missing
 import os
 import argparse
 import tempfile
 from Bio import SeqIO
 import shutil
 import networkx as nx
-from isvalid import *
-from set_default_args import set_default_args
+from panaurus.isvalid import *
+from panaurus.set_default_args import set_default_args
 
 
 def main():

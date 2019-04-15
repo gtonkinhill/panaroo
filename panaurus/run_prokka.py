@@ -1,7 +1,7 @@
 import os
 import argparse
-from prodigal import train_prodigal
-from isvalid import *
+from panaurus.prodigal import train_prodigal
+from panaurus.isvalid import *
 import subprocess
 from joblib import Parallel, delayed
 import shutil

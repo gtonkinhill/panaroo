@@ -7,7 +7,7 @@ from skbio.alignment import local_pairwise_align_ssw, StripedSmithWaterman
 from collections import defaultdict
 import numpy as np
 from Bio.Seq import translate, reverse_complement
-from cdhit import align_dna_cdhit
+from panaurus.cdhit import align_dna_cdhit
 from joblib import Parallel, delayed
 import os
 

@@ -9,4 +9,5 @@ Contents:
 
    install
    start
+   command-line-args
    getting-help

@@ -1,8 +1,8 @@
 from Bio import SeqIO
 from collections import Counter, defaultdict
 import networkx as nx
-from merge_nodes import merge_nodes
-from clean_network import collapse_paralogs
+from panaurus.merge_nodes import merge_nodes
+from panaurus.clean_network import collapse_paralogs
 
 
 def generate_network(cluster_file,

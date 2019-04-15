@@ -1,8 +1,8 @@
 import networkx as nx
-from cdhit import cluster_nodes_cdhit
-from merge_nodes import merge_nodes
+from panaurus.cdhit import cluster_nodes_cdhit
+from panaurus.merge_nodes import merge_nodes
 from collections import defaultdict
-from cdhit import is_valid
+from panaurus.cdhit import is_valid
 
 
 # Genes at the end of contigs are more likely to be false positives thus

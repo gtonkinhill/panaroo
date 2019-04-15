@@ -13,10 +13,20 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/gtonkinhill/panaurus",
+    install_requires=[
+              'scikit-bio',
+              'networkx',
+              'gffutils',
+              'BioPython'
+          ],
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
+    entry_points = {
+        'console_scripts': ['panaurus=panaurus.panaurus:main',
+                            'run_prokka=panaurus.run_prokka:main'],
+    },
 )
