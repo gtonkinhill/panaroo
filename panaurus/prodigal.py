@@ -17,6 +17,19 @@ def run_prodigal(trans_file,
                  quiet=False,
                  start_file=None,
                  training_file=None):
+    """Runs prodigal on the command line
+
+    Runs prodigal. Will create a training file if it doesn't already exist.
+
+    Args:
+        trans_file (str): output location of translated sequences
+        nuc_file (str): output location of nucleotide sequences
+        input_file (str): location of input fasta file
+        output_file (str): output location of prodigal annotations
+
+    Returns:
+
+    """
 
     cmd = "prodigal"
     cmd += " -a " + trans_file
