@@ -115,7 +115,7 @@ def run_prokka_mod(input_file, out_folder, train_file, force, add_cmds):
     cmd += " " + input_file.name
     cmd += "  &> " + out_folder + prefix + "_prokka.log"
 
-    subprocess.run(cmd, shell=True, check=True)
+    subprocess.run(cmd, shell=True, check=True, executable='/bin/bash')
 
     # check prokka completed successfully
     with open(out_folder + prefix + "_prokka.log", 'rU') as logfile:
