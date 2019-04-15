@@ -3,6 +3,7 @@ from random import sample
 import tempfile
 import os
 
+
 def run_prodigal(trans_file,
                  nuc_file,
                  input_file,

@@ -70,7 +70,7 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir,
     neighbour_dict = {}
     search_seq_dict = {}
     missing_dict = {}
-    for member in  search_lists:
+    for member in search_lists:
         neighbour_id_list = []
         search_sequence_list = []
         missing = []
@@ -90,15 +90,10 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir,
         search_seq_dict[member] = search_sequence_list
         missing_dict[member] = missing
 
-    hit_list = Parallel(n_jobs=n_cpu)(
-        delayed(search_seq_gff)(member,
-            gff_file_handles[int(member)],
-            neighbour_dict[member],
-            search_seq_dict[member],
-            missing_dict[member],
-            temp_dir,
-            1) for member in search_lists)
-
+    hit_list = Parallel(n_jobs=n_cpu)(delayed(search_seq_gff)(
+        member, gff_file_handles[int(member)], neighbour_dict[member],
+        search_seq_dict[member], missing_dict[member], temp_dir, 1)
+                                      for member in search_lists)
 
     print("translating found hits...")
     trans_list = []
@@ -106,8 +101,8 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir,
         trans_list.append(
             Parallel(n_jobs=n_cpu)(
                 delayed(translate_to_match)(
-                    hit, max(G.node[b[1]]["protein"].split(";"), key=len)
-                    ) for b, hit in zip(search_lists[member], hits)))
+                    hit, max(G.node[b[1]]["protein"].split(";"), key=len))
+                for b, hit in zip(search_lists[member], hits)))
 
     print("update output...")
     with open(dna_seq_file, 'a') as dna_out:
@@ -115,7 +110,8 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir,
             for mem_hits, trans in zip(hit_list, trans_list):
                 member = mem_hits[0]
                 hits = mem_hits[1]
-                for b, hit, hit_protein in zip(search_lists[member], hits, trans):
+                for b, hit, hit_protein in zip(search_lists[member], hits,
+                                               trans):
                     if hit == "": continue
                     G.node[b[1]]['members'] += [member]
                     G.node[b[1]]['size'] += 1
@@ -134,6 +130,7 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir,
                     n_found += 1
 
     return G
+
 
 def search_seq_gff(member,
                    gff_handle,

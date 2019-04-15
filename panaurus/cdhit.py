@@ -60,7 +60,7 @@ def run_cdhit_est(
         accurate=True,  # use the slower but more accurate options
         use_local=False,  #whether to use local or global sequence alignment
         strand=1,  # default do both +/+ & +/- alignments if set to 0, only +/+
-        print_aln=False, # print alignment overlap in cluster file
+        print_aln=False,  # print alignment overlap in cluster file
         quiet=False):
 
     cmd = "cd-hit-est"
@@ -94,6 +94,7 @@ def run_cdhit_est(
     subprocess.run(cmd, shell=True, check=True)
 
     return
+
 
 def cluster_nodes_cdhit(
         G,
@@ -250,20 +251,22 @@ def is_valid(G, node, cluster):
             found = False
     return found
 
-def align_dna_cdhit(query,
-    target,
-    temp_dir,
-    id=0.99,
-    n_cpu=1,
-    s=0.0,  # length difference cutoff (%), default 0.0
-    aL=0.0,  # alignment coverage for the longer sequence
-    AL=99999999,  # alignment coverage control for the longer sequence
-    aS=0.0,  # alignment coverage for the shorter sequence
-    AS=99999999,  # alignment coverage control for the shorter sequence
-    accurate=True,  # use the slower but more accurate options
-    use_local=False,  #whether to use local or global sequence alignment
-    strand=1,  # default do both +/+ & +/- alignments if set to 0, only +/+
-    quiet=False):
+
+def align_dna_cdhit(
+        query,
+        target,
+        temp_dir,
+        id=0.99,
+        n_cpu=1,
+        s=0.0,  # length difference cutoff (%), default 0.0
+        aL=0.0,  # alignment coverage for the longer sequence
+        AL=99999999,  # alignment coverage control for the longer sequence
+        aS=0.0,  # alignment coverage for the shorter sequence
+        AS=99999999,  # alignment coverage control for the shorter sequence
+        accurate=True,  # use the slower but more accurate options
+        use_local=False,  #whether to use local or global sequence alignment
+        strand=1,  # default do both +/+ & +/- alignments if set to 0, only +/+
+        quiet=False):
 
     # create the files we will need
     temp_input_file = tempfile.NamedTemporaryFile(delete=False, dir=temp_dir)
@@ -273,8 +276,8 @@ def align_dna_cdhit(query,
 
     # prepare files for cdhit
     with open(temp_input_file.name, 'w') as outfile:
-        outfile.write(">query\n"+query+"\n")
-        outfile.write(">target\n"+target+"\n")
+        outfile.write(">query\n" + query + "\n")
+        outfile.write(">target\n" + target + "\n")
 
     # run cdhit
     run_cdhit_est(
@@ -302,8 +305,7 @@ def align_dna_cdhit(query,
                     bounds = sorted([int(align[0]), int(align[1])])
                 else:
                     bounds = sorted([int(align[2]), int(align[3])])
-                found_seq=query[bounds[0]-1:bounds[1]]
-
+                found_seq = query[bounds[0] - 1:bounds[1]]
 
     # remove temporary files
     os.remove(temp_input_file.name)

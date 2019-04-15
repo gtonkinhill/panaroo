@@ -94,8 +94,8 @@ def main():
         "--mode",
         dest="mode",
         help=("the stringency mode at which to run panaurus. One of 'strict'" +
-            ", 'moderate' or 'relaxed' (default='strict')"),
-        choices=['strict','moderate','relaxed'],
+              ", 'moderate' or 'relaxed' (default='strict')"),
+        choices=['strict', 'moderate', 'relaxed'],
         default='strict')
 
     parser.add_argument(

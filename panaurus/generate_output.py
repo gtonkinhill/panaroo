@@ -105,15 +105,15 @@ def generate_gene_mobility(G, output_dir):
     with open(output_dir + "gene_mobility.csv", 'w') as outfile:
         outfile.write("gene_id,annotation,count,degree,entropy\n")
         for node in G.nodes():
-            entropy=0
+            entropy = 0
             for edge in G.edges(node):
-                p = G[edge[0]][edge[1]]['weight']/(1.0*G.node[node]['size'])
-                entropy -= p*np.log(p)
+                p = G[edge[0]][edge[1]]['weight'] / (
+                    1.0 * G.node[node]['size'])
+                entropy -= p * np.log(p)
             outfile.write(",".join([
                 G.node[node]['name'], G.node[node]['annotation'],
                 str(G.node[node]['size']),
-                str(G.degree[node]),
-                "{:.5f}".format(entropy)
+                str(G.degree[node]), "{:.5f}".format(entropy)
             ]) + "\n")
 
 
