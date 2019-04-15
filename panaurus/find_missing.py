@@ -34,13 +34,16 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir,
     print("len(complete_basis):", len(complete_basis))
     search_count = 0
     search_lists = defaultdict(list)
+    seen_pairs = set()
     for b in complete_basis:
         # identify which genomes are missing the smallest supported node
         surrounding_members = set(G.node[b[0]]['members']) & set(
             G.node[b[2]]['members'])
         for member in surrounding_members:
             if member not in G.node[b[1]]['members']:
+                if (member, b[1]) in seen_pairs: continue
                 search_lists[member].append(b)
+                seen_pairs.add((member, b[1]))
                 search_count += 1
                 # # we have a possible search target. First check if theres
                 # # another path between the nodes
