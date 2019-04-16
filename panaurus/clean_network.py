@@ -12,12 +12,14 @@ def trim_low_support_trailing_ends(G, min_support=3, max_recursive=2):
     # fix trailing
     for iter in range(max_recursive):
         bad_nodes = []
+        removed = False
         for (node, val) in G.degree():
             if val <= 1:  # trailing node
                 if G.node[node]['size'] < min_support:
                     bad_nodes.append(node)
         for node in bad_nodes:
             G.remove_node(node)
+            removed=True
 
         # fix trailing due to paralog
         bad_nodes = []
@@ -30,6 +32,10 @@ def trim_low_support_trailing_ends(G, min_support=3, max_recursive=2):
                     bad_nodes.append(node)
         for node in bad_nodes:
             G.remove_node(node)
+            removed=True
+
+        if removed: break
+
 
     return G
 
