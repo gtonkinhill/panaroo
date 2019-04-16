@@ -34,7 +34,7 @@ def trim_low_support_trailing_ends(G, min_support=3, max_recursive=2):
             G.remove_node(node)
             removed=True
 
-        if removed: break
+        if not removed: break
 
 
     return G
