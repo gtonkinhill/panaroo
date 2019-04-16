@@ -74,11 +74,11 @@ def main():
         args.num_training = len(args.input_files)
 
     # run prodigal to generate training file if it doesn't already exist.
-    # train_prodigal(
-    #     input_files=args.input_files,
-    #     n_samples=args.num_training,
-    #     force=args.force,
-    #     outdir=args.output_dir)
+    train_prodigal(
+        input_files=args.input_files,
+        n_samples=args.num_training,
+        force=args.force,
+        outdir=args.output_dir)
 
     # run prokka with adjusted arguments on each fasta input in parallel
     Parallel(n_jobs=args.n_cpu)(delayed(run_prokka_mod)(
