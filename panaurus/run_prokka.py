@@ -5,6 +5,7 @@ from panaurus.isvalid import *
 import subprocess
 from joblib import Parallel, delayed
 import shutil
+import tempfile
 
 
 def main():
@@ -73,11 +74,11 @@ def main():
         args.num_training = len(args.input_files)
 
     # run prodigal to generate training file if it doesn't already exist.
-    train_prodigal(
-        input_files=args.input_files,
-        n_samples=args.num_training,
-        force=args.force,
-        outdir=args.output_dir)
+    # train_prodigal(
+    #     input_files=args.input_files,
+    #     n_samples=args.num_training,
+    #     force=args.force,
+    #     outdir=args.output_dir)
 
     # run prokka with adjusted arguments on each fasta input in parallel
     Parallel(n_jobs=args.n_cpu)(delayed(run_prokka_mod)(
@@ -96,9 +97,14 @@ def run_prokka_mod(input_file, out_folder, train_file, force, add_cmds):
     path_to_prodigal = shutil.which("prodigal")
 
     # override the system prodigal temporarily to input training file in prokka
-    cmd = "prodigal() { " + path_to_prodigal
-    cmd += " -t " + train_file
-    cmd += " $*; }; export -f prodigal; "
+    # Create temporary directory
+    temp_dir = os.path.join(os.path.abspath(tempfile.mkdtemp(dir=out_folder)), "")
+    with open(temp_dir +  "/prodigal", 'w')  as outfile:
+        outfile.write("#!/bin/bash\n")
+        outfile.write("(>&2 echo 'running prokka mod!')\n")
+        outfile.write(path_to_prodigal + " $*\n" + " -t " + train_file)
+
+    cmd = 'export PATH="' + temp_dir + ':$PATH"; chmod 777 ' + temp_dir + '/* ; '
 
     cmd += "prokka"
 
@@ -112,15 +118,20 @@ def run_prokka_mod(input_file, out_folder, train_file, force, add_cmds):
     cmd += " --cpus 1"
     cmd += " --outdir " + out_folder + prefix
     cmd += " " + input_file.name
-    cmd += "  &> " + out_folder + prefix + "_prokka.log"
+    # cmd += "  &> " + out_folder + prefix + "_prokka.log"
 
-    subprocess.run(cmd, shell=True, check=True, executable='/bin/bash')
+    print(cmd)
+
+    subprocess.run(cmd, shell=True, check=True, executable='/bin/sh')
 
     # check prokka completed successfully
     with open(out_folder + prefix + "_prokka.log", 'rU') as logfile:
         lines = logfile.read().splitlines()
         if "Annotation finished successfully." not in lines[-6]:
             raise Exception('Prokka did not execute successfully!')
+
+    # remove temporary directory
+    shutil.rmtree(temp_dir)
 
     return
 
