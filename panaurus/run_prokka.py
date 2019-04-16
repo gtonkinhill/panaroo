@@ -82,7 +82,7 @@ def main():
 
     # run prokka with adjusted arguments on each fasta input in parallel
     Parallel(n_jobs=args.n_cpu)(delayed(run_prokka_mod)(
-        input, args.output_dir, args.output_dir +
+        input.name, args.output_dir, args.output_dir +
         "prodigal_training.txt", args.force, args.add_prokka_cmds)
                                 for input in args.input_files)
 
@@ -92,7 +92,6 @@ def main():
 def run_prokka_mod(input_file, out_folder, train_file, force, add_cmds):
 
     prefix = os.path.splitext(os.path.basename(input_file.name))[0]
-    input_file = os.path.abspath(input_file)
     out_folder = os.path.join(out_folder, "")
 
     path_to_prodigal = shutil.which("prodigal")
@@ -105,7 +104,7 @@ def run_prokka_mod(input_file, out_folder, train_file, force, add_cmds):
         outfile.write("(>&2 echo 'running prokka mod!')\n")
         outfile.write(path_to_prodigal + " $*\n" + " -t " + train_file)
 
-    cmd = 'export PATH="' + temp_dir + ':$PATH"; chmod 777 ' + temp_dir + '/* ; '
+    cmd = 'export PATH="' + temp_dir + ':$PATH"; chmod 777 ' + temp_dir + '/*; '
 
     cmd += "prokka"
 
@@ -118,7 +117,7 @@ def run_prokka_mod(input_file, out_folder, train_file, force, add_cmds):
 
     cmd += " --cpus 1"
     cmd += " --outdir " + out_folder + prefix
-    cmd += " " + input_file.name
+    cmd += " " + os.path.abspath(input_file.name)
     cmd += "  &> " + out_folder + prefix + "_prokka.log"
 
     print(cmd)
