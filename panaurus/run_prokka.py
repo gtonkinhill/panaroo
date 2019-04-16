@@ -82,7 +82,7 @@ def main():
 
     # run prokka with adjusted arguments on each fasta input in parallel
     Parallel(n_jobs=args.n_cpu)(delayed(run_prokka_mod)(
-        input.name, args.output_dir, args.output_dir +
+        input, args.output_dir, args.output_dir +
         "prodigal_training.txt", args.force, args.add_prokka_cmds)
                                 for input in args.input_files)
 
