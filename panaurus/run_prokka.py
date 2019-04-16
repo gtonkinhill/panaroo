@@ -118,7 +118,7 @@ def run_prokka_mod(input_file, out_folder, train_file, force, add_cmds):
     cmd += " --cpus 1"
     cmd += " --outdir " + out_folder + prefix
     cmd += " " + input_file.name
-    # cmd += "  &> " + out_folder + prefix + "_prokka.log"
+    cmd += "  &> " + out_folder + prefix + "_prokka.log"
 
     print(cmd)
 
