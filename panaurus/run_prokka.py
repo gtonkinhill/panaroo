@@ -92,6 +92,7 @@ def main():
 def run_prokka_mod(input_file, out_folder, train_file, force, add_cmds):
 
     prefix = os.path.splitext(os.path.basename(input_file.name))[0]
+    input_file = os.path.abspath(input_file)
     out_folder = os.path.join(out_folder, "")
 
     path_to_prodigal = shutil.which("prodigal")
