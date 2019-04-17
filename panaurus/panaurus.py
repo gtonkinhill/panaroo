@@ -1,29 +1,17 @@
-from prokka import process_prokka_input
-from cdhit import run_cdhit
-from generate_network import generate_network
-from generate_output import *
-from clean_network import *
-from find_missing import find_missing
+from panaurus.prokka import process_prokka_input
+from panaurus.cdhit import run_cdhit
+from panaurus.generate_network import generate_network
+from panaurus.generate_output import *
+from panaurus.clean_network import *
+from panaurus.find_missing import find_missing
 import os
 import argparse
 import tempfile
 from Bio import SeqIO
 import shutil
 import networkx as nx
-
-
-def is_valid_file(parser, arg):
-    if not os.path.exists(arg):
-        parser.error("The file %s does not exist!" % arg)
-    else:
-        return arg
-
-
-def is_valid_folder(parser, arg):
-    if not os.path.isdir(arg):
-        parser.error("The folder %s does not exist!" % arg)
-    else:
-        return arg
+from panaurus.isvalid import *
+from panaurus.set_default_args import set_default_args
 
 
 def main():
@@ -35,23 +23,20 @@ def main():
         "--threshold",
         dest="id",
         help="sequence identity threshold (default=0.95)",
-        type=float,
-        default=0.95)
+        type=float)
 
     parser.add_argument(
         "-f",
         "--family_threshold",
         dest="family_threshold",
         help="protein family sequence identity threshold (default=0.7)",
-        type=float,
-        default=0.7)
+        type=float)
 
     parser.add_argument(
         "--len_dif_percent",
         dest="len_dif_percent",
         help="length difference cutoff (default=0.95)",
-        type=float,
-        default=0.95)
+        type=float)
 
     parser.add_argument(
         "-i",
@@ -75,32 +60,28 @@ def main():
         dest="min_trailing_support",
         help=("minimum cluster size to keep a gene called at the " +
               "end of a contig (default=2)"),
-        type=int,
-        default=2)
+        type=int)
 
     parser.add_argument(
         "--trailing_recursive",
         dest="trailing_recursive",
         help=("number of times to perform recursive triming of low support " +
               "nodes near the end of contigs (default=2)"),
-        type=int,
-        default=2)
+        type=int)
 
     parser.add_argument(
         "--max_cycle_size",
         dest="max_cycle_size",
         help=("maximum cycle  size for collapsing gene families " +
               "(default=20)"),
-        type=int,
-        default=20)
+        type=int)
 
     parser.add_argument(
         "--min_edge_support_sv",
         dest="min_edge_support_sv",
         help=("minimum edge support required to call structural variants" +
               " in the presence/absence sv file"),
-        type=int,
-        default=2)
+        type=int)
 
     parser.add_argument(
         "--no_split",
@@ -110,26 +91,35 @@ def main():
         default=True)
 
     parser.add_argument(
+        "--mode",
+        dest="mode",
+        help=("the stringency mode at which to run panaurus. One of 'strict'" +
+              ", 'moderate' or 'relaxed' (default='strict')"),
+        choices=['strict', 'moderate', 'relaxed'],
+        default='strict')
+
+    parser.add_argument(
         "-t",
         "--threads",
         dest="n_cpu",
         help="number of threads to use (default=1)",
         type=int,
         default=1)
-    
+
     parser.add_argument(
         "-a",
         "--alignment",
         dest="aln",
-        help="Output alignments of core genes or all genes. Options are 'core' and 'pan'. Default: 'None'",
+        help=("Output alignments of core genes or all genes. Options are" +
+            " 'core' and 'pan'. Default: 'None'"),
         type=str,
         default=None)
 
     parser.add_argument(
-        "-l",
         "--aligner",
         dest="alr",
-        help="Specify an aligner. Options:'prank', 'clustal', and default: 'mafft'",
+        help=
+        "Specify an aligner. Options:'prank', 'clustal', and default: 'mafft'",
         type=str,
         default="mafft")
 
@@ -139,14 +129,23 @@ def main():
         help="Core-genome sample threshold (default=0.95)",
         type=float,
         default=0.95)
-    
+
+    parser.add_argument(
+        "--verbose",
+        dest="verbose",
+        help="print additional output",
+        action='store_true',
+        default=False)
+
     args = parser.parse_args()
+
+    args = set_default_args(args)
 
     # make sure trailing forward slash is present
     args.output_dir = os.path.join(args.output_dir, "")
 
     # Create temporary directory
-    temp_dir = tempfile.mkdtemp(dir=args.output_dir)
+    temp_dir = os.path.join(tempfile.mkdtemp(dir=args.output_dir), "")
 
     # convert input GFF3 files into summary files
     process_prokka_input(args.input_files, args.output_dir)
@@ -160,6 +159,9 @@ def main():
         s=args.len_dif_percent,
         n_cpu=args.n_cpu)
 
+    if args.verbose:
+        print("generating initial network...")
+
     # generate network from clusters and adjacency information
     G = generate_network(
         cluster_file=cd_hit_out + ".clstr",
@@ -170,11 +172,17 @@ def main():
     # write out pre-filter graph in GML format
     nx.write_gml(G, args.output_dir + "pre_filt_graph.gml")
 
+    if args.verbose:
+        print("triming contig ends...")
+
     # remove low support trailing ends
     G = trim_low_support_trailing_ends(
         G,
         min_support=args.min_trailing_support,
         max_recursive=args.trailing_recursive)
+
+    if args.verbose:
+        print("collapse gene families...")
 
     # clean up translation errors and gene families
     G = collapse_families(
@@ -185,12 +193,17 @@ def main():
         dna_error_threshold=0.99,
         correct_mistranslations=True)
 
+    if args.verbose:
+        print("refinding genes...")
+
     # find genes that Prokka has missed
     G = find_missing(
         G,
         args.input_files,
+        temp_dir=temp_dir,
         dna_seq_file=args.output_dir + "combined_DNA_CDS.fasta",
-        prot_seq_file=args.output_dir + "combined_protein_CDS.fasta")
+        prot_seq_file=args.output_dir + "combined_protein_CDS.fasta",
+        n_cpu=args.n_cpu)
 
     # write out roary like gene_presence_absence.csv
     G = generate_roary_gene_presence_absence(
@@ -221,14 +234,20 @@ def main():
         min_variant_support=args.min_edge_support_sv)
 
     #Write out core/pan-genome alignments
-    isolate_names = [x.name.split('/')[-1].split('.')[0] for x in args.input_files]
+    isolate_names = [
+        os.path.splitext(os.path.basename(x))[0] for x in args.input_files
+    ]
     if args.aln == "pan":
-        generate_pan_genome_alignment(G, temp_dir, args.n_cpu, args.alr, isolate_names)
+        generate_pan_genome_alignment(G, temp_dir, args.n_cpu, args.alr,
+                                      isolate_names)
         core_nodes = get_core_gene_nodes(G, args.core, len(args.input_files))
-        concatenate_core_genome_alignments(core_nodes, "./aligned_gene_sequences/")
-    elif args.aln =="core":
-        generate_core_genome_alignment(G, temp_dir, args.n_cpu, args.alr, isolate_names, args.core, len(args.input_files))
-    
+        concatenate_core_genome_alignments(core_nodes,
+                                           args.output_dir + "/aligned_gene_sequences/")
+    elif args.aln == "core":
+        generate_core_genome_alignment(G, temp_dir, args.n_cpu, args.alr,
+                                       isolate_names, args.core,
+                                       len(args.input_files))
+
     # remove temporary directory
     shutil.rmtree(temp_dir)
 

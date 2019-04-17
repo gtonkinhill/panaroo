@@ -12,12 +12,12 @@ from Bio.Align.Applications import ClustalOmegaCommandline
 import Bio.Application
 
 
-def output_sequence(node, isolate_list, temp_directory):
+def output_sequence(node, isolate_list, temp_directory, outdir):
     #Get the name of the sequences for the gene of interest
     sequence_ids = node["seqIDs"]
     output_sequences = []
     #Look for gene sequences among all genes (from disk)
-    for seq in read("./combined_DNA_CDS.fasta", format='fasta'):
+    for seq in read(outdir + "combined_DNA_CDS.fasta", format='fasta'):
         isolate_num = int(getattr(seq, 'metadata')['id'].split('_')[0])
         isolate_name = isolate_list[isolate_num]
         if getattr(seq, 'metadata')['id'] in sequence_ids:
@@ -30,27 +30,39 @@ def output_sequence(node, isolate_list, temp_directory):
     write(output_sequences, 'fasta', outname)
     return outname
 
+
 def get_alignment_commands(fastafile_name, aligner, threads):
     geneName = fastafile_name.split('/')[-1].split('.')[0]
     if aligner == "prank":
-        command = PrankCommandline(d=fastafile_name, o=geneName, f=8, codon=True)
+        command = PrankCommandline(
+            d=fastafile_name, o=geneName, f=8, codon=True)
     elif (threads > 3):
         if aligner == "mafft":
-            command = MafftCommandline(input=fastafile_name, auto=True, nuc=True)
+            command = MafftCommandline(
+                input=fastafile_name, auto=True, nuc=True)
         elif aligner == "clustal":
-            command = ClustalOmegaCommandline(infile=fastafile_name, outfile="./aligned_gene_sequences/"+geneName+".aln.fas", seqtype="DNA")
-    elif (threads <=3):
+            command = ClustalOmegaCommandline(
+                infile=fastafile_name,
+                outfile="./aligned_gene_sequences/" + geneName + ".aln.fas",
+                seqtype="DNA")
+    elif (threads <= 3):
         if aligner == "mafft":
-            command = MafftCommandline(input=fastafile_name, auto=True, thread=threads, nuc=True)
+            command = MafftCommandline(
+                input=fastafile_name, auto=True, thread=threads, nuc=True)
         elif aligner == "clustal":
-            command = ClustalOmegaCommandline(infile=fastafile_name, outfile="./aligned_gene_sequences/"+geneName+".aln.fas", seqtype="DNA", threads=threads)
+            command = ClustalOmegaCommandline(
+                infile=fastafile_name,
+                outfile="./aligned_gene_sequences/" + geneName + ".aln.fas",
+                seqtype="DNA",
+                threads=threads)
     return (command, fastafile_name)
+
 
 def align_sequences(command, outdir, aligner):
     if aligner == "mafft":
         name = str(command[0]).split()[-1].split('/')[-1].split('.')[0]
         stdout, stderr = command[0]()
-        with open(outdir+name+'.aln.fas', 'w+') as handle:
+        with open(outdir + name + '.aln.fas', 'w+') as handle:
             handle.write(stdout)
     elif aligner == "clustal":
         try:
@@ -60,9 +72,9 @@ def align_sequences(command, outdir, aligner):
             name = inputname.split('/')[-1]
             print(error)
             if "contains 1 sequence, nothing to align" in str(error):
-                os.rename(inputname, outdir+name)
+                os.rename(inputname, outdir + name)
             else:
-                raise Exception("Clustal failed to run on"+ inputname)
+                raise Exception("Clustal failed to run on" + inputname)
     else:
         stdout, stderr = command[0]()
     try:
@@ -71,12 +83,18 @@ def align_sequences(command, outdir, aligner):
         None
     return True
 
+
 def multi_align_sequences(commands, outdir, threads, aligner):
     if (threads > 3) or (aligner == "prank"):
-        alignment_results = Parallel(n_jobs=threads, prefer="threads")(delayed(align_sequences)(x, outdir, aligner) for x in commands)
+        alignment_results = Parallel(
+            n_jobs=threads, prefer="threads")(
+                delayed(align_sequences)(x, outdir, aligner) for x in commands)
     else:
-        alignment_results = [align_sequences(x, outdir, aligner) for x in commands]
+        alignment_results = [
+            align_sequences(x, outdir, aligner) for x in commands
+        ]
     return True
+
 
 def write_alignment_header(alignment_list, outdir):
     out_entries = []
@@ -90,19 +108,22 @@ def write_alignment_header(alignment_list, outdir):
         gene_end += len(focal_seq)
         gene_name = getattr(focal_seq, 'metadata')['id']
         #Create the 3 line feature entry
-        gene_entry1 = "FT   feature         "+str(gene_start)+".."+str(gene_end)+'\n'
-        gene_entry2 = "FT                   /label="+gene_name+'\n'
-        gene_entry3 = "FT                   /locus_tag="+gene_name+'\n'
+        gene_entry1 = "FT   feature         " + str(gene_start) + ".." + str(
+            gene_end) + '\n'
+        gene_entry2 = "FT                   /label=" + gene_name + '\n'
+        gene_entry3 = "FT                   /locus_tag=" + gene_name + '\n'
         gene_entry = gene_entry1 + gene_entry2 + gene_entry3
         #Add it to the output list
         out_entries.append(gene_entry)
         #Alter the post-output variables
         gene_start += len(focal_seq)
     #Create the header and footer
-    header = "ID   Genome standard; DNA; PRO; 1234 BP.\nXX\nFH   Key             Location/Qualifiers\nFH\n"
-    footer = "XX\nSQ   Sequence 1234 BP; 789 A; 1717 C; 1693 G; 691 T; 0 other;\n//\n"
+    header = ("ID   Genome standard; DNA; PRO; 1234 BP.\nXX\nFH   Key" +
+              "             Location/Qualifiers\nFH\n")
+    footer = ("XX\nSQ   Sequence 1234 BP; 789 A; 1717 C; 1693 G; 691 T;" +
+              " 0 other;\n//\n")
     #open file and output
-    with open(outdir+"core_alignment_header.embl", "w+") as outhandle:
+    with open(outdir + "core_alignment_header.embl", "w+") as outhandle:
         outhandle.write(header)
         for entry in out_entries:
             outhandle.write(entry)
