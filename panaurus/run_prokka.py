@@ -98,11 +98,13 @@ def run_prokka_mod(input_file, out_folder, train_file, force, add_cmds):
 
     # override the system prodigal temporarily to input training file in prokka
     # Create temporary directory
-    temp_dir = os.path.join(os.path.abspath(tempfile.mkdtemp(dir=out_folder)), "")
-    with open(temp_dir +  "/prodigal", 'w')  as outfile:
+    temp_dir = os.path.join(
+        os.path.abspath(tempfile.mkdtemp(dir=out_folder)), "")
+    with open(temp_dir + "/prodigal", 'w') as outfile:
         outfile.write("#!/bin/bash\n")
         outfile.write("(>&2 echo 'running prokka mod!')\n")
-        outfile.write(path_to_prodigal + " $*\n" + " -t " + train_file)
+        outfile.write(path_to_prodigal + " $*\n" + " -t " +
+                      os.path.abspath(train_file))
 
     cmd = 'export PATH="' + temp_dir + ':$PATH"; chmod 777 ' + temp_dir + '/*; '
 
