@@ -116,7 +116,30 @@ def main():
         help="number of threads to use (default=1)",
         type=int,
         default=1)
+    
+    parser.add_argument(
+        "-a",
+        "--alignment",
+        dest="aln",
+        help="Output alignments of core genes or all genes. Options are 'core' and 'pan'. Default: 'None'",
+        type=str,
+        default=None)
 
+    parser.add_argument(
+        "-l",
+        "--aligner",
+        dest="alr",
+        help="Specify an aligner. Options:'prank', 'clustal', and default: 'mafft'",
+        type=str,
+        default="mafft")
+
+    parser.add_argument(
+        "--core_threshold",
+        dest="core",
+        help="Core-genome sample threshold (default=0.95)",
+        type=float,
+        default=0.95)
+    
     args = parser.parse_args()
 
     # make sure trailing forward slash is present
@@ -197,6 +220,15 @@ def main():
         n_members=len(args.input_files),
         min_variant_support=args.min_edge_support_sv)
 
+    #Write out core/pan-genome alignments
+    isolate_names = [x.name.split('/')[-1].split('.')[0] for x in args.input_files]
+    if args.aln == "pan":
+        generate_pan_genome_alignment(G, temp_dir, args.n_cpu, args.alr, isolate_names)
+        core_nodes = get_core_gene_nodes(G, args.core, len(args.input_files))
+        concatenate_core_genome_alignments(core_nodes, "./aligned_gene_sequences/")
+    elif args.aln =="core":
+        generate_core_genome_alignment(G, temp_dir, args.n_cpu, args.alr, isolate_names, args.core, len(args.input_files))
+    
     # remove temporary directory
     shutil.rmtree(temp_dir)
 
