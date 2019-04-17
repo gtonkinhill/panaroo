@@ -51,7 +51,7 @@ def generate_roary_gene_presence_absence(G, file_names, dna_file, output_dir):
             count = 0
             for node in component:
                 count += 1
-                name = G.node[node]['annotation'].strip()
+                name = '_'.join(G.node[node]['annotation'].strip().strip(';').split(';'))
                 if name not in used_gene_names:
                     entry = [name]
                     used_gene_names.add(name)
@@ -165,7 +165,7 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner, iso
     #Multithread writing gene sequences to disk (temp directory) so aligners can find them
     unaligned_sequence_files = Parallel(n_jobs=threads)(delayed(output_sequence)(G.node[x], isolates, temp_dir, output_dir) for x in G.nodes())
     #Get Biopython command calls for each output gene sequences
-    commands = [get_alignment_commands(fastafile, aligner, threads) for fastafile in unaligned_sequence_files]
+    commands = [get_alignment_commands(fastafile, output_dir, aligner, threads) for fastafile in unaligned_sequence_files]
     #Run these commands in a multi-threaded way
     multi_align_sequences(commands, output_dir + "aligned_gene_sequences/", threads, aligner)
     return
@@ -178,7 +178,8 @@ def get_core_gene_nodes(G, threshold, num_isolates):
             core_nodes.append(node)
     return core_nodes
 
-def concatenate_core_genome_alignments(core_names, alignments_dir):
+def concatenate_core_genome_alignments(core_names, output_dir):
+    alignments_dir = output_dir  + "/aligned_gene_sequences/"
     #Open up each alignment that is assosciated with a core node
     alignment_filenames = os.listdir(alignments_dir)
     core_filenames = [x for x in alignment_filenames if x.split('.')[0] in core_names]
@@ -188,22 +189,24 @@ def concatenate_core_genome_alignments(core_names, alignments_dir):
         gene_name = filename.split('/')[-1].split('.')[0]
         with open((alignments_dir+filename), 'r') as handle:
             seq_generator = read(handle, format="fasta", )
-            case_corrected = (DNA(x, lowercase=True, metadata = {"id":gene_name}) for x in seq_generator)
-            alignment = TabularMSA(case_corrected)
+            case_corrected = (DNA(x, lowercase=True) for x in seq_generator)
+            alignment = TabularMSA(case_corrected, minter="id")
             gene_alignments.append(alignment)
     #Combine them
     output_alignment = gene_alignments[0]
+    print(output_alignment.index)
     for alignment in gene_alignments[1:]:
         output_alignment = output_alignment.join(alignment, how='outer')
+        print(output_alignment.index)
     #Write out the two output files
-    write(output_alignment, 'fasta', 'core_gene_alignment.aln')
-    write_alignment_header(gene_alignments, "./")
+    write(output_alignment, 'fasta', output_dir+'core_gene_alignment.aln')
+    write_alignment_header(gene_alignments, output_dir)
     return core_filenames
 
-def generate_core_genome_alignment(G, output_dir, threads, aligner, isolates, threshold, num_isolates):
+def generate_core_genome_alignment(G, temp_dir, output_dir, threads, aligner, isolates, threshold, num_isolates):
     #Make a folder for the output alignments TODO: decide whether or not to keep these
     try:
-        os.mkdir("aligned_gene_sequences")
+        os.mkdir(output_dir+"aligned_gene_sequences")
     except FileExistsError:
         None
     #Get core nodes
@@ -212,9 +215,9 @@ def generate_core_genome_alignment(G, output_dir, threads, aligner, isolates, th
     #Output core node sequences
     unaligned_sequence_files = Parallel(n_jobs=threads)(delayed(output_sequence)(G.node[x], isolates, temp_dir, output_dir) for x in core_genes)
     #Get alignment commands
-    commands = [get_alignment_commands(fastafile, aligner, threads) for fastafile in unaligned_sequence_files]
+    commands = [get_alignment_commands(fastafile, output_dir, aligner, threads) for fastafile in unaligned_sequence_files]
     #Run alignment commands
     multi_align_sequences(commands, output_dir + "aligned_gene_sequences/", threads, aligner)
     #Concatenate them together to produce the two output files
-    concatenate_core_genome_alignments(core_gene_names, output_dir + "aligned_gene_sequences/")
+    concatenate_core_genome_alignments(core_gene_names, output_dir)
     return

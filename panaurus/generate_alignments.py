@@ -31,7 +31,7 @@ def output_sequence(node, isolate_list, temp_directory, outdir):
     return outname
 
 
-def get_alignment_commands(fastafile_name, aligner, threads):
+def get_alignment_commands(fastafile_name, outdir, aligner, threads):
     geneName = fastafile_name.split('/')[-1].split('.')[0]
     if aligner == "prank":
         command = PrankCommandline(
@@ -43,7 +43,7 @@ def get_alignment_commands(fastafile_name, aligner, threads):
         elif aligner == "clustal":
             command = ClustalOmegaCommandline(
                 infile=fastafile_name,
-                outfile="./aligned_gene_sequences/" + geneName + ".aln.fas",
+                outfile=outdir + "aligned_gene_sequences/" + geneName + ".aln.fas",
                 seqtype="DNA")
     elif (threads <= 3):
         if aligner == "mafft":
@@ -52,7 +52,7 @@ def get_alignment_commands(fastafile_name, aligner, threads):
         elif aligner == "clustal":
             command = ClustalOmegaCommandline(
                 infile=fastafile_name,
-                outfile="./aligned_gene_sequences/" + geneName + ".aln.fas",
+                outfile=outdir + "aligned_gene_sequences/" + geneName + ".aln.fas",
                 seqtype="DNA",
                 threads=threads)
     return (command, fastafile_name)
@@ -103,7 +103,8 @@ def write_alignment_header(alignment_list, outdir):
     gene_end = 0
     for alignment in alignment_list:
         #Get length and name from one sequence in the alignment
-        focal_seq = alignment[alignment.index[0]]
+        seqids = list(alignment.index)
+        focal_seq = alignment[seqids[0]]
         #Set variables that need to be set pre-output
         gene_end += len(focal_seq)
         gene_name = getattr(focal_seq, 'metadata')['id']

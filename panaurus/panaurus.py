@@ -235,16 +235,16 @@ def main():
 
     #Write out core/pan-genome alignments
     isolate_names = [
-        os.path.splitext(os.path.basename(x))[0] for x in args.input_files
+        os.path.splitext(os.path.basename(x.name))[0] for x in args.input_files
     ]
     if args.aln == "pan":
-        generate_pan_genome_alignment(G, temp_dir, args.n_cpu, args.alr,
+        generate_pan_genome_alignment(G, temp_dir, args.output_dir, args.n_cpu, args.alr,
                                       isolate_names)
         core_nodes = get_core_gene_nodes(G, args.core, len(args.input_files))
         concatenate_core_genome_alignments(core_nodes,
-                                           args.output_dir + "/aligned_gene_sequences/")
+                                           args.output_dir)
     elif args.aln == "core":
-        generate_core_genome_alignment(G, temp_dir, args.n_cpu, args.alr,
+        generate_core_genome_alignment(G, temp_dir, args.output_dir, args.n_cpu, args.alr,
                                        isolate_names, args.core,
                                        len(args.input_files))
 
