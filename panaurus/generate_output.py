@@ -4,6 +4,7 @@ from collections import defaultdict
 import numpy as np
 import os
 from Bio import SeqIO
+from Bio import AlignIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import generic_dna
@@ -185,22 +186,19 @@ def concatenate_core_genome_alignments(core_names, output_dir):
     core_filenames = [x for x in alignment_filenames if x.split('.')[0] in core_names]
     #Read in all these alginemnts
     gene_alignments = []
+    gene_names = []
     for filename in core_filenames:
         gene_name = filename.split('/')[-1].split('.')[0]
-        with open((alignments_dir+filename), 'r') as handle:
-            seq_generator = read(handle, format="fasta", )
-            case_corrected = (DNA(x, lowercase=True) for x in seq_generator)
-            alignment = TabularMSA(case_corrected, minter="id")
-            gene_alignments.append(alignment)
+        gene_names.append(gene_name)
+        alignment = AlignIO.read(alignments_dir + filename, 'fasta')
+        gene_alignments.append(alignment)
     #Combine them
     output_alignment = gene_alignments[0]
-    print(output_alignment.index)
     for alignment in gene_alignments[1:]:
-        output_alignment = output_alignment.join(alignment, how='outer')
-        print(output_alignment.index)
+        output_alignment = concatenate_alignments(output_alignment, alignment)
     #Write out the two output files
-    write(output_alignment, 'fasta', output_dir+'core_gene_alignment.aln')
-    write_alignment_header(gene_alignments, output_dir)
+    AlignIO.write(output_alignment, output_dir+'core_gene_alignment.aln', 'fasta')
+    write_alignment_header(gene_alignments, gene_names, output_dir)
     return core_filenames
 
 def generate_core_genome_alignment(G, temp_dir, output_dir, threads, aligner, isolates, threshold, num_isolates):
