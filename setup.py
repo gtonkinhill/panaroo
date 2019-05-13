@@ -17,7 +17,8 @@ setuptools.setup(
               'scikit-bio',
               'networkx',
               'gffutils',
-              'BioPython'
+              'BioPython',
+              'joblib'
           ],
     packages=setuptools.find_packages(),
     classifiers=[
