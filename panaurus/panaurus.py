@@ -107,6 +107,30 @@ def main():
         default=1)
 
     parser.add_argument(
+        "-a",
+        "--alignment",
+        dest="aln",
+        help=("Output alignments of core genes or all genes. Options are" +
+            " 'core' and 'pan'. Default: 'None'"),
+        type=str,
+        default=None)
+
+    parser.add_argument(
+        "--aligner",
+        dest="alr",
+        help=
+        "Specify an aligner. Options:'prank', 'clustal', and default: 'mafft'",
+        type=str,
+        default="mafft")
+
+    parser.add_argument(
+        "--core_threshold",
+        dest="core",
+        help="Core-genome sample threshold (default=0.95)",
+        type=float,
+        default=0.95)
+
+    parser.add_argument(
         "--verbose",
         dest="verbose",
         help="print additional output",
@@ -121,7 +145,7 @@ def main():
     args.output_dir = os.path.join(args.output_dir, "")
 
     # Create temporary directory
-    temp_dir = tempfile.mkdtemp(dir=args.output_dir)
+    temp_dir = os.path.join(tempfile.mkdtemp(dir=args.output_dir), "")
 
     # convert input GFF3 files into summary files
     process_prokka_input(args.input_files, args.output_dir)
@@ -208,6 +232,21 @@ def main():
         output_dir=args.output_dir,
         n_members=len(args.input_files),
         min_variant_support=args.min_edge_support_sv)
+
+    #Write out core/pan-genome alignments
+    isolate_names = [
+        os.path.splitext(os.path.basename(x.name))[0] for x in args.input_files
+    ]
+    if args.aln == "pan":
+        generate_pan_genome_alignment(G, temp_dir, args.output_dir, args.n_cpu, args.alr,
+                                      isolate_names)
+        core_nodes = get_core_gene_nodes(G, args.core, len(args.input_files))
+        concatenate_core_genome_alignments(core_nodes,
+                                           args.output_dir)
+    elif args.aln == "core":
+        generate_core_genome_alignment(G, temp_dir, args.output_dir, args.n_cpu, args.alr,
+                                       isolate_names, args.core,
+                                       len(args.input_files))
 
     # remove temporary directory
     shutil.rmtree(temp_dir)
