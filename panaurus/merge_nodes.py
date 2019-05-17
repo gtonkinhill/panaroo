@@ -44,7 +44,8 @@ def merge_nodes(G,
             dna=G.node[nodeA]['dna'],
             annotation=G.node[nodeA]['annotation'],
             description=G.node[nodeA]['description'],
-            paralog=(G.node[nodeA]['paralog'] or G.node[nodeB]['paralog']))
+            paralog=(G.node[nodeA]['paralog'] or G.node[nodeB]['paralog']),
+            mergedDNA=True)
 
     # Now iterate through neighbours of each node and add them to the new node
     neigboursB = list(G.neighbors(nodeB))

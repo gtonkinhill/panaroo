@@ -3,6 +3,7 @@ import tempfile
 import os
 from collections import defaultdict
 import networkx as nx
+from Bio.Seq import reverse_complement
 
 
 def run_cdhit(
@@ -298,14 +299,19 @@ def align_dna_cdhit(
     # process the output
     found_seq = ""
     with open(temp_output_file.name + ".clstr", 'rU') as infile:
+        rev = False
         for line in infile:
             if "at" in line:
                 align = line.split(" at ")[1].split("/")[0].split(":")
                 if "query" in line:
+                    if int(align[0]) > int(align[1]): rev = True
                     bounds = sorted([int(align[0]), int(align[1])])
                 else:
+                    if int(align[2]) > int(align[3]): rev = True
                     bounds = sorted([int(align[2]), int(align[3])])
                 found_seq = query[bounds[0] - 1:bounds[1]]
+                if rev:
+                    found_seq = reverse_complement(found_seq)
 
     # remove temporary files
     os.remove(temp_input_file.name)

@@ -1,6 +1,7 @@
 import os
 
 from joblib import Parallel, delayed
+from tqdm import tqdm
 
 from Bio import SeqIO
 from Bio.Seq import Seq
@@ -19,7 +20,7 @@ def output_sequence(node, isolate_list, temp_directory, outdir):
     #Look for gene sequences among all genes (from disk)
     for seq in SeqIO.parse(outdir + "combined_DNA_CDS.fasta", 'fasta'):
         isolate_num = int(seq.id.split('_')[0])
-        isolate_name = isolate_list[isolate_num]
+        isolate_name = isolate_list[isolate_num].replace(";","") + ";" + seq.id
         if seq.id in sequence_ids:
             output_sequences.append(SeqRecord(seq.seq, id=isolate_name, description=""))
     #Put gene of interest sequences in a generator, with corrected isolate names
@@ -85,28 +86,24 @@ def align_sequences(command, outdir, aligner):
 
 
 def multi_align_sequences(commands, outdir, threads, aligner):
-    if (threads > 3) or (aligner == "prank"):
-        alignment_results = Parallel(
-            n_jobs=threads, prefer="threads")(
-                delayed(align_sequences)(x, outdir, aligner) for x in commands)
-    else:
-        alignment_results = [
-            align_sequences(x, outdir, aligner) for x in commands
-        ]
+
+    alignment_results = Parallel(
+        n_jobs=threads, prefer="threads")(
+            delayed(align_sequences)(x, outdir, aligner) for x in tqdm(commands))
+
     return True
 
 
-def write_alignment_header(alignment_list, gene_list, outdir):
+def write_alignment_header(alignment_list, outdir):
     out_entries = []
     #Set the tracking variables for gene positions
     gene_start = 1
     gene_end = 0
-    for x in range(len(alignment_list)):
+    for gene in alignment_list:
         #Get length and name from one sequence in the alignment
-        focal_seq = alignment_list[x][0].seq
         #Set variables that need to be set pre-output
-        gene_end += len(focal_seq)
-        gene_name = gene_list[x]
+        gene_end += gene[2]
+        gene_name = gene[0]
         #Create the 3 line feature entry
         gene_entry1 = "FT   feature         " + str(gene_start) + ".." + str(
             gene_end) + '\n'
@@ -116,7 +113,7 @@ def write_alignment_header(alignment_list, gene_list, outdir):
         #Add it to the output list
         out_entries.append(gene_entry)
         #Alter the post-output variables
-        gene_start += len(focal_seq)
+        gene_start += gene[2]
     #Create the header and footer
     header = ("ID   Genome standard; DNA; PRO; 1234 BP.\nXX\nFH   Key" +
               "             Location/Qualifiers\nFH\n")
@@ -129,26 +126,3 @@ def write_alignment_header(alignment_list, gene_list, outdir):
             outhandle.write(entry)
         outhandle.write(footer)
     return True
-
-def concatenate_alignments(alignment1, alignment2):
-    #get the sequence lengths of each alignment
-    aln1len = len(alignment1[0].seq)
-    aln2len = len(alignment2[0].seq)
-    #Get the seqids 
-    aln1seqids = set(x.id for x in alignment1)
-    aln2seqids = set(x.id for x in alignment2)
-    #Unique seqids
-    aln1unique = aln1seqids - aln2seqids
-    aln2unique = aln2seqids - aln1seqids
-    #Create blank sequences to append to each alignment
-    aln1_blanks2append = [SeqRecord(Seq(aln1len*"-"), id=x) for x in aln2unique]
-    aln2_blanks2append = [SeqRecord(Seq(aln2len*"-"), id=x) for x in aln1unique]
-    #add the blanks
-    alignment1.extend(aln1_blanks2append)
-    alignment2.extend(aln2_blanks2append)
-    #Sort the rows
-    alignment1.sort()
-    alignment2.sort()
-    #Join and return
-    output_alignment = alignment1 + alignment2
-    return output_alignment
