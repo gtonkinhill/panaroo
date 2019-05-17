@@ -220,14 +220,13 @@ def concatenate_core_genome_alignments(core_names, output_dir):
     #Combine them
     isolate_aln = []
     for iso in isolates:
-        print(iso)
         seq = ""
         for gene in gene_alignments:
             if iso in gene[1]:
                 seq += gene[1][iso][1]
             else:
                 seq += "_"*gene[2]
-        isolate_aln.append(SeqRecord(seq, id=iso))
+        isolate_aln.append(SeqRecord(seq, id=iso, description=""))
 
     #Write out the two output files
     SeqIO.write(isolate_aln, output_dir + 'core_gene_alignment.aln',
