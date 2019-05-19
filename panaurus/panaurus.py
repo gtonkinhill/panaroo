@@ -151,7 +151,7 @@ def main():
         print("pre-processing gff3 files...")
 
     # convert input GFF3 files into summary files
-    process_prokka_input(args.input_files, args.output_dir, temp_dir)
+    process_prokka_input(args.input_files, args.output_dir)
 
     # Cluster protein sequences using cdhit
     cd_hit_out = args.output_dir + "combined_protein_cdhit_out.txt"

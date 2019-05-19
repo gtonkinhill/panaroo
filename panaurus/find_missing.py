@@ -1,15 +1,16 @@
 import networkx as nx
 from skbio import Sequence, DNA, Protein
 import io, sys
-from skbio.io import read
-from skbio.metadata import Interval, IntervalMetadata
-from skbio.alignment import local_pairwise_align_ssw, StripedSmithWaterman
+from skbio.alignment import StripedSmithWaterman
 from collections import defaultdict
 import numpy as np
 from Bio.Seq import translate, reverse_complement
+from Bio import SeqIO
 from panaurus.cdhit import align_dna_cdhit
 from joblib import Parallel, delayed
 import os
+import gffutils as gff
+from io import StringIO
 
 
 def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir,
@@ -144,29 +145,35 @@ def search_seq_gff(member,
 
     # reset file handle to the beginning
     gff_handle.seek(0)
-    gff3_str = gff_handle.read().split("##FASTA\n")
+    split = gff_handle.read().split("##FASTA\n")
 
-    if len(gff3_str) != 2:
+    if len(split) != 2:
         raise NameError("File does not appear to be in GFF3 format!")
 
     contig_records = defaultdict(dict)
     contig_names = []
-    for seq in read(io.StringIO(gff3_str[1]), format='fasta'):
-        if getattr(seq, 'metadata')['id'] in contig_records:
-            raise NameError("Duplicate contig names!")
-        contig_records[getattr(seq, 'metadata')['id']]['seq'] = str(seq)
-        contig_names.append(getattr(seq, 'metadata')['id'])
+    with StringIO(split[1]) as temp_fasta:
+        for record in SeqIO.parse(temp_fasta, 'fasta'):
+            if record.id in contig_records:
+                raise NameError("Duplicate contig names!")
+            contig_records[record.id]['seq'] = str(record.seq)
+            contig_names.append(record.id)
 
-    gff = read(io.StringIO(gff3_str[0]), format='gff3')
-    for ann in gff:
-        if ann[0] not in contig_records:
+    parsed_gff = gff.create_db(
+        "\n".join([l for l in split[0].splitlines() if '##sequence-region' not in l]),
+        dbfn=":memory:",
+        force=True,
+        keep_order=True,
+        from_string=True)
+    
+    for entry in parsed_gff.all_features(featuretype=()):
+        if "CDS" not in entry.featuretype: continue
+        if entry.seqid  not in contig_records:
             raise NameError("Mismatch in GFF file!")
-        annotations = list(ann[1].query([(0, 1000000000)]))
-        annotations = [
-            a for a in annotations if getattr(a, 'metadata')['type'] == 'CDS'
-        ]
-        if len(annotations) > 0:
-            contig_records[ann[0]]['annotations'] = annotations
+        if 'annotations' not in contig_records[entry.seqid]:
+            contig_records[entry.seqid]['annotations'] = [entry]
+        else:
+            contig_records[entry.seqid]['annotations'].append(entry)
 
     # TODO: for now skip entries with no annotationas we skip them reading in
     # the GFF3. May want to adjust this in the future
@@ -192,12 +199,8 @@ def search_seq_gff(member,
         found_dna = ""
         if (contigA == contigB) and (abs(gene_num_A - gene_num_B) <= 2):
             # the flanking genes are on the same contig, search inbetween
-            l_bound = min(
-                getattr(metaA, 'bounds')[0][1],
-                getattr(metaB, 'bounds')[0][1])
-            r_bound = max(
-                getattr(metaA, 'bounds')[0][0],
-                getattr(metaB, 'bounds')[0][0])
+            l_bound = min(metaA.end, metaB.end)
+            r_bound = max(metaA.start, metaB.start)
             search_sequence = contig_records[contigA]['seq'][l_bound:r_bound]
             found_dna = search_dna(seq, search_sequence, prop_match,
                                    pairwise_id_thresh, temp_dir, n_cpu)
@@ -207,7 +210,7 @@ def search_seq_gff(member,
             if gene_num_A < 20:
                 # we're at the start of contigA
                 search_sequence = contig_records[contigA]['seq'][:min(
-                    getattr(metaA, 'bounds')[0])]
+                    metaA.start, metaA.end)]
                 if len(search_sequence) < max_search_length:
                     found_dna = search_dna(seq, search_sequence, prop_match,
                                            pairwise_id_thresh, temp_dir, n_cpu)
@@ -215,14 +218,14 @@ def search_seq_gff(member,
                     contig_records[contigA]['annotations']) - gene_num_A < 20):
                 # we're at the  end of contigA
                 search_sequence = contig_records[contigA]['seq'][max(
-                    getattr(metaA, 'bounds')[0]):]
+                    metaA.start, metaA.end):]
                 if len(search_sequence) < max_search_length:
                     found_dna = search_dna(seq, search_sequence, prop_match,
                                            pairwise_id_thresh, temp_dir, n_cpu)
             if (found_dna == "") and (gene_num_B < 20):
                 # we're at the start of contigB
                 search_sequence = contig_records[contigB]['seq'][:min(
-                    getattr(metaB, 'bounds')[0])]
+                    metaB.start, metaB.end)]
                 if len(search_sequence) < max_search_length:
                     found_dna = search_dna(seq, search_sequence, prop_match,
                                            pairwise_id_thresh, temp_dir, n_cpu)
@@ -230,7 +233,7 @@ def search_seq_gff(member,
                     contig_records[contigB]['annotations']) - gene_num_B < 20):
                 # we're at the  end of contigB
                 search_sequence = contig_records[contigB]['seq'][max(
-                    getattr(metaB, 'bounds')[0]):]
+                    metaB.start, metaB.end):]
                 if len(search_sequence) < max_search_length:
                     found_dna = search_dna(seq, search_sequence, prop_match,
                                            pairwise_id_thresh, temp_dir, n_cpu)
