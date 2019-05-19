@@ -147,8 +147,11 @@ def main():
     # Create temporary directory
     temp_dir = os.path.join(tempfile.mkdtemp(dir=args.output_dir), "")
 
+    if args.verbose:
+        print("pre-processing gff3 files...")
+
     # convert input GFF3 files into summary files
-    process_prokka_input(args.input_files, args.output_dir)
+    process_prokka_input(args.input_files, args.output_dir, temp_dir)
 
     # Cluster protein sequences using cdhit
     cd_hit_out = args.output_dir + "combined_protein_cdhit_out.txt"
