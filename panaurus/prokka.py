@@ -8,6 +8,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from io import StringIO
 import numpy as np
+from joblib import Parallel, delayed
 
 translation_table = np.array([[[b'K', b'N', b'K', b'N', b'X'],
             [b'T', b'T', b'T', b'T', b'T'],
@@ -133,7 +134,7 @@ def get_gene_sequences(gff_file, file_number):
             sequence_dictionary[clustering_id] = scaffold_genes[scaffold][
                 gene_index][1]
 
-    return sequence_dictionary
+    return sequence_dictionary, translate_sequences(sequence_dictionary)
 
 
 #Translate sequences and return a second dic of protien sequences
@@ -154,10 +155,10 @@ def translate_sequences(sequence_dic):
     return protein_list
 
 
-def output_files(dna_dictionary, prot_handle, dna_handle, csv_handle,
+def output_files(dna_dictionary, protien_list,
+    prot_handle, dna_handle, csv_handle,
     gff_filename):
     #Simple output for protien list
-    protien_list = translate_sequences(dna_dictionary)
     SeqIO.write(protien_list, prot_handle, 'fasta')
     #Correct DNA ids to CD-Hit acceptable ids, and output
     clustering_id_records = []
@@ -187,7 +188,7 @@ def output_files(dna_dictionary, prot_handle, dna_handle, csv_handle,
     return None
 
 
-def process_prokka_input(gff_list, output_dir):
+def process_prokka_input(gff_list, output_dir, n_cpu):
     try:
         protienHandle = open(output_dir + "combined_protein_CDS.fasta", 'w+')
         DNAhandle = open(output_dir + "combined_DNA_CDS.fasta", 'w+')
@@ -195,9 +196,15 @@ def process_prokka_input(gff_list, output_dir):
         csvHandle.write(
             "gff_file,scaffold_name,clustering_id,annotation_id,prot_sequence,dna_sequence,gene_name,description\n"
         )
-        for gff_no, gff in enumerate(gff_list):
-            gene_sequences = get_gene_sequences(gff, gff_no)
-            output_files(gene_sequences, protienHandle, DNAhandle, csvHandle, gff)
+        job_list = list(enumerate(gff_list))
+        job_list = [job_list[i:i+n_cpu] for i in range(0, len(job_list), n_cpu)]
+        for job in job_list:
+            gene_sequence_list  = Parallel(n_jobs=n_cpu)(
+                delayed(get_gene_sequences)(
+                    gff, gff_no)
+                for gff_no, gff in job)
+            for i, gene_seq in enumerate(gene_sequence_list):
+                output_files(gene_seq[0], gene_seq[1], protienHandle, DNAhandle, csvHandle, job[i][1])
         protienHandle.close()
         DNAhandle.close()
         csvHandle.close()
@@ -211,4 +218,4 @@ def process_prokka_input(gff_list, output_dir):
 if __name__ == "__main__":
     #used for debugging purpopses
     import sys
-    thing = process_prokka_input([open(f, 'rU') for f in sys.argv[1:]], "./")
+    thing = process_prokka_input([open(f, 'rU') for f in sys.argv[1:]], "./", 2)
