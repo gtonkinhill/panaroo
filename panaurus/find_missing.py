@@ -1,7 +1,6 @@
 import networkx as nx
 from skbio import Sequence, DNA, Protein
 import io, sys
-from skbio.alignment import StripedSmithWaterman
 from collections import defaultdict
 import numpy as np
 from Bio.Seq import translate, reverse_complement
@@ -289,12 +288,12 @@ def translate_to_match(hit, target_prot):
         for i in range(3) for s in dna_seqs
     ]
 
-    query = StripedSmithWaterman(target_prot)
+    search_set = set([target_prot[i:i+3] for i in range(len(target_prot)-2)])
 
     alignments = []
     for target_sequence in proteins:
-        alignment = query(target_sequence)
-        alignments.append((target_sequence, alignment.optimal_alignment_score))
+        query_set = set([target_sequence[i:i+3] for i in range(len(target_sequence)-2)])
+        alignments.append((target_sequence, len(search_set.intersection(query_set))))
 
     prot = max(alignments, key=lambda x: x[1])
 

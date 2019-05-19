@@ -14,7 +14,6 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/gtonkinhill/panaurus",
     install_requires=[
-              'scikit-bio',
               'networkx',
               'gffutils',
               'BioPython',
