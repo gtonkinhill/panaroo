@@ -9,6 +9,8 @@ from Bio.SeqRecord import SeqRecord
 from io import StringIO
 import numpy as np
 from joblib import Parallel, delayed
+from tqdm import tqdm
+
 
 translation_table = np.array([[[b'K', b'N', b'K', b'N', b'X'],
             [b'T', b'T', b'T', b'T', b'T'],
@@ -74,6 +76,11 @@ def get_gene_sequences(gff_file, file_number):
     #Split file and parse
     lines = gff_file.read()
     split = lines.split('##FASTA')
+
+    if len(split)!=2:
+        print("Problem reading GFF3 file: ", gff_file.name)
+        raise RuntimeError("Error reading prokka input!")
+
     with StringIO(split[1]) as temp_fasta:
         sequences = list(SeqIO.parse(temp_fasta, 'fasta'))
 
@@ -100,17 +107,18 @@ def get_gene_sequences(gff_file, file_number):
                 try:
                     gene_name = entry.attributes["gene"][0]
                 except KeyError:
-                    gene_name = " "
-                if gene_name == " ":
+                    gene_name = ""
+                if gene_name == "":
                     try:
                         gene_name = entry.attributes["name"][0]
                     except KeyError:
-                        gene_name = " "
+                        gene_name = ""
 
                 try:
                     gene_description = ";".join(entry.attributes["product"])
+                    gene_description = gene_description.replace(",", "")
                 except KeyError:
-                    gene_description = " "
+                    gene_description = ""
 
                 gene_record = (entry.start,
                                SeqRecord(
@@ -198,7 +206,7 @@ def process_prokka_input(gff_list, output_dir, n_cpu):
         )
         job_list = list(enumerate(gff_list))
         job_list = [job_list[i:i+n_cpu] for i in range(0, len(job_list), n_cpu)]
-        for job in job_list:
+        for job in tqdm(job_list):
             gene_sequence_list  = Parallel(n_jobs=n_cpu)(
                 delayed(get_gene_sequences)(
                     gff, gff_no)
