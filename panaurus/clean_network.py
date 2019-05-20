@@ -280,6 +280,24 @@ def collapse_paralogs(G, cycle_threshold, quiet=False):
 
     return G
 
+def get_context(G, para, max_depth=1000):
+
+    context = set(G.node[para]['centroid'])
+    dont_search = set()
+    for edge in nx.bfs_edges(G, para, depth_limit=max_depth):
+        if (edge[0] in dont_search) or (edge[1] in dont_search):
+            dont_search.add(edge[0])
+            dont_search.add(edge[1])
+            next
+        if not G.node[edge[0]]['paralog']:
+            dont_search.add(edge[0])
+        if not G.node[edge[1]]['paralog']:
+            dont_search.add(edge[1])
+        context.add(edge[0])
+        context.add(edge[1])
+
+
+    return tuple(sorted(list(context)))
 
 def merge_unambigous_paralogs(G):
 
@@ -306,12 +324,9 @@ def merge_unambigous_paralogs(G):
                 G = merge_nodes(G, node_count, temp_c.pop(),
                                 node_count + 1)
                 node_count += 1
-            temp_b.append(node_count)
-        else:
-            temp_b.append(c[0])
         node_count += 1
 
-    return
+    return G
 
 
 
