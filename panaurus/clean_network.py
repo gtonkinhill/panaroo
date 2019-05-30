@@ -280,56 +280,6 @@ def collapse_paralogs(G, cycle_threshold, quiet=False):
 
     return G
 
-def get_context(G, para, max_depth=1000):
-
-    context = set(G.node[para]['centroid'])
-    dont_search = set()
-    for edge in nx.bfs_edges(G, para, depth_limit=max_depth):
-        if (edge[0] in dont_search) or (edge[1] in dont_search):
-            dont_search.add(edge[0])
-            dont_search.add(edge[1])
-            next
-        if not G.node[edge[0]]['paralog']:
-            dont_search.add(edge[0])
-        if not G.node[edge[1]]['paralog']:
-            dont_search.add(edge[1])
-        context.add(edge[0])
-        context.add(edge[1])
-
-
-    return tuple(sorted(list(context)))
-
-def merge_unambigous_paralogs(G):
-
-    # determine paralogs
-    paralogs = []
-    for node, data in G.nodes(data=True):
-        if data['paralog']: paralogs.append(node)
-
-    # find context for each paralog to first non-paralog nodes
-    context_para_dict = defaultdict(list)
-    for para in paralogs:
-        context_para_dict[get_context(G, para)].append(para)
-
-    # merge paralogs with the same context
-    node_count = max(list(G.nodes())) + 10
-
-    for context in context_para_dict:
-        c = context_para_dict[context]
-        if len(c) > 1:
-            # keep the centroid with the highest support
-            temp_c = c.copy()
-            G = merge_nodes(G, temp_c.pop(), temp_c.pop(), node_count)
-            while (len(temp_c) > 0):
-                G = merge_nodes(G, node_count, temp_c.pop(),
-                                node_count + 1)
-                node_count += 1
-        node_count += 1
-
-    return G
-
-
-
 def group_paralogs(G, basis):
     clusters = defaultdict(list)
     for b in basis:
