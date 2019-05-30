@@ -83,12 +83,12 @@ def main():
               " in the presence/absence sv file"),
         type=int)
 
-    parser.add_argument(
-        "--no_split",
-        dest="split_paralogs",
-        help="don't split paralogs",
-        action='store_false',
-        default=True)
+    # parser.add_argument(
+    #     "--no_split",
+    #     dest="split_paralogs",
+    #     help="don't split paralogs",
+    #     action='store_false',
+    #     default=True)
 
     parser.add_argument(
         "--mode",
@@ -170,7 +170,7 @@ def main():
         cluster_file=cd_hit_out + ".clstr",
         data_file=args.output_dir + "gene_data.csv",
         prot_seq_file=args.output_dir + "combined_protein_CDS.fasta",
-        split_paralogs=args.split_paralogs)
+        split_paralogs=True)
 
     # write out pre-filter graph in GML format
     nx.write_gml(G, args.output_dir + "pre_filt_graph.gml")
