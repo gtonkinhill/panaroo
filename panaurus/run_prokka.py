@@ -1,18 +1,23 @@
 import os
 import argparse
-from panaurus.prodigal import train_prodigal
-from panaurus.isvalid import *
+from .prodigal import train_prodigal
+from .isvalid import *
 import subprocess
 from joblib import Parallel, delayed
 import shutil
 import tempfile
 
+from .__init__ import __version__
 
-def main():
+def get_options():
+    import argparse
 
-    parser = argparse.ArgumentParser()
+    description = 'Re-run gene finding and annotation'
+    parser = argparse.ArgumentParser(description=description,
+                                     prog='run_prokka')
 
-    parser.add_argument(
+    io_opts = parser.add_argument_group('Input/output')
+    io_opts.add_argument(
         "-i",
         "--input",
         dest="input_files",
@@ -20,29 +25,36 @@ def main():
         help="input GFF3 files (usually output from running Prokka)",
         type=argparse.FileType('rU'),
         nargs='+')
-
-    parser.add_argument(
+    io_opts.add_argument(
         "-o",
         "--out_dir",
         dest="output_dir",
         required=True,
         help="location of an output directory",
         type=lambda x: is_valid_folder(parser, x))
+    io_opts.add_argument(
+        "--force",
+        dest="force",
+        help="overwrite old commands",
+        action='store_true',
+        default=False)
 
-    parser.add_argument(
+    prokka = parser.add_argument_group('Prokka/prodigal command')
+    prokka.add_argument(
         "--add_prokka_cmds",
         dest="add_prokka_cmds",
         help="additional commands to supply to Prokka (these are not checked!)",
         type=str,
         default=None)
-
-    parser.add_argument(
+    prokka.add_argument(
         "--num_training",
         dest="num_training",
         help="number of genomes to use in training prodigal (default=10)",
         type=int,
         default=10)
 
+
+    # Other options
     parser.add_argument(
         "-t",
         "--threads",
@@ -50,22 +62,20 @@ def main():
         help="number of threads to use (default=1)",
         type=int,
         default=1)
-
-    parser.add_argument(
-        "--force",
-        dest="force",
-        help="overwrite old commands",
-        action='store_true',
-        default=False)
-
     parser.add_argument(
         "--verbose",
         dest="verbose",
         help="print additional output",
         action='store_true',
         default=False)
+    parser.add_argument('--version', action='version',
+                       version='%(prog)s '+__version__)
 
     args = parser.parse_args()
+    return(args)
+
+def main():
+    args = get_options()
 
     # make sure trailing forward slash is present
     args.output_dir = os.path.join(args.output_dir, "")

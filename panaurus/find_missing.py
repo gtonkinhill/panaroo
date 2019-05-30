@@ -1,5 +1,4 @@
 import networkx as nx
-from skbio import Sequence, DNA, Protein
 import io, sys
 from collections import defaultdict
 import numpy as np
@@ -164,7 +163,7 @@ def search_seq_gff(member,
         force=True,
         keep_order=True,
         from_string=True)
-    
+
     for entry in parsed_gff.all_features(featuretype=()):
         if "CDS" not in entry.featuretype: continue
         if entry.seqid  not in contig_records:

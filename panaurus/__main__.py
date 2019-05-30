@@ -1,44 +1,30 @@
-from panaurus.prokka import process_prokka_input
-from panaurus.cdhit import run_cdhit
-from panaurus.generate_network import generate_network
-from panaurus.generate_output import *
-from panaurus.clean_network import *
-from panaurus.find_missing import find_missing
 import os
-import argparse
 import tempfile
 from Bio import SeqIO
 import shutil
 import networkx as nx
-from panaurus.isvalid import *
-from panaurus.set_default_args import set_default_args
 
+from .isvalid import *
+from .set_default_args import set_default_args
+from .prokka import process_prokka_input
+from .cdhit import check_cdhit_version
+from .cdhit import run_cdhit
+from .generate_network import generate_network
+from .generate_output import *
+from .clean_network import *
+from .find_missing import find_missing
 
-def main():
+from .__init__ import __version__
 
-    parser = argparse.ArgumentParser()
+def get_options():
+    import argparse
 
-    parser.add_argument(
-        "-c",
-        "--threshold",
-        dest="id",
-        help="sequence identity threshold (default=0.95)",
-        type=float)
+    description = 'panaurus: an updated pipeline for pan-genome investigation'
+    parser = argparse.ArgumentParser(description=description,
+                                     prog='panaurus')
 
-    parser.add_argument(
-        "-f",
-        "--family_threshold",
-        dest="family_threshold",
-        help="protein family sequence identity threshold (default=0.7)",
-        type=float)
-
-    parser.add_argument(
-        "--len_dif_percent",
-        dest="len_dif_percent",
-        help="length difference cutoff (default=0.95)",
-        type=float)
-
-    parser.add_argument(
+    io_opts = parser.add_argument_group('Input/output')
+    io_opts.add_argument(
         "-i",
         "--input",
         dest="input_files",
@@ -46,8 +32,7 @@ def main():
         help="input GFF3 files (usually output from running Prokka)",
         type=argparse.FileType('rU'),
         nargs='+')
-
-    parser.add_argument(
+    io_opts.add_argument(
         "-o",
         "--out_dir",
         dest="output_dir",
@@ -55,34 +40,57 @@ def main():
         help="location of an output directory",
         type=lambda x: is_valid_folder(parser, x))
 
-    parser.add_argument(
+    matching = parser.add_argument_group('Matching')
+    matching.add_argument(
+        "-c",
+        "--threshold",
+        dest="id",
+        help="sequence identity threshold (default=0.95)",
+        type=float)
+    matching.add_argument(
+        "-f",
+        "--family_threshold",
+        dest="family_threshold",
+        help="protein family sequence identity threshold (default=0.7)",
+        type=float)
+    matching.add_argument(
+        "--len_dif_percent",
+        dest="len_dif_percent",
+        help="length difference cutoff (default=0.95)",
+        type=float)
+
+    graph = parser.add_argument_group('Graph correction')
+    graph.add_argument(
+        "--mode",
+        dest="mode",
+        help=("the stringency mode at which to run panaurus. One of 'strict'" +
+              ", 'moderate' or 'relaxed' (default='strict')"),
+        choices=['strict', 'moderate', 'relaxed'],
+        default='strict')
+    graph.add_argument(
         "--min_trailing_support",
         dest="min_trailing_support",
         help=("minimum cluster size to keep a gene called at the " +
               "end of a contig (default=2)"),
         type=int)
-
-    parser.add_argument(
+    graph.add_argument(
         "--trailing_recursive",
         dest="trailing_recursive",
         help=("number of times to perform recursive triming of low support " +
               "nodes near the end of contigs (default=2)"),
         type=int)
-
-    parser.add_argument(
+    graph.add_argument(
         "--max_cycle_size",
         dest="max_cycle_size",
         help=("maximum cycle  size for collapsing gene families " +
               "(default=20)"),
         type=int)
-
-    parser.add_argument(
+    graph.add_argument(
         "--min_edge_support_sv",
         dest="min_edge_support_sv",
         help=("minimum edge support required to call structural variants" +
               " in the presence/absence sv file"),
         type=int)
-
     # parser.add_argument(
     #     "--no_split",
     #     dest="split_paralogs",
@@ -90,23 +98,8 @@ def main():
     #     action='store_false',
     #     default=True)
 
-    parser.add_argument(
-        "--mode",
-        dest="mode",
-        help=("the stringency mode at which to run panaurus. One of 'strict'" +
-              ", 'moderate' or 'relaxed' (default='strict')"),
-        choices=['strict', 'moderate', 'relaxed'],
-        default='strict')
-
-    parser.add_argument(
-        "-t",
-        "--threads",
-        dest="n_cpu",
-        help="number of threads to use (default=1)",
-        type=int,
-        default=1)
-
-    parser.add_argument(
+    core = parser.add_argument_group('Gene alignment')
+    core.add_argument(
         "-a",
         "--alignment",
         dest="aln",
@@ -114,32 +107,47 @@ def main():
             " 'core' and 'pan'. Default: 'None'"),
         type=str,
         default=None)
-
-    parser.add_argument(
+    core.add_argument(
         "--aligner",
         dest="alr",
         help=
         "Specify an aligner. Options:'prank', 'clustal', and default: 'mafft'",
         type=str,
         default="mafft")
-
-    parser.add_argument(
+    core.add_argument(
         "--core_threshold",
         dest="core",
         help="Core-genome sample threshold (default=0.95)",
         type=float,
         default=0.95)
 
+    # Other options
+    parser.add_argument(
+        "-t",
+        "--threads",
+        dest="n_cpu",
+        help="number of threads to use (default=1)",
+        type=int,
+        default=1)
     parser.add_argument(
         "--verbose",
         dest="verbose",
         help="print additional output",
         action='store_true',
         default=False)
+    parser.add_argument('--version', action='version',
+                       version='%(prog)s '+__version__)
 
     args = parser.parse_args()
-
     args = set_default_args(args)
+    return(args)
+
+def main():
+
+    args = get_options()
+
+    # Check cd-hit is installed
+    check_cdhit_version()
 
     # make sure trailing forward slash is present
     args.output_dir = os.path.join(args.output_dir, "")

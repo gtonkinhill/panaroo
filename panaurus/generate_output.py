@@ -9,9 +9,6 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import generic_dna
 import itertools as iter
-from skbio.io import read
-from skbio.io import write
-from skbio import DNA, Sequence, TabularMSA
 from tqdm import tqdm
 
 from panaurus.generate_alignments import *

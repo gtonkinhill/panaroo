@@ -1,10 +1,37 @@
 import subprocess
 import tempfile
 import os
+import sys
+import re
 from collections import defaultdict
 import networkx as nx
 from Bio.Seq import reverse_complement
 
+def check_cdhit_version(cdhit_exec = 'cd-hit'):
+    """Checks that cd-hit can be run, and returns version.
+
+    Args:
+        cdhit_exec (str)
+            Location of cd-hit executable
+
+            [default = 'cd-hit']
+
+    Returns:
+        version (int)
+            Major version of cd-hit
+    """
+    p = subprocess.Popen([cdhit_exec + ' -h'], shell=True, stdout=subprocess.PIPE)
+    version = 0
+    for line in iter(p.stdout.readline, ''):
+        find_ver = re.search(r'CD-HIT version (\d+)\.(\d+)\.(\d+)', line.rstrip().decode())
+        if find_ver:
+            version = find_ver.group(1)
+            break
+    if not version.isdigit():
+        sys.stderr.write("Need cd-hit to be runnable through: " + cdhit_exec + "\n")
+        sys.exit(1)
+
+    return(int(version))
 
 def run_cdhit(
         input_file,
