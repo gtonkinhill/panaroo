@@ -170,7 +170,6 @@ def generate_network(cluster_file,
                             members=[genome_id])
                 prev = current_cluster
 
-    if split_paralogs:
-        collapse_paralogs(G, 20)
+    collapse_paralogs(G)
 
     return G
