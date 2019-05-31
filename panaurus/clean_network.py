@@ -228,7 +228,7 @@ def collapse_paralogs(G, quiet=False):
 
             neigbour_centroids = defaultdict(list)
             # find neighbours centroids
-            for neigh in G.neighbors(node):
+            for neigh in [v for u, v in nx.bfs_edges(G, source=node, depth_limit=3)]:
                 neigbour_centroids[G.node[neigh]['centroid']].append(neigh)
             
             for centroid in neigbour_centroids:
