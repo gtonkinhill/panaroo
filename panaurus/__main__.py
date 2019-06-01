@@ -92,13 +92,6 @@ def get_options():
               " in the presence/absence sv file"),
         type=int)
 
-    parser.add_argument(
-        "--merge_paralogs",
-        dest="merge_paralogs",
-        help="don't split paralogs",
-        action='store_true',
-        default=False)
-
     core = parser.add_argument_group('Gene alignment')
     core.add_argument(
         "-a",
@@ -124,6 +117,12 @@ def get_options():
 
     # Other options
     parser.add_argument(
+        "--merge_paralogs",
+        dest="merge_paralogs",
+        help="don't split paralogs",
+        action='store_true',
+        default=False)
+    parser.add_argument(
         "-t",
         "--threads",
         dest="n_cpu",
@@ -144,15 +143,11 @@ def get_options():
     return(args)
 
 def main():
-
     args = get_options()
-
     # Check cd-hit is installed
     check_cdhit_version()
-
     # make sure trailing forward slash is present
     args.output_dir = os.path.join(args.output_dir, "")
-
     # Create temporary directory
     temp_dir = os.path.join(tempfile.mkdtemp(dir=args.output_dir), "")
 

@@ -20,18 +20,16 @@ def check_cdhit_version(cdhit_exec = 'cd-hit'):
         version (int)
             Major version of cd-hit
     """
-    p = subprocess.Popen([cdhit_exec + ' -h'], shell=True, stdout=subprocess.PIPE)
-    version = 0
-    for line in iter(p.stdout.readline, ''):
-        find_ver = re.search(r'CD-HIT version (\d+)\.(\d+)\.(\d+)', line.rstrip().decode())
-        if find_ver:
-            version = find_ver.group(1)
-            break
-    if not version.isdigit():
+    p = str(subprocess.run(cdhit_exec + ' -h', stdout=subprocess.PIPE, shell=True))
+    version = False
+    find_ver = re.search(r'CD-HIT version \d+\.\d+', p)
+    if find_ver:
+        version = float(find_ver[0].split()[-1])
+    if not version:
         sys.stderr.write("Need cd-hit to be runnable through: " + cdhit_exec + "\n")
         sys.exit(1)
 
-    return(int(version))
+    return(version)
 
 def run_cdhit(
         input_file,
