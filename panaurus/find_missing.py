@@ -25,8 +25,9 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir,
                 if (G.node[source]['size'] > mid_size) or (G.node[sink]['size']
                                                            > mid_size):
                     path = all_pairs[source][sink]
-                    complete_basis.add((min(path[0], path[2]), path[1],
-                                        max(path[0], path[2])))
+                    complete_basis.add(
+                        (min(path[0], path[2]), path[1], max(path[0],
+                                                             path[2])))
 
     # For each cycle check if it looks like somethings missing
     print("identify missing nodes...")
@@ -157,16 +158,16 @@ def search_seq_gff(member,
             contig_records[record.id]['seq'] = str(record.seq)
             contig_names.append(record.id)
 
-    parsed_gff = gff.create_db(
-        "\n".join([l for l in split[0].splitlines() if '##sequence-region' not in l]),
-        dbfn=":memory:",
-        force=True,
-        keep_order=True,
-        from_string=True)
+    parsed_gff = gff.create_db("\n".join(
+        [l for l in split[0].splitlines() if '##sequence-region' not in l]),
+                               dbfn=":memory:",
+                               force=True,
+                               keep_order=True,
+                               from_string=True)
 
     for entry in parsed_gff.all_features(featuretype=()):
         if "CDS" not in entry.featuretype: continue
-        if entry.seqid  not in contig_records:
+        if entry.seqid not in contig_records:
             raise NameError("Mismatch in GFF file!")
         if 'annotations' not in contig_records[entry.seqid]:
             contig_records[entry.seqid]['annotations'] = [entry]
@@ -263,14 +264,13 @@ def search_seq_gff(member,
 def search_dna(seq, search_sequence, prop_match, pairwise_id_thresh, temp_dir,
                n_cpu):
 
-    found_dna = align_dna_cdhit(
-        query=search_sequence,
-        target=seq,
-        id=pairwise_id_thresh,
-        temp_dir=temp_dir,
-        n_cpu=n_cpu,
-        use_local=True,
-        aS=prop_match)
+    found_dna = align_dna_cdhit(query=search_sequence,
+                                target=seq,
+                                id=pairwise_id_thresh,
+                                temp_dir=temp_dir,
+                                n_cpu=n_cpu,
+                                use_local=True,
+                                aS=prop_match)
 
     return found_dna
 
@@ -287,12 +287,16 @@ def translate_to_match(hit, target_prot):
         for i in range(3) for s in dna_seqs
     ]
 
-    search_set = set([target_prot[i:i+3] for i in range(len(target_prot)-2)])
+    search_set = set(
+        [target_prot[i:i + 3] for i in range(len(target_prot) - 2)])
 
     alignments = []
     for target_sequence in proteins:
-        query_set = set([target_sequence[i:i+3] for i in range(len(target_sequence)-2)])
-        alignments.append((target_sequence, len(search_set.intersection(query_set))))
+        query_set = set([
+            target_sequence[i:i + 3] for i in range(len(target_sequence) - 2)
+        ])
+        alignments.append(
+            (target_sequence, len(search_set.intersection(query_set))))
 
     prot = max(alignments, key=lambda x: x[1])
 

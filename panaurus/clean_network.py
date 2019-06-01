@@ -86,15 +86,14 @@ def collapse_families(G,
         while len(merged_basis) > 0:
             b = merged_basis.pop()
             # print("basis: ", b)
-            clusters = cluster_nodes_cdhit(
-                G,
-                b,
-                outdir,
-                id=dna_error_threshold,
-                quiet=True,
-                dna=True,
-                use_local=True,
-                aS=0.9)
+            clusters = cluster_nodes_cdhit(G,
+                                           b,
+                                           outdir,
+                                           id=dna_error_threshold,
+                                           quiet=True,
+                                           dna=True,
+                                           use_local=True,
+                                           aS=0.9)
             # if not quiet:
             #     print("cycle:", b)
             #     print("clusters:", clusters)
@@ -155,8 +154,12 @@ def collapse_families(G,
     while len(cleaned_merged_basis) > 0:
         b = cleaned_merged_basis.pop()
         # print("cleaned basis: ", b)
-        clusters = cluster_nodes_cdhit(
-            G, b, outdir, id=family_threshold, quiet=True, dna=False)
+        clusters = cluster_nodes_cdhit(G,
+                                       b,
+                                       outdir,
+                                       id=family_threshold,
+                                       quiet=True,
+                                       dna=False)
         # if not quiet:
         #     print("cycle:", b)
         #     print("fam clusters:", clusters)
@@ -166,19 +169,17 @@ def collapse_families(G,
             if len(c) > 1:
                 # keep the centroid with the highest support
                 temp_c = c.copy()
-                G = merge_nodes(
-                    G,
-                    temp_c.pop(),
-                    temp_c.pop(),
-                    node_count,
-                    multi_centroid=True)
+                G = merge_nodes(G,
+                                temp_c.pop(),
+                                temp_c.pop(),
+                                node_count,
+                                multi_centroid=True)
                 while (len(temp_c) > 0):
-                    G = merge_nodes(
-                        G,
-                        node_count,
-                        temp_c.pop(),
-                        node_count + 1,
-                        multi_centroid=True)
+                    G = merge_nodes(G,
+                                    node_count,
+                                    temp_c.pop(),
+                                    node_count + 1,
+                                    multi_centroid=True)
                     node_count += 1
                 temp_b.append(node_count)
             else:
@@ -214,6 +215,7 @@ def collapse_families(G,
 
     return G
 
+
 def collapse_paralogs(G, quiet=False):
 
     node_count = max(list(G.nodes())) + 10
@@ -228,9 +230,11 @@ def collapse_paralogs(G, quiet=False):
 
             neigbour_centroids = defaultdict(list)
             # find neighbours centroids
-            for neigh in [v for u, v in nx.bfs_edges(G, source=node, depth_limit=3)]:
+            for neigh in [
+                    v for u, v in nx.bfs_edges(G, source=node, depth_limit=3)
+            ]:
                 neigbour_centroids[G.node[neigh]['centroid']].append(neigh)
-            
+
             for centroid in neigbour_centroids:
                 # check if there are any to collapse
                 if (len(neigbour_centroids[centroid]) > 1):
@@ -238,7 +242,7 @@ def collapse_paralogs(G, quiet=False):
                     genomes = []
                     for n in neigbour_centroids[centroid]:
                         genomes += G.node[n]['members']
-                    if len(genomes)==len(set(genomes)):
+                    if len(genomes) == len(set(genomes)):
                         node_count += 1
                         # merge neighbours with this centroid
                         for neigh in neigbour_centroids[centroid]:
@@ -246,7 +250,8 @@ def collapse_paralogs(G, quiet=False):
                             if neigh in search_space:
                                 search_space.remove(neigh)
                         temp_c = neigbour_centroids[centroid].copy()
-                        G = merge_nodes(G, temp_c.pop(), temp_c.pop(), node_count)
+                        G = merge_nodes(G, temp_c.pop(), temp_c.pop(),
+                                        node_count)
                         while (len(temp_c) > 0):
                             G = merge_nodes(G, node_count, temp_c.pop(),
                                             node_count + 1)
@@ -272,10 +277,17 @@ def merge_paralogs(G):
     for centroid in paralog_centroid_dict:
         node_count += 1
         temp_c = paralog_centroid_dict[centroid]
-        G = merge_nodes(G, temp_c.pop(), temp_c.pop(), node_count, check_merge_mems=False)
+        G = merge_nodes(G,
+                        temp_c.pop(),
+                        temp_c.pop(),
+                        node_count,
+                        check_merge_mems=False)
         while (len(temp_c) > 0):
-            G = merge_nodes(G, node_count, temp_c.pop(),
-                            node_count + 1, check_merge_mems=False)
+            G = merge_nodes(G,
+                            node_count,
+                            temp_c.pop(),
+                            node_count + 1,
+                            check_merge_mems=False)
             node_count += 1
 
-    return(G)
+    return (G)

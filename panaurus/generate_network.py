@@ -5,9 +5,7 @@ from panaurus.merge_nodes import merge_nodes
 from panaurus.clean_network import collapse_paralogs
 
 
-def generate_network(cluster_file,
-                     data_file,
-                     prot_seq_file):
+def generate_network(cluster_file, data_file, prot_seq_file):
 
     # associate sequences with their clusters
     seq_to_cluster = {}
@@ -92,11 +90,16 @@ def generate_network(cluster_file,
                 # check neigbours of previous to see if a matching paralog is present
                 links = []
                 # for neig in G.neighbors(prev):
-                for neig in [v for u, v in nx.bfs_edges(G, source=prev, depth_limit=3)]:
-                    if G.node[neig]['centroid'] == cluster_centroids[current_cluster]:
+                for neig in [
+                        v
+                        for u, v in nx.bfs_edges(G, source=prev, depth_limit=3)
+                ]:
+                    if G.node[neig]['centroid'] == cluster_centroids[
+                            current_cluster]:
                         links.append(neig)
                 # if it is and there is no conflict add to this
-                if (len(links)==1)  and (genome_id not in G.node[links[0]]['members']):
+                if (len(links) == 1) and (
+                        genome_id not in G.node[links[0]]['members']):
                     neig = links[0]
                     G.node[neig]['size'] += 1
                     G.node[neig]['members'].append(genome_id)
@@ -105,11 +108,7 @@ def generate_network(cluster_file,
                         G[prev][neig]['weight'] += 1
                         G[prev][neig]['members'].append(genome_id)
                     else:
-                        G.add_edge(
-                            prev,
-                            neig,
-                            weight=1,
-                            members=[genome_id])
+                        G.add_edge(prev, neig, weight=1, members=[genome_id])
                     prev = neig
                 else:
                     # otherwise create a new paralog
@@ -124,7 +123,8 @@ def generate_network(cluster_file,
                         seqIDs=[id],
                         protein=cluster_centroid_data[current_cluster]
                         ['prot_sequence'],
-                        dna=cluster_centroid_data[current_cluster]['dna_sequence'],
+                        dna=cluster_centroid_data[current_cluster]
+                        ['dna_sequence'],
                         annotation=cluster_centroid_data[current_cluster]
                         ['annotation'],
                         description=cluster_centroid_data[current_cluster]
@@ -152,8 +152,10 @@ def generate_network(cluster_file,
                         ['description'],
                         paralog=is_paralog)
                     # add edge between nodes
-                    G.add_edge(
-                        prev, current_cluster, weight=1, members=[genome_id])
+                    G.add_edge(prev,
+                               current_cluster,
+                               weight=1,
+                               members=[genome_id])
                 else:
                     G.node[current_cluster]['size'] += 1
                     G.node[current_cluster]['members'].append(genome_id)
@@ -162,11 +164,10 @@ def generate_network(cluster_file,
                         G[prev][current_cluster]['weight'] += 1
                         G[prev][current_cluster]['members'].append(genome_id)
                     else:
-                        G.add_edge(
-                            prev,
-                            current_cluster,
-                            weight=1,
-                            members=[genome_id])
+                        G.add_edge(prev,
+                                   current_cluster,
+                                   weight=1,
+                                   members=[genome_id])
                 prev = current_cluster
 
     collapse_paralogs(G)

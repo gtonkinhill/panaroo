@@ -66,8 +66,8 @@ def generate_roary_gene_presence_absence(G, file_names, dna_file, output_dir):
                 entry.append(G.node[node]['description'])
                 entry.append(len(G.node[node]['seqIDs']))
                 entry.append(len(set(G.node[node]['members'])))
-                entry.append((1.0 * len(G.node[node]['seqIDs'])) / len(
-                    set(G.node[node]['members'])))
+                entry.append((1.0 * len(G.node[node]['seqIDs'])) /
+                             len(set(G.node[node]['members'])))
                 entry.append(frag)
                 entry.append(count)
                 entry += ["", "", ""]
@@ -94,10 +94,9 @@ def generate_pan_genome_reference(G, output_dir, split_paralogs=False):
         if not split_paralogs and G.node[node]['centroid'] in centroids:
             continue
         records.append(
-            SeqRecord(
-                Seq(G.node[node]['dna'], generic_dna),
-                id=G.node[node]['centroid'],
-                description=""))
+            SeqRecord(Seq(G.node[node]['dna'], generic_dna),
+                      id=G.node[node]['centroid'],
+                      description=""))
         centroids.add(G.node[node]['centroid'])
 
     with open(output_dir + "pan_genome_reference.fa", 'w') as outfile:
@@ -114,8 +113,8 @@ def generate_gene_mobility(G, output_dir):
         for node in G.nodes():
             entropy = 0
             for edge in G.edges(node):
-                p = G[edge[0]][edge[1]]['weight'] / (
-                    1.0 * G.node[node]['size'])
+                p = G[edge[0]][edge[1]]['weight'] / (1.0 *
+                                                     G.node[node]['size'])
                 entropy -= p * np.log(p)
             outfile.write(",".join([
                 G.node[node]['name'], G.node[node]['annotation'],
@@ -133,8 +132,8 @@ def generate_common_struct_presence_absence(G,
     for node in G.nodes():
         if G.degree[node] < 3: continue  #skip as linear
         for path in iter.combinations(G.edges(node), 2):
-            in_both = (set(G[path[0][0]][path[0][1]]['members']) & set(
-                G[path[1][0]][path[1][1]]['members']))
+            in_both = (set(G[path[0][0]][path[0][1]]['members'])
+                       & set(G[path[1][0]][path[1][1]]['members']))
             if len(in_both) >= min_variant_support:
                 struct_variants[(path[0][0], path[0][1], path[1][1])] = in_both
 
@@ -222,12 +221,11 @@ def concatenate_core_genome_alignments(core_names, output_dir):
             if iso in gene[1]:
                 seq += gene[1][iso][1]
             else:
-                seq += "_"*gene[2]
+                seq += "_" * gene[2]
         isolate_aln.append(SeqRecord(seq, id=iso, description=""))
 
     #Write out the two output files
-    SeqIO.write(isolate_aln, output_dir + 'core_gene_alignment.aln',
-                  'fasta')
+    SeqIO.write(isolate_aln, output_dir + 'core_gene_alignment.aln', 'fasta')
 
     write_alignment_header(gene_alignments, output_dir)
     return core_filenames

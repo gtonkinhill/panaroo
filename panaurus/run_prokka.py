@@ -9,6 +9,7 @@ import tempfile
 
 from .__init__ import __version__
 
+
 def get_options():
     import argparse
 
@@ -25,19 +26,17 @@ def get_options():
         help="input GFF3 files (usually output from running Prokka)",
         type=argparse.FileType('rU'),
         nargs='+')
-    io_opts.add_argument(
-        "-o",
-        "--out_dir",
-        dest="output_dir",
-        required=True,
-        help="location of an output directory",
-        type=lambda x: is_valid_folder(parser, x))
-    io_opts.add_argument(
-        "--force",
-        dest="force",
-        help="overwrite old commands",
-        action='store_true',
-        default=False)
+    io_opts.add_argument("-o",
+                         "--out_dir",
+                         dest="output_dir",
+                         required=True,
+                         help="location of an output directory",
+                         type=lambda x: is_valid_folder(parser, x))
+    io_opts.add_argument("--force",
+                         dest="force",
+                         help="overwrite old commands",
+                         action='store_true',
+                         default=False)
 
     prokka = parser.add_argument_group('Prokka/prodigal command')
     prokka.add_argument(
@@ -53,26 +52,25 @@ def get_options():
         type=int,
         default=10)
 
-
     # Other options
-    parser.add_argument(
-        "-t",
-        "--threads",
-        dest="n_cpu",
-        help="number of threads to use (default=1)",
-        type=int,
-        default=1)
-    parser.add_argument(
-        "--verbose",
-        dest="verbose",
-        help="print additional output",
-        action='store_true',
-        default=False)
-    parser.add_argument('--version', action='version',
-                       version='%(prog)s '+__version__)
+    parser.add_argument("-t",
+                        "--threads",
+                        dest="n_cpu",
+                        help="number of threads to use (default=1)",
+                        type=int,
+                        default=1)
+    parser.add_argument("--verbose",
+                        dest="verbose",
+                        help="print additional output",
+                        action='store_true',
+                        default=False)
+    parser.add_argument('--version',
+                        action='version',
+                        version='%(prog)s ' + __version__)
 
     args = parser.parse_args()
-    return(args)
+    return (args)
+
 
 def main():
     args = get_options()
@@ -84,11 +82,10 @@ def main():
         args.num_training = len(args.input_files)
 
     # run prodigal to generate training file if it doesn't already exist.
-    train_prodigal(
-        input_files=args.input_files,
-        n_samples=args.num_training,
-        force=args.force,
-        outdir=args.output_dir)
+    train_prodigal(input_files=args.input_files,
+                   n_samples=args.num_training,
+                   force=args.force,
+                   outdir=args.output_dir)
 
     # run prokka with adjusted arguments on each fasta input in parallel
     Parallel(n_jobs=args.n_cpu)(delayed(run_prokka_mod)(
@@ -108,8 +105,8 @@ def run_prokka_mod(input_file, out_folder, train_file, force, add_cmds):
 
     # override the system prodigal temporarily to input training file in prokka
     # Create temporary directory
-    temp_dir = os.path.join(
-        os.path.abspath(tempfile.mkdtemp(dir=out_folder)), "")
+    temp_dir = os.path.join(os.path.abspath(tempfile.mkdtemp(dir=out_folder)),
+                            "")
     with open(temp_dir + "/prodigal", 'w') as outfile:
         outfile.write("#!/bin/bash\n")
         outfile.write("(>&2 echo 'running prokka mod!')\n")

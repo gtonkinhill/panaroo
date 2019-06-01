@@ -7,7 +7,8 @@ from collections import defaultdict
 import networkx as nx
 from Bio.Seq import reverse_complement
 
-def check_cdhit_version(cdhit_exec = 'cd-hit'):
+
+def check_cdhit_version(cdhit_exec='cd-hit'):
     """Checks that cd-hit can be run, and returns version.
 
     Args:
@@ -20,16 +21,19 @@ def check_cdhit_version(cdhit_exec = 'cd-hit'):
         version (int)
             Major version of cd-hit
     """
-    p = str(subprocess.run(cdhit_exec + ' -h', stdout=subprocess.PIPE, shell=True))
+    p = str(
+        subprocess.run(cdhit_exec + ' -h', stdout=subprocess.PIPE, shell=True))
     version = False
     find_ver = re.search(r'CD-HIT version \d+\.\d+', p)
     if find_ver:
         version = float(find_ver[0].split()[-1])
     if not version:
-        sys.stderr.write("Need cd-hit to be runnable through: " + cdhit_exec + "\n")
+        sys.stderr.write("Need cd-hit to be runnable through: " + cdhit_exec +
+                         "\n")
         sys.exit(1)
 
-    return(version)
+    return (version)
+
 
 def run_cdhit(
         input_file,
@@ -157,30 +161,28 @@ def cluster_nodes_cdhit(
 
     # run cd-hit
     if dna:
-        run_cdhit_est(
-            input_file=temp_input_file.name,
-            output_file=temp_output_file.name,
-            id=id,
-            s=s,
-            aL=aL,
-            AL=AL,
-            aS=AS,
-            accurate=accurate,
-            use_local=use_local,
-            strand=strand,
-            quiet=quiet)
+        run_cdhit_est(input_file=temp_input_file.name,
+                      output_file=temp_output_file.name,
+                      id=id,
+                      s=s,
+                      aL=aL,
+                      AL=AL,
+                      aS=AS,
+                      accurate=accurate,
+                      use_local=use_local,
+                      strand=strand,
+                      quiet=quiet)
     else:
-        run_cdhit(
-            input_file=temp_input_file.name,
-            output_file=temp_output_file.name,
-            id=id,
-            s=s,
-            aL=aL,
-            AL=AL,
-            aS=AS,
-            accurate=accurate,
-            use_local=use_local,
-            quiet=quiet)
+        run_cdhit(input_file=temp_input_file.name,
+                  output_file=temp_output_file.name,
+                  id=id,
+                  s=s,
+                  aL=aL,
+                  AL=AL,
+                  aS=AS,
+                  accurate=accurate,
+                  use_local=use_local,
+                  quiet=quiet)
 
     # process the output
     clusters = []
@@ -306,19 +308,18 @@ def align_dna_cdhit(
         outfile.write(">target\n" + target + "\n")
 
     # run cdhit
-    run_cdhit_est(
-        input_file=temp_input_file.name,
-        output_file=temp_output_file.name,
-        id=id,
-        s=s,
-        aL=aL,
-        AL=AL,
-        aS=AS,
-        accurate=accurate,
-        use_local=use_local,
-        print_aln=True,
-        strand=strand,
-        quiet=True)
+    run_cdhit_est(input_file=temp_input_file.name,
+                  output_file=temp_output_file.name,
+                  id=id,
+                  s=s,
+                  aL=aL,
+                  AL=AL,
+                  aS=AS,
+                  accurate=accurate,
+                  use_local=use_local,
+                  print_aln=True,
+                  strand=strand,
+                  quiet=True)
 
     # process resulting alignment
     # process the output

@@ -20,9 +20,11 @@ def output_sequence(node, isolate_list, temp_directory, outdir):
     #Look for gene sequences among all genes (from disk)
     for seq in SeqIO.parse(outdir + "combined_DNA_CDS.fasta", 'fasta'):
         isolate_num = int(seq.id.split('_')[0])
-        isolate_name = isolate_list[isolate_num].replace(";","") + ";" + seq.id
+        isolate_name = isolate_list[isolate_num].replace(";",
+                                                         "") + ";" + seq.id
         if seq.id in sequence_ids:
-            output_sequences.append(SeqRecord(seq.seq, id=isolate_name, description=""))
+            output_sequences.append(
+                SeqRecord(seq.seq, id=isolate_name, description=""))
     #Put gene of interest sequences in a generator, with corrected isolate names
     output_sequences = (x for x in output_sequences)
     #set filename to gene name
@@ -35,25 +37,32 @@ def output_sequence(node, isolate_list, temp_directory, outdir):
 def get_alignment_commands(fastafile_name, outdir, aligner, threads):
     geneName = fastafile_name.split('/')[-1].split('.')[0]
     if aligner == "prank":
-        command = PrankCommandline(
-            d=fastafile_name, o=geneName, f=8, codon=True)
+        command = PrankCommandline(d=fastafile_name,
+                                   o=geneName,
+                                   f=8,
+                                   codon=True)
     elif (threads > 3):
         if aligner == "mafft":
-            command = MafftCommandline(
-                input=fastafile_name, auto=True, nuc=True)
+            command = MafftCommandline(input=fastafile_name,
+                                       auto=True,
+                                       nuc=True)
         elif aligner == "clustal":
             command = ClustalOmegaCommandline(
                 infile=fastafile_name,
-                outfile=outdir + "aligned_gene_sequences/" + geneName + ".aln.fas",
+                outfile=outdir + "aligned_gene_sequences/" + geneName +
+                ".aln.fas",
                 seqtype="DNA")
     elif (threads <= 3):
         if aligner == "mafft":
-            command = MafftCommandline(
-                input=fastafile_name, auto=True, thread=threads, nuc=True)
+            command = MafftCommandline(input=fastafile_name,
+                                       auto=True,
+                                       thread=threads,
+                                       nuc=True)
         elif aligner == "clustal":
             command = ClustalOmegaCommandline(
                 infile=fastafile_name,
-                outfile=outdir + "aligned_gene_sequences/" + geneName + ".aln.fas",
+                outfile=outdir + "aligned_gene_sequences/" + geneName +
+                ".aln.fas",
                 seqtype="DNA",
                 threads=threads)
     return (command, fastafile_name)
@@ -87,9 +96,8 @@ def align_sequences(command, outdir, aligner):
 
 def multi_align_sequences(commands, outdir, threads, aligner):
 
-    alignment_results = Parallel(
-        n_jobs=threads, prefer="threads")(
-            delayed(align_sequences)(x, outdir, aligner) for x in tqdm(commands))
+    alignment_results = Parallel(n_jobs=threads, prefer="threads")(
+        delayed(align_sequences)(x, outdir, aligner) for x in tqdm(commands))
 
     return True
 
