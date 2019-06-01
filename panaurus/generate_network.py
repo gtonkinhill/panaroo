@@ -7,8 +7,7 @@ from panaurus.clean_network import collapse_paralogs
 
 def generate_network(cluster_file,
                      data_file,
-                     prot_seq_file,
-                     split_paralogs=True):
+                     prot_seq_file):
 
     # associate sequences with their clusters
     seq_to_cluster = {}
@@ -67,7 +66,7 @@ def generate_network(cluster_file,
                 G.node[prev]['members'].append(genome_id)
                 G.node[prev]['seqIDs'].append(id)
             else:
-                if (prev in paralogs) and split_paralogs:
+                if prev in paralogs:
                     # create a new paralog
                     n_nodes += 1
                     prev = n_nodes
@@ -89,7 +88,7 @@ def generate_network(cluster_file,
                     paralog=(current_cluster in paralogs))
         else:
             is_paralog = current_cluster in paralogs
-            if is_paralog and split_paralogs:
+            if is_paralog:
                 # check neigbours of previous to see if a matching paralog is present
                 links = []
                 # for neig in G.neighbors(prev):
@@ -170,7 +169,6 @@ def generate_network(cluster_file,
                             members=[genome_id])
                 prev = current_cluster
 
-    if split_paralogs:
-        collapse_paralogs(G, 20)
+    collapse_paralogs(G)
 
     return G

@@ -214,123 +214,68 @@ def collapse_families(G,
 
     return G
 
-
-def collapse_paralogs(G, cycle_threshold, quiet=False):
+def collapse_paralogs(G, quiet=False):
 
     node_count = max(list(G.nodes())) + 10
+    search_space = set(G.nodes())
 
-    # find all the cycles shorter than cycle_threshold
-    complete_basis = []
-    for c in nx.connected_components(G):
-        sub_G = G.subgraph(c)
-        basis = nx.cycle_basis(sub_G, list(sub_G.nodes())[0])
-        complete_basis += [set(b) for b in basis if len(b) < cycle_threshold]
+    while len(search_space) > 0:
+        # look for nodes to merge
+        temp_node_list = list(search_space)
+        removed_nodes = set()
+        for node in temp_node_list:
+            if node in removed_nodes: continue
 
-    complete_basis = [b for b in complete_basis if len(b) > 1]
+            neigbour_centroids = defaultdict(list)
+            # find neighbours centroids
+            for neigh in [v for u, v in nx.bfs_edges(G, source=node, depth_limit=3)]:
+                neigbour_centroids[G.node[neigh]['centroid']].append(neigh)
+            
+            for centroid in neigbour_centroids:
+                # check if there are any to collapse
+                if (len(neigbour_centroids[centroid]) > 1):
+                    # check for conflicts
+                    genomes = []
+                    for n in neigbour_centroids[centroid]:
+                        genomes += G.node[n]['members']
+                    if len(genomes)==len(set(genomes)):
+                        node_count += 1
+                        # merge neighbours with this centroid
+                        for neigh in neigbour_centroids[centroid]:
+                            removed_nodes.add(neigh)
+                            if neigh in search_space:
+                                search_space.remove(neigh)
+                        temp_c = neigbour_centroids[centroid].copy()
+                        G = merge_nodes(G, temp_c.pop(), temp_c.pop(), node_count)
+                        while (len(temp_c) > 0):
+                            G = merge_nodes(G, node_count, temp_c.pop(),
+                                            node_count + 1)
+                            node_count += 1
+                        search_space.add(node_count)
 
-    # merge cycles with more than one node in common (nested)
-    merged_basis = []
-    while len(complete_basis) > 0:
-        first, *rest = complete_basis
-        is_merged = False
-        while not is_merged:
-            is_merged = True
-            rest2 = []
-            for r in rest:
-                if len(first.intersection(r)) > 1:
-                    first |= set(r)
-                    is_merged = False
-                else:
-                    rest2.append(r)
-            rest = rest2
-        merged_basis.append(first)
-        complete_basis = rest
-
-    # merge nodes based on the family_threshold by clustering at the protein
-    # level
-    node_count += 1
-    while len(merged_basis) > 0:
-        b = merged_basis.pop()
-        clusters = group_paralogs(G, b)
-
-        # now merge nodes that clustered
-        temp_b = []
-        for c in clusters:
-            if len(c) > 1:
-                # keep the centroid with the highest support
-                temp_c = c.copy()
-                G = merge_nodes(G, temp_c.pop(), temp_c.pop(), node_count)
-                while (len(temp_c) > 0):
-                    G = merge_nodes(G, node_count, temp_c.pop(),
-                                    node_count + 1)
-                    node_count += 1
-                temp_b.append(node_count)
-            else:
-                temp_b.append(c[0])
-            node_count += 1
-        # update merged_basis to use new node file_names
-        for i, b2 in enumerate(merged_basis):
-            for j, c in enumerate(clusters):
-                if len(b2.intersection(c)) > 0:
-                    # intersection between basis
-                    for id in c:
-                        if id in merged_basis[i]:
-                            merged_basis[i].remove(id)
-                    merged_basis[i].add(temp_b[j])
+            search_space.remove(node)
 
     return G
 
-def group_paralogs(G, basis):
-    clusters = defaultdict(list)
-    for b in basis:
-        clusters[G.node[b]['centroid']].append(b)
-    clusters = [clusters[c] for c in clusters]
 
-    basis = list(basis)
-    # set up node to cluster dict
-    cluster_dict = {}
-    for i, c in enumerate(clusters):
-        for n in c:
-            cluster_dict[n] = i
+def merge_paralogs(G):
 
-    # set up subgraph and new_cluster dict
-    sub_G = G.subgraph(basis)
-    if not nx.is_connected(sub_G):
-        raise ValueError("Sub graph is not connected!")
+    node_count = max(list(G.nodes())) + 10
 
-    new_clusters = defaultdict(list)
+    # group paralog nodes by centroid
+    paralog_centroid_dict = defaultdict(list)
+    for node in G.nodes():
+        if G.node[node]['paralog']:
+            paralog_centroid_dict[G.node[node]['centroid']].append(node)
 
-    # ref node with max size and degree > 2
-    ref_node = basis[0]
-    for n in basis[1:]:
-        if sub_G.degree[n] > 2:
-            if sub_G.node[n]['size'] >= sub_G.node[ref_node]['size']:
-                ref_node = n
+    # merge paralog nodes that share the same centroid
+    for centroid in paralog_centroid_dict:
+        node_count += 1
+        temp_c = paralog_centroid_dict[centroid]
+        G = merge_nodes(G, temp_c.pop(), temp_c.pop(), node_count, check_merge_mems=False)
+        while (len(temp_c) > 0):
+            G = merge_nodes(G, node_count, temp_c.pop(),
+                            node_count + 1, check_merge_mems=False)
+            node_count += 1
 
-    # nodes in Breadth First Search order
-    nodes_BFS = [ref_node] + [v for u, v in nx.bfs_edges(sub_G, ref_node)]
-
-    # iterate through making new clusters that satisfy conditions
-    for node in nodes_BFS:
-        c1 = cluster_dict[node]
-        if len(new_clusters[c1]) < 1:
-            new_clusters[c1].append([node])
-        else:
-            # try and add to first valid cluster
-            found = False
-            for i, c2 in enumerate(new_clusters[c1]):
-                if is_valid(G, node, c2):
-                    new_clusters[c1][i].append(node)
-                    found = True
-                    break
-            if not found:
-                # create a new cluster
-                new_clusters[c1].append([node])
-
-    # collapse dictionary into original list format
-    clusters = []
-    for c1 in new_clusters:
-        for c2 in new_clusters[c1]:
-            clusters.append(c2)
-
-    return clusters
+    return(G)

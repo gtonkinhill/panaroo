@@ -91,12 +91,13 @@ def get_options():
         help=("minimum edge support required to call structural variants" +
               " in the presence/absence sv file"),
         type=int)
-    # parser.add_argument(
-    #     "--no_split",
-    #     dest="split_paralogs",
-    #     help="don't split paralogs",
-    #     action='store_false',
-    #     default=True)
+
+    parser.add_argument(
+        "--merge_paralogs",
+        dest="merge_paralogs",
+        help="don't split paralogs",
+        action='store_true',
+        default=False)
 
     core = parser.add_argument_group('Gene alignment')
     core.add_argument(
@@ -177,8 +178,7 @@ def main():
     G = generate_network(
         cluster_file=cd_hit_out + ".clstr",
         data_file=args.output_dir + "gene_data.csv",
-        prot_seq_file=args.output_dir + "combined_protein_CDS.fasta",
-        split_paralogs=True)
+        prot_seq_file=args.output_dir + "combined_protein_CDS.fasta")
 
     # write out pre-filter graph in GML format
     nx.write_gml(G, args.output_dir + "pre_filt_graph.gml")
@@ -215,6 +215,10 @@ def main():
         dna_seq_file=args.output_dir + "combined_DNA_CDS.fasta",
         prot_seq_file=args.output_dir + "combined_protein_CDS.fasta",
         n_cpu=args.n_cpu)
+
+    # if requested merge paralogs
+    if args.merge_paralogs:
+        G = merge_paralogs(G)
 
     # write out roary like gene_presence_absence.csv
     G = generate_roary_gene_presence_absence(

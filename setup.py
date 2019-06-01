@@ -45,8 +45,8 @@ setup(
               'joblib',
               'tqdm'
           ],
-    python_requires='>=3.4.0',
-    packages=['panarus',
+    python_requires='>=3.6.0',
+    packages=['panaurus',
               'squeaky'],
     keywords='pangenome roary bacteria',
     classifiers=[
