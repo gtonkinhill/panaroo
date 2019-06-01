@@ -256,3 +256,26 @@ def collapse_paralogs(G, quiet=False):
             search_space.remove(node)
 
     return G
+
+
+def merge_paralogs(G):
+
+    node_count = max(list(G.nodes())) + 10
+
+    # group paralog nodes by centroid
+    paralog_centroid_dict = defaultdict(list)
+    for node in G.nodes():
+        if G.node[node]['paralog']:
+            paralog_centroid_dict[G.node[node]['centroid']].append(node)
+
+    # merge paralog nodes that share the same centroid
+    for centroid in paralog_centroid_dict:
+        node_count += 1
+        temp_c = paralog_centroid_dict[centroid]
+        G = merge_nodes(G, temp_c.pop(), temp_c.pop(), node_count, check_merge_mems=False)
+        while (len(temp_c) > 0):
+            G = merge_nodes(G, node_count, temp_c.pop(),
+                            node_count + 1, check_merge_mems=False)
+            node_count += 1
+
+    return(G)
