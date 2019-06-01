@@ -58,6 +58,12 @@ def get_options():
         dest="len_dif_percent",
         help="length difference cutoff (default=0.95)",
         type=float)
+    matching.add_argument(
+        "--merge_paralogs",
+        dest="merge_paralogs",
+        help="don't split paralogs",
+        action='store_true',
+        default=False)
 
     graph = parser.add_argument_group('Graph correction')
     graph.add_argument(
@@ -116,12 +122,6 @@ def get_options():
         default=0.95)
 
     # Other options
-    parser.add_argument(
-        "--merge_paralogs",
-        dest="merge_paralogs",
-        help="don't split paralogs",
-        action='store_true',
-        default=False)
     parser.add_argument(
         "-t",
         "--threads",
