@@ -40,7 +40,7 @@ setup(
         'networkx>=2.0', 'gffutils', 'BioPython', 'joblib', 'tqdm'
     ],
     python_requires='>=3.6.0',
-    packages=['panaurus', 'squeaky'],
+    packages=['panaurus'],
     keywords='pangenome roary bacteria',
     classifiers=[
         "Programming Language :: Python :: 3",
