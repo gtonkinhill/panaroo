@@ -141,7 +141,8 @@ def cluster_nodes_cdhit(
         use_local=False,  #whether to use local or global sequence alignment
         strand=1,  # default do both +/+ & +/- alignments if set to 0, only +/+
         quiet=False,
-        prevent_para=True):
+        prevent_para=True,
+        n_cpu=1):
 
     # create the files we will need
     temp_input_file = tempfile.NamedTemporaryFile(delete=False, dir=outdir)
@@ -171,7 +172,8 @@ def cluster_nodes_cdhit(
                       accurate=accurate,
                       use_local=use_local,
                       strand=strand,
-                      quiet=quiet)
+                      quiet=quiet,
+                      n_cpu=n_cpu)
     else:
         run_cdhit(input_file=temp_input_file.name,
                   output_file=temp_output_file.name,
@@ -182,7 +184,8 @@ def cluster_nodes_cdhit(
                   aS=AS,
                   accurate=accurate,
                   use_local=use_local,
-                  quiet=quiet)
+                  quiet=quiet,
+                  n_cpu=n_cpu)
 
     # process the output
     clusters = []

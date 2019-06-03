@@ -183,14 +183,22 @@ def main():
     if args.verbose:
         print("collapse gene families...")
 
-    # clean up translation errors and gene families
+    # clean up translation errors 
     G = collapse_families(G,
-                          cycle_threshold=args.max_cycle_size,
-                          family_threshold=args.family_threshold,
                           outdir=temp_dir,
                           dna_error_threshold=0.99,
-                          correct_mistranslations=True)
+                          correct_mistranslations=True,
+                          n_cpu=args.n_cpu,
+                          quiet=(not args.verbose))
 
+    # collapse gene families
+    G = collapse_families(G,
+                          outdir=temp_dir,
+                          family_threshold=args.family_threshold,
+                          correct_mistranslations=False,
+                          n_cpu=args.n_cpu,
+                          quiet=(not args.verbose))
+    
     if args.verbose:
         print("refinding genes...")
 
