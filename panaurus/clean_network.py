@@ -100,9 +100,9 @@ def collapse_families(G,
                 continue
 
             # determine which nodes are in the same cluster
-            cluster_dict = defaultdict(list)
-            for neigh in neighbours:
-                cluster_dict[all_cluster_dict[neigh]].append(neigh)
+            # cluster_dict = defaultdict(list)
+            # for neigh in neighbours:
+            #     cluster_dict[all_cluster_dict[neigh]].append(neigh)
 
             if correct_mistranslations:
                 if not quiet: print("checking for mistranslations")
