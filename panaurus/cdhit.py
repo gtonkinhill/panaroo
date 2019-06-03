@@ -111,7 +111,7 @@ def run_cdhit_est(
         cmd += " -G 0"
 
     if accurate:
-        cmd += " -g 1 -n 2"
+        cmd += " -g 1 -n 6"
 
     if print_aln:
         cmd += " -p 1"

@@ -58,10 +58,10 @@ def collapse_families(G,
                                     outdir,
                                     id=dna_error_threshold,
                                     n_cpu=n_cpu,
-                                    quiet=True,
-                                    dna=False,
-                                    use_local=True,
-                                    aS=0.9,
+                                    quiet=quiet,
+                                    dna=True,
+                                    # use_local=True,
+                                    # aS=0.9,
                                     prevent_para=False)
     else:
         if not quiet: print("merging families")
@@ -70,9 +70,10 @@ def collapse_families(G,
                                 outdir,
                                 id=family_threshold,
                                 n_cpu=n_cpu,
-                                quiet=False,
+                                quiet=quiet,
                                 dna=False,
                                 prevent_para=False)
+    
     all_cluster_dict = {}
     for i, cluster in enumerate(all_clusters):
         for node in cluster:
@@ -98,8 +99,33 @@ def collapse_families(G,
             for neigh in neighbours:
                 cluster_dict[all_cluster_dict[neigh]].append(neigh)
 
+            # if correct_mistranslations:
+            #     if not quiet: print("checking for mistranslations")
+            #     clusters = cluster_nodes_cdhit(G,
+            #                                 neighbours,
+            #                                 outdir,
+            #                                 id=dna_error_threshold,
+            #                                 n_cpu=n_cpu,
+            #                                 quiet=True,
+            #                                 dna=True,
+            #                                 use_local=True,
+            #                                 aS=0.9,
+            #                                 prevent_para=False,
+            #                                 accurate=False)
+            # else:
+            #     if not quiet: print("merging families")
+            #     clusters = cluster_nodes_cdhit(G,
+            #                             neighbours,
+            #                             outdir,
+            #                             id=family_threshold,
+            #                             n_cpu=n_cpu,
+            #                             quiet=True,
+            #                             dna=False,
+            #                             prevent_para=False)
+
 
             for cluster in cluster_dict.values():
+            # for cluster in clusters:
                 # check if there are any to collapse
                 if len(cluster) > 1:
                     # check for conflicts
