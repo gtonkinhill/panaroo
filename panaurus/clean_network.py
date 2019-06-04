@@ -78,6 +78,7 @@ def collapse_families(G,
     # for i, cluster in enumerate(all_clusters):
     #     for node in cluster:
     #         all_cluster_dict[node] = i
+    was_merged = True
     while was_merged:
         was_merged=False
         while len(search_space) > 0:
