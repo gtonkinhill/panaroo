@@ -78,83 +78,83 @@ def collapse_families(G,
     # for i, cluster in enumerate(all_clusters):
     #     for node in cluster:
     #         all_cluster_dict[node] = i
+    while was_merged:
+        was_merged=False
+        while len(search_space) > 0:
+            # look for nodes to merge
+            temp_node_list = list(search_space)
+            removed_nodes = set()
+            for node in temp_node_list:
+                if node in removed_nodes: continue
 
-    while len(search_space) > 0:
-        # look for nodes to merge
-        temp_node_list = list(search_space)
-        removed_nodes = set()
-        for node in temp_node_list:
-            if node in removed_nodes: continue
+                if G.degree[node] <= 2: 
+                    search_space.remove(node)
+                    removed_nodes.add(node)
+                    continue
 
-            if G.degree[node] <= 2: 
-                search_space.remove(node)
-                removed_nodes.add(node)
-                continue
+                # find neighbouring nodes and cluster their centroid with cdhit
+                neighbours = [v for u, v in nx.bfs_edges(G, source=node, depth_limit=3)]
 
-            # find neighbouring nodes and cluster their centroid with cdhit
-            neighbours = [v for u, v in nx.bfs_edges(G, source=node, depth_limit=3)]
+                if len(neighbours) <= 1: 
+                    search_space.remove(node)
+                    removed_nodes.add(node)
+                    continue
 
-            if len(neighbours) <= 1: 
-                search_space.remove(node)
-                removed_nodes.add(node)
-                continue
+                # determine which nodes are in the same cluster
+                    # cluster_dict = defaultdict(list)
+                    # for neigh in neighbours:
+                    #     cluster_dict[all_cluster_dict[neigh]].append(neigh)
 
-            # determine which nodes are in the same cluster
-            # cluster_dict = defaultdict(list)
-            # for neigh in neighbours:
-            #     cluster_dict[all_cluster_dict[neigh]].append(neigh)
-
-            if correct_mistranslations:
-                if not quiet: print("checking for mistranslations")
-                clusters = cluster_nodes_cdhit(G,
+                if correct_mistranslations:
+                    clusters = cluster_nodes_cdhit(G,
+                                                neighbours,
+                                                outdir,
+                                                id=dna_error_threshold,
+                                                n_cpu=n_cpu,
+                                                quiet=True,
+                                                dna=True,
+                                                use_local=False,
+                                                # aS=0.9,
+                                                prevent_para=False,
+                                                accurate=False)
+                else:
+                    clusters = cluster_nodes_cdhit(G,
                                             neighbours,
                                             outdir,
-                                            id=dna_error_threshold,
+                                            id=family_threshold,
                                             n_cpu=n_cpu,
                                             quiet=True,
-                                            dna=True,
-                                            use_local=True,
-                                            aS=0.9,
-                                            prevent_para=False,
-                                            accurate=False)
-            else:
-                if not quiet: print("merging families")
-                clusters = cluster_nodes_cdhit(G,
-                                        neighbours,
-                                        outdir,
-                                        id=family_threshold,
-                                        n_cpu=n_cpu,
-                                        quiet=True,
-                                        dna=False,
-                                        prevent_para=False)
+                                            dna=False,
+                                            prevent_para=False)
 
 
-            # for cluster in cluster_dict.values():
-            for cluster in clusters:
-                # check if there are any to collapse
-                if len(cluster) > 1:
-                    # check for conflicts
-                    genomes = []
-                    for n in cluster:
-                        genomes += G.node[n]['members']
-                    if len(genomes) == len(set(genomes)):
-                        node_count += 1
-                        # merge neighbours with this centroid
-                        for neig in cluster:
-                            removed_nodes.add(neig)
-                            if neig in search_space:
-                                search_space.remove(neig)
-                        temp_c = cluster.copy()
-                        G = merge_nodes(G, temp_c.pop(), temp_c.pop(),
-                                        node_count)
-                        while (len(temp_c) > 0):
-                            G = merge_nodes(G, node_count, temp_c.pop(),
-                                            node_count + 1)
+                # for cluster in cluster_dict.values():
+                for cluster in clusters:
+                    # check if there are any to collapse
+                    if len(cluster) > 1:
+                        # check for conflicts
+                        genomes = []
+                        for n in cluster:
+                            genomes += G.node[n]['members']
+                        if len(genomes) == len(set(genomes)):
                             node_count += 1
-                        search_space.add(node_count)
-                        # all_cluster_dict[node_count] = all_cluster_dict[cluster[0]]
+                            # merge neighbours with this centroid
+                            was_merged = True
+                            for neig in cluster:
+                                removed_nodes.add(neig)
+                                if neig in search_space:
+                                    search_space.remove(neig)
+                            temp_c = cluster.copy()
+                            G = merge_nodes(G, temp_c.pop(), temp_c.pop(),
+                                            node_count)
+                            while (len(temp_c) > 0):
+                                G = merge_nodes(G, node_count, temp_c.pop(),
+                                                node_count + 1)
+                                node_count += 1
+                            search_space.add(node_count)
+                            # all_cluster_dict[node_count] = all_cluster_dict[cluster[0]]
 
-            search_space.remove(node)
+                search_space.remove(node)
 
     return G
 
