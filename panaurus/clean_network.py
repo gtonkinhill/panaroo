@@ -50,148 +50,150 @@ def collapse_families(G,
 
     node_count = max(list(G.nodes())) + 10
 
-    was_merged = True
-    while was_merged:
-        was_merged = False
-        search_space = set(G.nodes())
+    
+    search_space = set(G.nodes())
 
-        while len(search_space) > 0:
-            # look for nodes to merge
-            temp_node_list = list(search_space)
-            removed_nodes = set()
-            for node in temp_node_list:
-                if node in removed_nodes: continue
+    while len(search_space) > 0:
+        # look for nodes to merge
+        temp_node_list = list(search_space)
+        removed_nodes = set()
+        for node in temp_node_list:
+            if node in removed_nodes: continue
 
-                if G.degree[node] <= 2:
-                    search_space.remove(node)
-                    removed_nodes.add(node)
-                    continue
-
-                # find neighbouring nodes and cluster their centroid with cdhit
-                neighbours = [
-                    v for u, v in nx.bfs_edges(G, source=node, depth_limit=3)
-                ]
-
-                if correct_mistranslations:
-                    clusters = cluster_nodes_cdhit(
-                        G,
-                        neighbours,
-                        outdir,
-                        id=dna_error_threshold,
-                        n_cpu=n_cpu,
-                        quiet=True,
-                        dna=True,
-                        use_local=False,
-                        # aS=0.9,
-                        prevent_para=False,
-                        accurate=False)
-                else:
-                    clusters = cluster_nodes_cdhit(G,
-                                                   neighbours,
-                                                   outdir,
-                                                   id=family_threshold,
-                                                   n_cpu=n_cpu,
-                                                   quiet=True,
-                                                   dna=False,
-                                                   prevent_para=False)
-
-                # for cluster in cluster_dict.values():
-                for cluster in clusters:
-                    # check if there are any to collapse
-                    if len(cluster) <= 1: continue
-
-                    # check for conflicts
-                    members = list(
-                        chain.from_iterable(
-                            [G.node[n]['members'] for n in cluster]))
-
-                    if (len(members) == len(set(members))):
-                        # no conflicts so merge
-                        node_count += 1
-                        was_merged = True
-                        for neig in cluster:
-                            removed_nodes.add(neig)
-                            if neig in search_space: search_space.remove(neig)
-                        temp_c = cluster.copy()
-                        G = merge_nodes(G, temp_c.pop(), temp_c.pop(),
-                                        node_count)
-                        while (len(temp_c) > 0):
-                            G = merge_nodes(G, node_count, temp_c.pop(),
-                                            node_count + 1)
-                            node_count += 1
-                        search_space.add(node_count)
-                    else:
-                        if correct_mistranslations:
-                            # merge if the centroids don't conflict and the nodes are adjacent in the conflicting genome
-                            # this corresponds to a mistranslation where one gene has been split into two in a subset of genomes
-
-                            # work out which nodes each genome has
-                            member_to_nodes = defaultdict(list)
-                            for n in cluster:
-                                for mem in G.node[n]['members']:
-                                    member_to_nodes[mem].append(n)
-
-                            should_merge = True
-                            for mem in member_to_nodes:
-                                if len(member_to_nodes[mem]) <= 1: continue
-                                temp_centroids = [
-                                    G.node[n]['centroid']
-                                    for n in member_to_nodes[mem]
-                                ]
-                                if len(temp_centroids) != len(
-                                        set(temp_centroids)):
-                                    # matching centroids so dont merge
-                                    should_merge = False
-                                sub_G = G.subgraph(member_to_nodes[mem])
-                                if not nx.is_connected(sub_G):
-                                    should_merge = False
-
-                            if should_merge:
-                                node_count += 1
-                                was_merged = True
-                                for neig in cluster:
-                                    removed_nodes.add(neig)
-                                    if neig in search_space:
-                                        search_space.remove(neig)
-                                temp_c = cluster.copy()
-                                G = merge_nodes(G,
-                                                temp_c.pop(),
-                                                temp_c.pop(),
-                                                node_count,
-                                                check_merge_mems=False)
-                                while (len(temp_c) > 0):
-                                    G = merge_nodes(G,
-                                                    node_count,
-                                                    temp_c.pop(),
-                                                    node_count + 1,
-                                                    check_merge_mems=False)
-                                    node_count += 1
-                                search_space.add(node_count)
-                        else:
-                            # there is a conflict in the merge, check if we can split based on neighbours
-                            node_neighbours = defaultdict(list)
-                            for n in cluster:
-                                node_neighbours[tuple(
-                                    sorted(list(G.neighbors(n))))].append(n)
-                            for sub_cluster in node_neighbours.values():
-                                if len(sub_cluster) <= 1: continue
-                                node_count += 1
-                                was_merged = True
-                                for neig in sub_cluster:
-                                    removed_nodes.add(neig)
-                                    if neig in search_space:
-                                        search_space.remove(neig)
-                                temp_c = sub_cluster.copy()
-                                G = merge_nodes(G, temp_c.pop(), temp_c.pop(),
-                                                node_count)
-                                while (len(temp_c) > 0):
-                                    G = merge_nodes(G, node_count,
-                                                    temp_c.pop(),
-                                                    node_count + 1)
-                                    node_count += 1
-                                search_space.add(node_count)
-
+            if G.degree[node] <= 2:
                 search_space.remove(node)
+                removed_nodes.add(node)
+                continue
+
+            # find neighbouring nodes and cluster their centroid with cdhit
+            neighbours = [
+                v for u, v in nx.bfs_edges(G, source=node, depth_limit=3)
+            ]
+
+            if correct_mistranslations:
+                clusters = cluster_nodes_cdhit(
+                    G,
+                    neighbours,
+                    outdir,
+                    id=dna_error_threshold,
+                    n_cpu=n_cpu,
+                    quiet=True,
+                    dna=True,
+                    use_local=False,
+                    # aS=0.9,
+                    prevent_para=False,
+                    accurate=False)
+            else:
+                clusters = cluster_nodes_cdhit(G,
+                                                neighbours,
+                                                outdir,
+                                                id=family_threshold,
+                                                n_cpu=n_cpu,
+                                                quiet=True,
+                                                dna=False,
+                                                prevent_para=False)
+
+            # for cluster in cluster_dict.values():
+            for cluster in clusters:
+                # check if there are any to collapse
+                if len(cluster) <= 1: continue
+
+                # check for conflicts
+                members = list(
+                    chain.from_iterable(
+                        [G.node[n]['members'] for n in cluster]))
+
+                if (len(members) == len(set(members))):
+                    # no conflicts so merge
+                    node_count += 1
+                    for neig in cluster:
+                        removed_nodes.add(neig)
+                        if neig in search_space: search_space.remove(neig)
+                    temp_c = cluster.copy()
+                    G = merge_nodes(G, temp_c.pop(), temp_c.pop(),
+                                    node_count)
+                    while (len(temp_c) > 0):
+                        G = merge_nodes(G, node_count, temp_c.pop(),
+                                        node_count + 1)
+                        node_count += 1
+                    search_space.add(node_count)
+                else:
+                    if correct_mistranslations:
+                        # merge if the centroids don't conflict and the nodes are adjacent in the conflicting genome
+                        # this corresponds to a mistranslation where one gene has been split into two in a subset of genomes
+
+                        # work out which nodes each genome has
+                        member_to_nodes = defaultdict(list)
+                        for n in cluster:
+                            for mem in G.node[n]['members']:
+                                member_to_nodes[mem].append(n)
+
+                        should_merge = True
+                        for mem in member_to_nodes:
+                            if len(member_to_nodes[mem]) <= 1: continue
+                            temp_centroids = [
+                                G.node[n]['centroid']
+                                for n in member_to_nodes[mem]
+                            ]
+                            if len(temp_centroids) != len(
+                                    set(temp_centroids)):
+                                # matching centroids so dont merge
+                                should_merge = False
+                            sub_G = G.subgraph(member_to_nodes[mem])
+                            if not nx.is_connected(sub_G):
+                                should_merge = False
+
+                        if should_merge:
+                            node_count += 1
+                            for neig in cluster:
+                                removed_nodes.add(neig)
+                                if neig in search_space:
+                                    search_space.remove(neig)
+                            temp_c = cluster.copy()
+                            G = merge_nodes(G,
+                                            temp_c.pop(),
+                                            temp_c.pop(),
+                                            node_count,
+                                            check_merge_mems=False)
+                            while (len(temp_c) > 0):
+                                G = merge_nodes(G,
+                                                node_count,
+                                                temp_c.pop(),
+                                                node_count + 1,
+                                                check_merge_mems=False)
+                                node_count += 1
+                            search_space.add(node_count)
+                    else:
+                        # there is a conflict in the merge, check if we can split based on neighbours
+                        node_neighbours = defaultdict(list)
+                        for n in cluster:
+                            node_neighbours[tuple(
+                                sorted(list(G.neighbors(n))))].append(n)
+                        for sub_cluster in node_neighbours.values():
+                            if len(sub_cluster) <= 1: continue
+                            sub_mems = list(
+                                chain.from_iterable([
+                                    G.node[n]['members']
+                                    for n in sub_cluster
+                                ]))
+                            if len(sub_mems) != len(set(sub_mems)):
+                                continue
+                            node_count += 1
+                            for neig in sub_cluster:
+                                removed_nodes.add(neig)
+                                if neig in search_space:
+                                    search_space.remove(neig)
+                            temp_c = sub_cluster.copy()
+                            G = merge_nodes(G, temp_c.pop(), temp_c.pop(),
+                                            node_count)
+                            while (len(temp_c) > 0):
+                                G = merge_nodes(G, node_count,
+                                                temp_c.pop(),
+                                                node_count + 1)
+                                node_count += 1
+                            search_space.add(node_count)
+
+            search_space.remove(node)
 
     return G
 
