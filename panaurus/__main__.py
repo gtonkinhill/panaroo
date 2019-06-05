@@ -227,6 +227,7 @@ def main():
 
     # add helpful attributes and write out graph in GML format
     for node in G.nodes():
+        G.node[node]['size'] = len(set(G.node[node]['members']))
         G.node[node]['genomeIDs'] = ";".join(G.node[node]['members'])
         G.node[node]['geneIDs'] = ";".join(G.node[node]['seqIDs'])
         G.node[node]['degrees'] = G.degree[node]
