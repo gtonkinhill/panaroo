@@ -169,6 +169,9 @@ def main():
                          prot_seq_file=args.output_dir +
                          "combined_protein_CDS.fasta")
 
+    # merge paralogs
+    G = collapse_paralogs(G)
+
     # write out pre-filter graph in GML format
     nx.write_gml(G, args.output_dir + "pre_filt_graph.gml")
 
@@ -186,7 +189,7 @@ def main():
     # clean up translation errors 
     G = collapse_families(G,
                           outdir=temp_dir,
-                          dna_error_threshold=0.99,
+                          dna_error_threshold=0.95,
                           correct_mistranslations=True,
                           n_cpu=args.n_cpu,
                           quiet=(not args.verbose))
