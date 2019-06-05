@@ -6,6 +6,8 @@
 
 ### Contamination Removal
 
+![logo](_figures/contamination.png ':size=500%')
+
 ### Mistranslations
 
 ![logo](_figures/translation_error.png ':size=500%')
