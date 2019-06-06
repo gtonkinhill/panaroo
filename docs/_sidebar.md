@@ -4,6 +4,7 @@
 
     - [Quick start](/gettingstarted/quickstart.md)
     - [Installation](/gettingstarted/installation.md)
+    - [Parameters](/gettingstarted/params.md)
     - [Output](/gettingstarted/output.md)
 
 - Quality Control

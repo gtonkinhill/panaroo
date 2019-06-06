@@ -23,7 +23,7 @@ def get_options():
         "--input",
         dest="input_files",
         required=True,
-        help="input GFF3 files (usually output from running Prokka)",
+        help="input fasta files",
         type=argparse.FileType('rU'),
         nargs='+')
     io_opts.add_argument("-o",
@@ -110,8 +110,8 @@ def run_prokka_mod(input_file, out_folder, train_file, force, add_cmds):
     with open(temp_dir + "/prodigal", 'w') as outfile:
         outfile.write("#!/bin/bash\n")
         outfile.write("(>&2 echo 'running prokka mod!')\n")
-        outfile.write(path_to_prodigal + " $*\n" + " -t " +
-                      os.path.abspath(train_file))
+        outfile.write(path_to_prodigal + " -t " +
+                      os.path.abspath(train_file) + " $*\n" )
 
     cmd = 'export PATH="' + temp_dir + ':$PATH"; chmod 777 ' + temp_dir + '/*; '
 
