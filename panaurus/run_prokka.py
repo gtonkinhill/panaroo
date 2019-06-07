@@ -6,6 +6,7 @@ import subprocess
 from joblib import Parallel, delayed
 import shutil
 import tempfile
+from tqdm import tqdm
 
 from .__init__ import __version__
 
@@ -91,7 +92,7 @@ def main():
     Parallel(n_jobs=args.n_cpu)(delayed(run_prokka_mod)(
         input, args.output_dir, args.output_dir +
         "prodigal_training.txt", args.force, args.add_prokka_cmds)
-                                for input in args.input_files)
+                                for input in tqdm(args.input_files))
 
     return
 
