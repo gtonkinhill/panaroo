@@ -6,6 +6,7 @@ import subprocess
 from joblib import Parallel, delayed
 import shutil
 import tempfile
+from tqdm import tqdm
 
 from .__init__ import __version__
 
@@ -23,7 +24,7 @@ def get_options():
         "--input",
         dest="input_files",
         required=True,
-        help="input GFF3 files (usually output from running Prokka)",
+        help="input fasta files",
         type=argparse.FileType('rU'),
         nargs='+')
     io_opts.add_argument("-o",
@@ -91,7 +92,7 @@ def main():
     Parallel(n_jobs=args.n_cpu)(delayed(run_prokka_mod)(
         input, args.output_dir, args.output_dir +
         "prodigal_training.txt", args.force, args.add_prokka_cmds)
-                                for input in args.input_files)
+                                for input in tqdm(args.input_files))
 
     return
 
@@ -110,8 +111,8 @@ def run_prokka_mod(input_file, out_folder, train_file, force, add_cmds):
     with open(temp_dir + "/prodigal", 'w') as outfile:
         outfile.write("#!/bin/bash\n")
         outfile.write("(>&2 echo 'running prokka mod!')\n")
-        outfile.write(path_to_prodigal + " $*\n" + " -t " +
-                      os.path.abspath(train_file))
+        outfile.write(path_to_prodigal + " -t " +
+                      os.path.abspath(train_file) + " $*\n" )
 
     cmd = 'export PATH="' + temp_dir + ':$PATH"; chmod 777 ' + temp_dir + '/*; '
 

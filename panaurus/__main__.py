@@ -169,6 +169,9 @@ def main():
                          prot_seq_file=args.output_dir +
                          "combined_protein_CDS.fasta")
 
+    # merge paralogs
+    G = collapse_paralogs(G)
+
     # write out pre-filter graph in GML format
     nx.write_gml(G, args.output_dir + "pre_filt_graph.gml")
 
@@ -183,14 +186,22 @@ def main():
     if args.verbose:
         print("collapse gene families...")
 
-    # clean up translation errors and gene families
+    # clean up translation errors 
     G = collapse_families(G,
-                          cycle_threshold=args.max_cycle_size,
-                          family_threshold=args.family_threshold,
                           outdir=temp_dir,
-                          dna_error_threshold=0.99,
-                          correct_mistranslations=True)
+                          dna_error_threshold=0.95,
+                          correct_mistranslations=True,
+                          n_cpu=args.n_cpu,
+                          quiet=(not args.verbose))
 
+    # collapse gene families
+    G = collapse_families(G,
+                          outdir=temp_dir,
+                          family_threshold=args.family_threshold,
+                          correct_mistranslations=False,
+                          n_cpu=args.n_cpu,
+                          quiet=(not args.verbose))
+    
     if args.verbose:
         print("refinding genes...")
 
@@ -216,6 +227,7 @@ def main():
 
     # add helpful attributes and write out graph in GML format
     for node in G.nodes():
+        G.node[node]['size'] = len(set(G.node[node]['members']))
         G.node[node]['genomeIDs'] = ";".join(G.node[node]['members'])
         G.node[node]['geneIDs'] = ";".join(G.node[node]['seqIDs'])
         G.node[node]['degrees'] = G.degree[node]

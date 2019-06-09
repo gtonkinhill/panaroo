@@ -1,9 +1,6 @@
-# panaurus
-An updated pipeline for pan-genome investigation
+## Panaurus
 
-<p align="center">
-<img src="https://github.com/gtonkinhill/panaurus/blob/master/petaurus.jpeg" alt="alt text" width="500">
-</p>
+An updated pipeline for pan-genome investigation
 
 ## Installation
 ```
