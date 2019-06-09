@@ -219,6 +219,10 @@ def main():
         G.node[node]['genomeIDs'] = ";".join(G.node[node]['members'])
         G.node[node]['geneIDs'] = ";".join(G.node[node]['seqIDs'])
         G.node[node]['degrees'] = G.degree[node]
+    
+    for edge in  G.edges():
+        G.edges[edge[0], edge[1]]['genomeIDs'] = ";".join(G.edges[edge[0], edge[1]]['members'])
+
     nx.write_gml(G, args.output_dir + "final_graph.gml")
 
     # write pan genome reference fasta file

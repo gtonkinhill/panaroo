@@ -10,25 +10,40 @@ def read_presence_absence(filename):
 
     return(pa_matrix, gene_names, sample_names)
 
-def get_curve_w_ci(q, m, n_samples, method="chao2"):
+def get_curve_w_ci(q, m, pa_matrix, n_boot=100, method="chao2"):
 
+    n_samples = np.size(pa_matrix, 1)
 
-    return
+    stat_ci = []
+
+    for n in range(1, n_samples+1):
+
+        qm_boot = [get_q_m(pa_matrix[np.random.randint(0,n_samples,n),:]) for i in range(1,n_boot+1)]
+
+        if method=="chao2":
+            stat_boot = [chao2(qm[0], qm[1], n_samples) for qm in qm_boot]
+        elif method=="ICE":
+            stat_boot = [ICE(qm[0], qm[1], n_samples) for qm in qm_boot]
+        elif method=="jack1":
+            stat_boot = [jackknife(qm[0], qm[1], n_samples, 1) for qm in qm_boot]
+        else:
+            stat_boot = [jackknife(qm[0], qm[1], n_samples, 2) for qm in qm_boot]
+
+        stat_ci.append(np.quantile(stat_boot, c(0.025,0.5,0.975)))
+
+    return stat_ci
 
 def get_q_m(pa_matrix):
     # q_k be the number of genes present in exactly k genomes
     q = np.bincount(np.sum(pa_matrix, axis=1))
-
     m = 0.0
     for i in range(1, np.size(q)):
         m += q[i] 
-
-    return q
+    return q, m
 
 def chao2(q, m, n_samples):
     # calculates the Chao 2 statistic (for replicated incidence data)
     c2 = n_samples + ((m-1)/m) * (q[1]*(q[1]-1))/(2*(q[2]+1))
-
     return c2
 
 def ICE(q, m, n_samples):
