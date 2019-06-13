@@ -32,7 +32,8 @@ def generate_roary_gene_presence_absence(G, file_names, dna_file, output_dir):
             node_lengths[node].append(seq_lengths[seq])
 
     # generate file
-    with open(output_dir + "gene_presence_absence.csv", 'w') as outfile:
+    with open(output_dir + "gene_presence_absence.csv", 'w') as csv_outfile, \
+         open(output_dir + "gene_presence_absence.Rtab", 'w') as Rtab_outfile:
         header = [
             "Gene", "Non-unique Gene name", "Annotation", "No. isolates",
             "No. sequences", "Avg sequences per isolate", "Genome Fragment",
@@ -40,7 +41,8 @@ def generate_roary_gene_presence_absence(G, file_names, dna_file, output_dir):
             "Accessory Order with Fragment", "QC", "Min group size nuc",
             "Max group size nuc", "Avg group size nuc"
         ] + file_names
-        outfile.write(",".join(header) + "\n")
+        csv_outfile.write(",".join(header) + "\n")
+        Rtab_outfile.write("\t".join((["Gene"] + file_names)) + "\n")
 
         # Iterate through coponents writing out to file
         used_gene_names = set([""])
@@ -79,7 +81,9 @@ def generate_roary_gene_presence_absence(G, file_names, dna_file, output_dir):
                     sample_id = int(seq.split("_")[0])
                     pres_abs[sample_id] = seq
                 entry += pres_abs
-                outfile.write(",".join([str(e) for e in entry]) + "\n")
+                csv_outfile.write(",".join([str(e) for e in entry]) + "\n")
+                Rtab_outfile.write(entry[0] + "\t")
+                Rtab_outfile.write("\t".join((["0" if e == "" else "1" for e in pres_abs])) + "\n")
 
     return G
 
