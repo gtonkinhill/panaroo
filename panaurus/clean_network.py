@@ -202,77 +202,78 @@ def collapse_paralogs(G, quiet=False):
 
     node_count = max(list(G.nodes())) + 10
 
-    was_merged = True
-    while was_merged:
-        was_merged = False
-        search_space = set(G.nodes())
-        while len(search_space) > 0:
-            # look for nodes to merge
-            temp_node_list = list(search_space)
-            removed_nodes = set()
-            for node in temp_node_list:
-                if node in removed_nodes: continue
+    for d in range(1,10):
+        was_merged = True
+        while was_merged:
+            was_merged = False
+            search_space = set(G.nodes())
+            while len(search_space) > 0:
+                # look for nodes to merge
+                temp_node_list = list(search_space)
+                removed_nodes = set()
+                for node in temp_node_list:
+                    if node in removed_nodes: continue
 
-                neigbour_centroids = defaultdict(list)
-                # find neighbours centroids
-                for neigh in [
-                        v
-                        for u, v in nx.bfs_edges(G, source=node, depth_limit=3)
-                ]:
-                    neigbour_centroids[G.node[neigh]['centroid']].append(neigh)
+                    neigbour_centroids = defaultdict(list)
+                    # find neighbours centroids
+                    for neigh in [
+                            v
+                            for u, v in nx.bfs_edges(G, source=node, depth_limit=d)
+                    ]:
+                        neigbour_centroids[G.node[neigh]['centroid']].append(neigh)
 
-                for centroid in neigbour_centroids:
-                    # check if there are any to collapse
-                    if (len(neigbour_centroids[centroid]) > 1):
-                        # check for conflicts
-                        genomes = []
-                        for n in neigbour_centroids[centroid]:
-                            genomes += G.node[n]['members']
-                        if len(genomes) == len(set(genomes)):
-                            # no conflicts in merge
-                            was_merged = True
-                            node_count += 1
-                            # merge neighbours with this centroid
-                            for neigh in neigbour_centroids[centroid]:
-                                removed_nodes.add(neigh)
-                                if neigh in search_space:
-                                    search_space.remove(neigh)
-                            temp_c = neigbour_centroids[centroid].copy()
-                            G = merge_nodes(G, temp_c.pop(), temp_c.pop(),
-                                            node_count)
-                            while (len(temp_c) > 0):
-                                G = merge_nodes(G, node_count, temp_c.pop(),
-                                                node_count + 1)
-                                node_count += 1
-                            search_space.add(node_count)
-                        else:
-                            # possible conflict (try splitting by neighbours)
-                            neigh_neighbours = defaultdict(list)
+                    for centroid in neigbour_centroids:
+                        # check if there are any to collapse
+                        if (len(neigbour_centroids[centroid]) > 1):
+                            # check for conflicts
+                            genomes = []
                             for n in neigbour_centroids[centroid]:
-                                neigh_neighbours[tuple(sorted(
-                                    G.neighbors(n)))].append(n)
-
-                            for nn in neigh_neighbours:
-                                if len(neigh_neighbours[nn]) < 2: continue
-                                # we've found subsets that share the same neighbours so merge
+                                genomes += G.node[n]['members']
+                            if len(genomes) == len(set(genomes)):
+                                # no conflicts in merge
                                 was_merged = True
                                 node_count += 1
                                 # merge neighbours with this centroid
-                                for neigh in neigh_neighbours[nn]:
+                                for neigh in neigbour_centroids[centroid]:
                                     removed_nodes.add(neigh)
                                     if neigh in search_space:
                                         search_space.remove(neigh)
-                                temp_c = neigh_neighbours[nn].copy()
+                                temp_c = neigbour_centroids[centroid].copy()
                                 G = merge_nodes(G, temp_c.pop(), temp_c.pop(),
                                                 node_count)
                                 while (len(temp_c) > 0):
-                                    G = merge_nodes(G, node_count,
-                                                    temp_c.pop(),
+                                    G = merge_nodes(G, node_count, temp_c.pop(),
                                                     node_count + 1)
                                     node_count += 1
                                 search_space.add(node_count)
+                            else:
+                                # possible conflict (try splitting by neighbours)
+                                neigh_neighbours = defaultdict(list)
+                                for n in neigbour_centroids[centroid]:
+                                    neigh_neighbours[tuple(sorted(
+                                        G.neighbors(n)))].append(n)
 
-                search_space.remove(node)
+                                for nn in neigh_neighbours:
+                                    if len(neigh_neighbours[nn]) < 2: continue
+                                    # we've found subsets that share the same neighbours so merge
+                                    was_merged = True
+                                    node_count += 1
+                                    # merge neighbours with this centroid
+                                    for neigh in neigh_neighbours[nn]:
+                                        removed_nodes.add(neigh)
+                                        if neigh in search_space:
+                                            search_space.remove(neigh)
+                                    temp_c = neigh_neighbours[nn].copy()
+                                    G = merge_nodes(G, temp_c.pop(), temp_c.pop(),
+                                                    node_count)
+                                    while (len(temp_c) > 0):
+                                        G = merge_nodes(G, node_count,
+                                                        temp_c.pop(),
+                                                        node_count + 1)
+                                        node_count += 1
+                                    search_space.add(node_count)
+
+                    search_space.remove(node)
 
     return G
 
