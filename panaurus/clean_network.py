@@ -305,3 +305,17 @@ def merge_paralogs(G):
             node_count += 1
 
     return (G)
+
+
+def clean_misassembly_edges(G, threshold):
+
+    bad_edges = []
+    for edge in G.edges():
+        if float(G.edges[edge]['weight']) < (threshold * 
+                min(int(G.node[edge[0]]['size']), int(G.node[edge[1]]['size']))):
+            bad_edges.append(edge)
+    
+    for edge in bad_edges:
+        G.remove_edge(edge[0], edge[1])
+    
+    return (G)

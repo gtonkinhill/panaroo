@@ -21,6 +21,10 @@ def set_default_args(args):
             args.max_cycle_size = 20
         if args.min_edge_support_sv is None:
             args.min_edge_support_sv = max(2, math.ceil(0.01 * n_samples))
+        if args.edge_support_diff is None:
+            args.edge_support_diff = 0.05
+        if args.remove_by_consensus is None:
+            args.remove_by_consensus = True
 
     elif args.mode == 'moderate':
         if args.id is None:
@@ -37,6 +41,10 @@ def set_default_args(args):
             args.max_cycle_size = 20
         if args.min_edge_support_sv is None:
             args.min_edge_support_sv = max(2, math.ceil(0.01 * n_samples))
+        if args.edge_support_diff is None:
+            args.edge_support_diff = 0.01
+        if args.remove_by_consensus is None:
+            args.remove_by_consensus = False
 
     else:
         if args.id is None:
@@ -53,5 +61,9 @@ def set_default_args(args):
             args.max_cycle_size = 20
         if args.min_edge_support_sv is None:
             args.min_edge_support_sv = 2
+        if args.edge_support_diff is None:
+            args.edge_support_diff = 0.0
+        if args.remove_by_consensus is None:
+            args.remove_by_consensus = False
 
     return args

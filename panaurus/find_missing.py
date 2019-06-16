@@ -9,10 +9,11 @@ from joblib import Parallel, delayed
 import os
 import gffutils as gff
 from io import StringIO
+from .merge_nodes import delete_node
 
 
 def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir,
-                 n_cpu):
+                 n_cpu, remove_by_consensus=False):
 
     # find all the cycles shorter than cycle_threshold
     print("defining basis...")
@@ -95,6 +96,7 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir,
         search_seq_dict[member], missing_dict[member], temp_dir, 1)
                                       for member in search_lists)
 
+
     print("translating found hits...")
     trans_list = []
     for member, hits in hit_list:
@@ -104,30 +106,48 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir,
                     hit, max(G.node[b[1]]["protein"].split(";"), key=len))
                 for b, hit in zip(search_lists[member], hits)))
 
+    additions_by_node = defaultdict(list)
+    for mem_hits, trans in zip(hit_list, trans_list):
+        member = mem_hits[0]
+        hits = mem_hits[1]
+        for b, hit, hit_protein in zip(search_lists[member], hits,
+                                        trans):
+            if hit == "": continue
+            additions_by_node[b[1]].append((member, hit, hit_protein))
+
+    # if requested remove nodes that have more refound than in original
+    # that is the consensus appears to be it wasn't a good gene most of the
+    # time
+    bad_nodes = []
+    if remove_by_consensus:
+        for node in additions_by_node:
+            if len(additions_by_node[node]>G.node[node]['size']):
+                bad_nodes.append(node)
+    for node in bad_nodes:
+        delete_node(G, node)
+
     print("update output...")
     with open(dna_seq_file, 'a') as dna_out:
         with open(prot_seq_file, 'a') as prot_out:
-            for mem_hits, trans in zip(hit_list, trans_list):
-                member = mem_hits[0]
-                hits = mem_hits[1]
-                for b, hit, hit_protein in zip(search_lists[member], hits,
-                                               trans):
-                    if hit == "": continue
-                    G.node[b[1]]['members'] += [member]
-                    G.node[b[1]]['size'] += 1
-                    G.node[b[1]]['dna'] = ";".join(
-                        set(G.node[b[1]]['dna'].split(";") + [hit]))
+            for node in additions_by_node:
+                if node in bad_nodes: continue
+                for member, hit, hit_protein in additions_by_node[node]:
+                    G.node[node]['members'] += [member]
+                    G.node[node]['size'] += 1
+                    G.node[node]['dna'] = ";".join(
+                        set(G.node[node]['dna'].split(";") + [hit]))
                     dna_out.write(">" + str(member) + "_refound_" +
-                                  str(n_found) + "\n" + hit + "\n")
-                    G.node[b[1]]['protein'] = ";".join(
-                        set(G.node[b[1]]['protein'].split(";") +
+                                    str(n_found) + "\n" + hit + "\n")
+                    G.node[node]['protein'] = ";".join(
+                        set(G.node[node]['protein'].split(";") +
                             [hit_protein]))
                     prot_out.write(">" + str(member) + "_refound_" +
-                                   str(n_found) + "\n" + hit_protein + "\n")
-                    G.node[b[1]]['seqIDs'] += [
+                                    str(n_found) + "\n" + hit_protein + "\n")
+                    G.node[node]['seqIDs'] += [
                         str(member) + "_refound_" + str(n_found)
                     ]
                     n_found += 1
+
 
     return G
 
