@@ -22,19 +22,6 @@ def trim_low_support_trailing_ends(G, min_support=3, max_recursive=2):
             G.remove_node(node)
             removed = True
 
-        # fix trailing due to paralog
-        bad_nodes = []
-        for node in G.nodes():
-            centroids = []
-            for neighbor in G.neighbors(node):
-                centroids.append(G.node[neighbor]['centroid'])
-            if len(set(centroids)) <= 1:
-                if len(centroids) < min_support:
-                    bad_nodes.append(node)
-        for node in bad_nodes:
-            G.remove_node(node)
-            removed = True
-
         if not removed: break
 
     return G
@@ -170,33 +157,70 @@ def collapse_families(G,
                                 search_space.add(node_count)
                         else:
                             # there is a conflict in the merge, check if we can split based on neighbours
-                            node_neighbours = defaultdict(list)
-                            for n in cluster:
-                                node_neighbours[tuple(
-                                    sorted(list(G.neighbors(n))))].append(n)
-                            for sub_cluster in node_neighbours.values():
-                                if len(sub_cluster) <= 1: continue
-                                sub_mems = list(
-                                    chain.from_iterable([
-                                        G.node[n]['members']
-                                        for n in sub_cluster
-                                    ]))
-                                if len(sub_mems) != len(set(sub_mems)):
-                                    continue
-                                node_count += 1
-                                for neig in sub_cluster:
-                                    removed_nodes.add(neig)
-                                    if neig in search_space:
-                                        search_space.remove(neig)
-                                temp_c = sub_cluster.copy()
-                                G = merge_nodes(G, temp_c.pop(), temp_c.pop(),
-                                                node_count)
-                                while (len(temp_c) > 0):
-                                    G = merge_nodes(G, node_count,
-                                                    temp_c.pop(),
-                                                    node_count + 1)
+                            was_merged = True
+                            already_merged = set()
+                            while was_merged:
+                                was_merged = False
+                                pos_merges = []
+                                for nA in cluster:
+                                    if nA in already_merged: continue
+                                    best_inter = -1
+                                    for nB in cluster:
+                                        if nA==nB: continue
+                                        if len(set(G.node[nA]['members']).intersection(set(G.node[nB]['members'])))>0: continue
+                                        temp_inter = len(set(G.neighbors(nA)).intersection(set(G.neighbors(nB))))
+                                        # if temp_inter==0: continue
+                                        if temp_inter>best_inter:
+                                            best_inter = temp_inter
+                                            best_merge = nB
+                                    if best_inter==-1:
+                                        # none left to merge with this node
+                                        already_merged.add(nA)
+                                    else:
+                                        pos_merges.append((best_inter, nA, best_merge))
+                                if len(pos_merges)>0:
+                                    was_merged=True
+                                    best_merge = max(pos_merges)
                                     node_count += 1
-                                search_space.add(node_count)
+                                    G = merge_nodes(G, best_merge[1], best_merge[2],
+                                                node_count)
+                                    if best_merge[1] in search_space: search_space.remove(best_merge[1])
+                                    if best_merge[2] in search_space: search_space.remove(best_merge[2])
+                                    removed_nodes.add(best_merge[1])
+                                    removed_nodes.add(best_merge[2])
+                                    cluster.remove(best_merge[1])
+                                    cluster.remove(best_merge[2])
+                                    cluster.append(node_count)
+                                    search_space.add(node_count)
+                                    
+                                    
+                            # node_neighbours = defaultdict(list)
+                            # for n in cluster:
+                            #     node_neighbours[tuple(
+                            #         sorted(list(G.neighbors(n))))].append(n)
+                            # for sub_cluster in node_neighbours.values():
+                            #     if len(sub_cluster) <= 1: continue
+                            #     sub_mems = list(
+                            #         chain.from_iterable([
+                            #             G.node[n]['members']
+                            #             for n in sub_cluster
+                            #         ]))
+                            #     if len(sub_mems) != len(set(sub_mems)):
+                            #         continue
+                            #     node_count += 1
+                            #     for neig in sub_cluster:
+                            #         removed_nodes.add(neig)
+                            #         if neig in search_space:
+                            #             search_space.remove(neig)
+                            #     temp_c = sub_cluster.copy()
+                            #     G = merge_nodes(G, temp_c.pop(), temp_c.pop(),
+                            #                     node_count)
+                            #     while (len(temp_c) > 0):
+                            #         G = merge_nodes(G, node_count,
+                            #                         temp_c.pop(),
+                            #                         node_count + 1)
+                            #         node_count += 1
+                            #     search_space.add(node_count)
 
                 search_space.remove(node)
 
