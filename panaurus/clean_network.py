@@ -53,8 +53,8 @@ def collapse_families(G,
     if correct_mistranslations:
         depths = [3]
     else:
-        depths = range(1,10)
-        
+        depths = [3] # range(1,10)
+
     for d in depths:
         search_space = set(G.nodes())
 

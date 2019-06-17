@@ -121,7 +121,7 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir,
     bad_nodes = []
     if remove_by_consensus:
         for node in additions_by_node:
-            if len(additions_by_node[node]>G.node[node]['size']):
+            if len(additions_by_node[node])>G.node[node]['size']:
                 bad_nodes.append(node)
     for node in bad_nodes:
         delete_node(G, node)
