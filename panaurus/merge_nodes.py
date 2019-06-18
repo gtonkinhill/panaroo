@@ -85,8 +85,8 @@ def delete_node(G, node):
         mem_edges = list(set([e[1] for e in G.edges(node) if mem in G.edges[e]['members']]))
         for n1, n2 in itertools.combinations(mem_edges, 2):
             if G.has_edge(n1,n2):
-                G.edges[n1][n2]['members'].append(mem)
-                G.edges[n1][n2]['size'] += 1
+                G[n1][n2]['members'] += [mem]
+                G[n1][n2]['weight'] += 1
             else:
                 G.add_edge(n1, n2,
                    weight=1,
