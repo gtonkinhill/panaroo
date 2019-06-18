@@ -1,3 +1,5 @@
+import itertools
+
 def merge_nodes(G,
                 nodeA,
                 nodeB,
@@ -75,3 +77,24 @@ def merge_nodes(G,
     G.remove_nodes_from([nodeA, nodeB])
 
     return G
+
+
+def delete_node(G, node):
+    # add in new edges
+    for mem in G.node[node]['members']:
+        mem_edges = list(set([e[1] for e in G.edges(node) if mem in G.edges[e]['members']]))
+        for n1, n2 in itertools.combinations(mem_edges, 2):
+            if G.has_edge(n1,n2):
+                G[n1][n2]['members'] += [mem]
+                G[n1][n2]['weight'] += 1
+            else:
+                G.add_edge(n1, n2,
+                   weight=1,
+                   members=[mem])
+
+    # now remove node
+    G.remove_node(node)
+
+    return G
+
+

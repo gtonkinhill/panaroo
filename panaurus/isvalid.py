@@ -13,3 +13,9 @@ def is_valid_folder(parser, arg):
         parser.error("The folder %s does not exist!" % arg)
     else:
         return arg
+
+
+def conv_list(maybe_list):
+    if not isinstance(maybe_list, list):
+        maybe_list = [maybe_list]
+    return (maybe_list)

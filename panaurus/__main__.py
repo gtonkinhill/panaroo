@@ -88,6 +88,19 @@ def get_options():
               "(default=20)"),
         type=int)
     graph.add_argument(
+        "--edge_support_diff",
+        dest="edge_support_diff",
+        help=("maximum fraction difference between an edge's support " +
+                "and those of the nodes it connects"),
+        type=float)
+    graph.add_argument(
+        "--remove_by_consensus",
+        dest="remove_by_consensus",
+        help=("if a gene is called in the same region with similar sequence a minority " +
+                "of the time, remove it"),
+        action='store_true',
+        default=None)
+    graph.add_argument(
         "--min_edge_support_sv",
         dest="min_edge_support_sv",
         help=("minimum edge support required to call structural variants" +
@@ -186,7 +199,7 @@ def main():
     if args.verbose:
         print("collapse gene families...")
 
-    # clean up translation errors 
+    # clean up translation errors
     G = collapse_families(G,
                           outdir=temp_dir,
                           dna_error_threshold=0.95,
@@ -201,7 +214,16 @@ def main():
                           correct_mistranslations=False,
                           n_cpu=args.n_cpu,
                           quiet=(not args.verbose))
-    
+
+    # remove edges that are likely due to misassemblies (by consensus)
+    G = clean_misassembly_edges(G, 
+                                threshold=args.edge_support_diff)
+
+    # re-trim low support trailing ends
+    G = trim_low_support_trailing_ends(G,
+                                       min_support=args.min_trailing_support,
+                                       max_recursive=args.trailing_recursive)
+
     if args.verbose:
         print("refinding genes...")
 
@@ -212,6 +234,7 @@ def main():
                      dna_seq_file=args.output_dir + "combined_DNA_CDS.fasta",
                      prot_seq_file=args.output_dir +
                      "combined_protein_CDS.fasta",
+                     remove_by_consensus=args.remove_by_consensus,
                      n_cpu=args.n_cpu)
 
     # if requested merge paralogs
@@ -228,12 +251,15 @@ def main():
     # add helpful attributes and write out graph in GML format
     for node in G.nodes():
         G.node[node]['size'] = len(set(G.node[node]['members']))
-        G.node[node]['genomeIDs'] = ";".join(G.node[node]['members'])
-        G.node[node]['geneIDs'] = ";".join(G.node[node]['seqIDs'])
+
+        G.node[node]['genomeIDs'] = ";".join(conv_list(
+            G.node[node]['members']))
+        G.node[node]['geneIDs'] = ";".join(conv_list(G.node[node]['seqIDs']))
         G.node[node]['degrees'] = G.degree[node]
-    
-    for edge in  G.edges():
-        G.edges[edge[0], edge[1]]['genomeIDs'] = ";".join(G.edges[edge[0], edge[1]]['members'])
+
+    for edge in G.edges():
+        G.edges[edge[0], edge[1]]['genomeIDs'] = ";".join(
+            conv_list(G.edges[edge[0], edge[1]]['members']))
 
     nx.write_gml(G, args.output_dir + "final_graph.gml")
 
