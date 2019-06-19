@@ -73,19 +73,13 @@ def get_options():
         "--min_trailing_support",
         dest="min_trailing_support",
         help=("minimum cluster size to keep a gene called at the " +
-              "end of a contig (default=2)"),
+              "end of a contig"),
         type=int)
     graph.add_argument(
         "--trailing_recursive",
         dest="trailing_recursive",
         help=("number of times to perform recursive triming of low support " +
-              "nodes near the end of contigs (default=2)"),
-        type=int)
-    graph.add_argument(
-        "--max_cycle_size",
-        dest="max_cycle_size",
-        help=("maximum cycle  size for collapsing gene families " +
-              "(default=20)"),
+              "nodes near the end of contigs"),
         type=int)
     graph.add_argument(
         "--edge_support_diff",
