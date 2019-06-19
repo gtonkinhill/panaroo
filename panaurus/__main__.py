@@ -85,13 +85,14 @@ def get_options():
         "--edge_support_diff",
         dest="edge_support_diff",
         help=("maximum fraction difference between an edge's support " +
-                "and those of the nodes it connects"),
+              "and those of the nodes it connects"),
         type=float)
     graph.add_argument(
         "--remove_by_consensus",
         dest="remove_by_consensus",
-        help=("if a gene is called in the same region with similar sequence a minority " +
-                "of the time, remove it"),
+        help=
+        ("if a gene is called in the same region with similar sequence a minority "
+         + "of the time, remove it"),
         action='store_true',
         default=None)
     graph.add_argument(
@@ -219,8 +220,7 @@ def main():
                           quiet=(not args.verbose))
 
     # remove edges that are likely due to misassemblies (by consensus)
-    G = clean_misassembly_edges(G, 
-                                threshold=args.edge_support_diff)
+    G = clean_misassembly_edges(G, threshold=args.edge_support_diff)
 
     # re-trim low support trailing ends
     G = trim_low_support_trailing_ends(G,
@@ -229,6 +229,11 @@ def main():
 
     if args.verbose:
         print("refinding genes...")
+
+    # identify possible family level paralogs
+    if args.verbose:
+        print("identifying family level paralogs...")
+    G = identify_family_level_paralogs(G, outdir=temp_dir)
 
     # find genes that Prokka has missed
     G = find_missing(G,

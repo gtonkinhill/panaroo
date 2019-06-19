@@ -40,7 +40,7 @@ def collapse_families(G,
     if correct_mistranslations:
         depths = [3]
     else:
-        depths = [5] # range(1,10)
+        depths = [5]  # range(1,10)
 
     for d in depths:
         search_space = set(G.nodes())
@@ -77,13 +77,13 @@ def collapse_families(G,
                         accurate=False)
                 else:
                     clusters = cluster_nodes_cdhit(G,
-                                                    neighbours,
-                                                    outdir,
-                                                    id=family_threshold,
-                                                    n_cpu=n_cpu,
-                                                    quiet=True,
-                                                    dna=False,
-                                                    prevent_para=False)
+                                                   neighbours,
+                                                   outdir,
+                                                   id=family_threshold,
+                                                   n_cpu=n_cpu,
+                                                   quiet=True,
+                                                   dna=False,
+                                                   prevent_para=False)
 
                 # for cluster in cluster_dict.values():
                 for cluster in clusters:
@@ -166,61 +166,42 @@ def collapse_families(G,
                                     if nA in already_merged: continue
                                     best_inter = -1
                                     for nB in cluster:
-                                        if nA==nB: continue
-                                        if len(set(G.node[nA]['members']).intersection(set(G.node[nB]['members'])))>0: continue
-                                        temp_inter = len(set(G.neighbors(nA)).intersection(set(G.neighbors(nB))))
+                                        if nA == nB: continue
+                                        if len(
+                                                set(G.node[nA]
+                                                    ['members']).intersection(
+                                                        set(G.node[nB]
+                                                            ['members']))) > 0:
+                                            continue
+                                        temp_inter = len(
+                                            set(G.neighbors(nA)).intersection(
+                                                set(G.neighbors(nB))))
                                         # if temp_inter==0: continue
-                                        if temp_inter>best_inter:
+                                        if temp_inter > best_inter:
                                             best_inter = temp_inter
                                             best_merge = nB
-                                    if best_inter==-1:
+                                    if best_inter == -1:
                                         # none left to merge with this node
                                         already_merged.add(nA)
                                     else:
-                                        pos_merges.append((best_inter, nA, best_merge))
-                                if len(pos_merges)>0:
-                                    was_merged=True
+                                        pos_merges.append(
+                                            (best_inter, nA, best_merge))
+                                if len(pos_merges) > 0:
+                                    was_merged = True
                                     best_merge = max(pos_merges)
                                     node_count += 1
-                                    G = merge_nodes(G, best_merge[1], best_merge[2],
-                                                node_count)
-                                    if best_merge[1] in search_space: search_space.remove(best_merge[1])
-                                    if best_merge[2] in search_space: search_space.remove(best_merge[2])
+                                    G = merge_nodes(G, best_merge[1],
+                                                    best_merge[2], node_count)
+                                    if best_merge[1] in search_space:
+                                        search_space.remove(best_merge[1])
+                                    if best_merge[2] in search_space:
+                                        search_space.remove(best_merge[2])
                                     removed_nodes.add(best_merge[1])
                                     removed_nodes.add(best_merge[2])
                                     cluster.remove(best_merge[1])
                                     cluster.remove(best_merge[2])
                                     cluster.append(node_count)
                                     search_space.add(node_count)
-                                    
-                                    
-                            # node_neighbours = defaultdict(list)
-                            # for n in cluster:
-                            #     node_neighbours[tuple(
-                            #         sorted(list(G.neighbors(n))))].append(n)
-                            # for sub_cluster in node_neighbours.values():
-                            #     if len(sub_cluster) <= 1: continue
-                            #     sub_mems = list(
-                            #         chain.from_iterable([
-                            #             G.node[n]['members']
-                            #             for n in sub_cluster
-                            #         ]))
-                            #     if len(sub_mems) != len(set(sub_mems)):
-                            #         continue
-                            #     node_count += 1
-                            #     for neig in sub_cluster:
-                            #         removed_nodes.add(neig)
-                            #         if neig in search_space:
-                            #             search_space.remove(neig)
-                            #     temp_c = sub_cluster.copy()
-                            #     G = merge_nodes(G, temp_c.pop(), temp_c.pop(),
-                            #                     node_count)
-                            #     while (len(temp_c) > 0):
-                            #         G = merge_nodes(G, node_count,
-                            #                         temp_c.pop(),
-                            #                         node_count + 1)
-                            #         node_count += 1
-                            #     search_space.add(node_count)
 
                 search_space.remove(node)
 
@@ -340,11 +321,72 @@ def clean_misassembly_edges(G, threshold):
 
     bad_edges = []
     for edge in G.edges():
-        if float(G.edges[edge]['weight']) < (threshold * 
-                min(int(G.node[edge[0]]['size']), int(G.node[edge[1]]['size']))):
+        if float(G.edges[edge]['weight']) < (threshold * min(
+                int(G.node[edge[0]]['size']), int(G.node[edge[1]]['size']))):
             bad_edges.append(edge)
-    
+
     for edge in bad_edges:
         G.remove_edge(edge[0], edge[1])
-    
+
     return (G)
+
+
+def identify_family_level_paralogs(G,
+                                   outdir,
+                                   family_id_thresh=0.7,
+                                   cycle_threshold_max=20,
+                                   cycle_threshold_min=3):
+
+    # add family paralog attribute to nodes
+    for node in G.nodes():
+        G.nodes[node]['familyParalogID'] = 0
+
+    # find all the cycles shorter than cycle_threshold
+    complete_basis = []
+    for c in nx.connected_components(G):
+        sub_G = G.subgraph(c)
+        basis = nx.cycle_basis(sub_G, list(sub_G.nodes())[0])
+        complete_basis += [
+            set(b) for b in basis if len(b) <= cycle_threshold_max
+        ]
+
+    # remove cycles that are too short
+    complete_basis = [
+        b for b in complete_basis if len(b) >= cycle_threshold_min
+    ]
+
+    # merge cycles with more than one node in common (nested)
+    merged_basis = []
+    while len(complete_basis) > 0:
+        first, *rest = complete_basis
+        is_merged = False
+        while not is_merged:
+            is_merged = True
+            rest2 = []
+            for r in rest:
+                if len(first.intersection(r)) > 1:
+                    first |= set(r)
+                    is_merged = False
+                else:
+                    rest2.append(r)
+            rest = rest2
+        merged_basis.append(first)
+        complete_basis = rest
+
+    # cluster within basis using cdhit at paralog family threshold
+    family_paralog_id_num = 0
+    for b in merged_basis:
+        clusters = cluster_nodes_cdhit(G,
+                                       b,
+                                       outdir,
+                                       id=family_id_thresh,
+                                       quiet=True,
+                                       dna=False,
+                                       accurate=True)
+        for cluster in clusters:
+            if len(cluster) > 1:
+                family_paralog_id_num += 1
+                for node in cluster:
+                    G.nodes[node]['familyParalogID'] = family_paralog_id_num
+
+    return G

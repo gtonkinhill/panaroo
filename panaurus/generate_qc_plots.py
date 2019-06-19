@@ -262,39 +262,43 @@ def plot_mash_contam(mash_contam_file, outdir):
 
     return
 
+
 def generate_qc_plot(method, input_files, outdir, n_cpu, ref_db=None):
 
     # plot MDS
     if method in ["mds", "all"]:
         dist_mat, file_names = get_mash_dist(input_gffs=input_files,
-            outdir=outdir, n_cpu=n_cpu, quiet=True)
+                                             outdir=outdir,
+                                             n_cpu=n_cpu,
+                                             quiet=True)
         plot_MDS(dist_mat, file_names, outdir)
 
     # plot number of genes
     if method in ["ngenes", "all"]:
-        plot_ngenes(input_gffs=input_files,
-            outdir=outdir)
+        plot_ngenes(input_gffs=input_files, outdir=outdir)
 
     # plot number of contigs
     if method in ["ncontigs", "all"]:
-        plot_ncontigs(input_gffs=input_files,
-            outdir=outdir)
+        plot_ncontigs(input_gffs=input_files, outdir=outdir)
 
     # plot contamination scatter plot
     if (method in ["contam", "all"]):
         if ref_db is None:
-            print("No reference mash database given! Skipping contamination plot...")
-            print(("One can be downloaded from https://mash.readthedocs.io" + 
-                    "/en/latest/tutorials.html#screening-a-read-set-for" +
-                    "-containment-of-refseq-genomes"))
+            print(
+                "No reference mash database given! Skipping contamination plot..."
+            )
+            print(("One can be downloaded from https://mash.readthedocs.io" +
+                   "/en/latest/tutorials.html#screening-a-read-set-for" +
+                   "-containment-of-refseq-genomes"))
         else:
             mash_contam_file = get_mash_contam(input_gffs=input_files,
-                            mash_ref=ref_db,
-                            n_cpu=n_cpu,
-                            outdir=outdir)
+                                               mash_ref=ref_db,
+                                               n_cpu=n_cpu,
+                                               outdir=outdir)
             plot_mash_contam(mash_contam_file=mash_contam_file, outdir=outdir)
 
     return
+
 
 def get_options():
     import argparse
@@ -329,7 +333,7 @@ def get_options():
     parser.add_argument("--graph_type",
                         dest="graph_type",
                         help="the type of graph to generate",
-                        choices={'all','mds','ngenes','ncontigs','contam'},
+                        choices={'all', 'mds', 'ngenes', 'ncontigs', 'contam'},
                         default="all")
     parser.add_argument(
         "--ref_db",
@@ -349,11 +353,11 @@ def main():
     # make sure trailing forward slash is present
     args.output_dir = os.path.join(args.output_dir, "")
 
-    generate_qc_plot(method=args.graph_type, 
-        input_files=args.input_files, 
-        outdir=args.output_dir, 
-        n_cpu=args.n_cpu, 
-        ref_db=args.ref_db)
+    generate_qc_plot(method=args.graph_type,
+                     input_files=args.input_files,
+                     outdir=args.output_dir,
+                     n_cpu=args.n_cpu,
+                     ref_db=args.ref_db)
 
     return
 

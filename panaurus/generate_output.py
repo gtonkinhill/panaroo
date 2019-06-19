@@ -83,7 +83,8 @@ def generate_roary_gene_presence_absence(G, file_names, dna_file, output_dir):
                 entry += pres_abs
                 csv_outfile.write(",".join([str(e) for e in entry]) + "\n")
                 Rtab_outfile.write(entry[0] + "\t")
-                Rtab_outfile.write("\t".join((["0" if e == "" else "1" for e in pres_abs])) + "\n")
+                Rtab_outfile.write("\t".join(
+                    (["0" if e == "" else "1" for e in pres_abs])) + "\n")
 
     return G
 
