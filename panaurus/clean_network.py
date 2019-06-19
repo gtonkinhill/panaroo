@@ -333,7 +333,7 @@ def clean_misassembly_edges(G, threshold):
 
 def identify_family_level_paralogs(G,
                                    outdir,
-                                   family_id_thresh=0.7,
+                                   family_id_thresh=0.5,
                                    cycle_threshold_max=20,
                                    cycle_threshold_min=3):
 
