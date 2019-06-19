@@ -233,7 +233,7 @@ def main():
     # identify possible family level paralogs
     if args.verbose:
         print("identifying potentialy highly variable genes...")
-    G = identify_high_variablity_fams(G)
+    G = identify_possible_highly_variable(G)
 
     # find genes that Prokka has missed
     G = find_missing(G,

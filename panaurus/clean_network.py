@@ -331,16 +331,51 @@ def clean_misassembly_edges(G, threshold):
     return (G)
 
 
-def identify_high_variablity_fams(G,
-                                   neigh_degree_threshold=4,
+def identify_possible_highly_variable(G,
+                                   cycle_threshold_max=20,
+                                   cycle_threshold_min=5,
                                    size_diff_threshold=0.5):
 
     # add family paralog attribute to nodes
     for node in G.nodes():
         G.node[node]['highVar'] = 0
-        for neigh in G.neighbors(node):
-            if G.degree(neigh)>neigh_degree_threshold:
-                if G.node[node]['size']<(size_diff_threshold*G.node[neigh]['size']):
-                    G.node[node]['highVar'] = 1
-        
-    return  G
+
+    # find all the cycles shorter than cycle_threshold
+    complete_basis = []
+    for c in nx.connected_components(G):
+        sub_G = G.subgraph(c)
+        basis = nx.cycle_basis(sub_G, list(sub_G.nodes())[0])
+        complete_basis += [
+            set(b) for b in basis if len(b) <= cycle_threshold_max
+        ]
+
+    # remove cycles that are too short
+    complete_basis = [
+        b for b in complete_basis if len(b) >= cycle_threshold_min
+    ]
+
+    # merge cycles with more than one node in common (nested)
+    merged_basis = []
+    while len(complete_basis) > 0:
+        first, *rest = complete_basis
+        is_merged = False
+        while not is_merged:
+            is_merged = True
+            rest2 = []
+            for r in rest:
+                if len(first.intersection(r)) > 1:
+                    first |= set(r)
+                    is_merged = False
+                else:
+                    rest2.append(r)
+            rest = rest2
+        merged_basis.append(first)
+        complete_basis = rest
+
+
+    for b in merged_basis:
+        max_size = max([G.node[node]['size'] for node in b])
+        if G.node[node]['size'] < (size_diff_threshold*max_size):
+            G.node[node]['highVar'] = 1
+
+    return G
