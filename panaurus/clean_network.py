@@ -338,7 +338,7 @@ def identify_high_variablity_fams(G,
     # add family paralog attribute to nodes
     for node in G.nodes():
         G.node[node]['highVar'] = 0
-        for neigh in G.neighbours(node):
+        for neigh in G.neighbors(node):
             if G.degree(neigh)>neigh_degree_threshold:
                 if G.node[node]['size']<(size_diff_threshold*G.node[neigh]['size']):
                     G.node[node]['highVar'] = 1
