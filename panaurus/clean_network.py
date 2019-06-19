@@ -375,7 +375,8 @@ def identify_possible_highly_variable(G,
 
     for b in merged_basis:
         max_size = max([G.node[node]['size'] for node in b])
-        if G.node[node]['size'] < (size_diff_threshold*max_size):
-            G.node[node]['highVar'] = 1
+        for node in b:
+            if G.node[node]['size'] < (size_diff_threshold*max_size):
+                G.node[node]['highVar'] = 1
 
     return G
