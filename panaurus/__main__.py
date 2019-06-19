@@ -180,6 +180,15 @@ def main():
     G = collapse_paralogs(G)
 
     # write out pre-filter graph in GML format
+    for node in G.nodes():
+        G.node[node]['size'] = len(set(G.node[node]['members']))
+        G.node[node]['genomeIDs'] = ";".join(conv_list(
+            G.node[node]['members']))
+        G.node[node]['geneIDs'] = ";".join(conv_list(G.node[node]['seqIDs']))
+        G.node[node]['degrees'] = G.degree[node]
+    for edge in G.edges():
+        G.edges[edge[0], edge[1]]['genomeIDs'] = ";".join(
+            conv_list(G.edges[edge[0], edge[1]]['members']))
     nx.write_gml(G, args.output_dir + "pre_filt_graph.gml")
 
     if args.verbose:
