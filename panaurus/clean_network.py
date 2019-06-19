@@ -339,7 +339,7 @@ def identify_family_level_paralogs(G,
 
     # add family paralog attribute to nodes
     for node in G.nodes():
-        G.nodes[node]['familyParalogID'] = 0
+        G.node[node]['familyParalogID'] = 0
 
     # find all the cycles shorter than cycle_threshold
     complete_basis = []
@@ -387,6 +387,6 @@ def identify_family_level_paralogs(G,
             if len(cluster) > 1:
                 family_paralog_id_num += 1
                 for node in cluster:
-                    G.nodes[node]['familyParalogID'] = family_paralog_id_num
+                    G.node[node]['familyParalogID'] = family_paralog_id_num
 
     return G
