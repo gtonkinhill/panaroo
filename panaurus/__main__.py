@@ -232,8 +232,8 @@ def main():
 
     # identify possible family level paralogs
     if args.verbose:
-        print("identifying family level paralogs...")
-    G = identify_family_level_paralogs(G, outdir=temp_dir)
+        print("identifying potentialy highly variable genes...")
+    G = identify_high_variablity_fams(G)
 
     # find genes that Prokka has missed
     G = find_missing(G,
