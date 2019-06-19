@@ -17,8 +17,6 @@ def set_default_args(args):
             args.min_trailing_support = max(2, math.ceil(0.05 * n_samples))
         if args.trailing_recursive is None:
             args.trailing_recursive = 99999999
-        if args.max_cycle_size is None:
-            args.max_cycle_size = 20
         if args.min_edge_support_sv is None:
             args.min_edge_support_sv = max(2, math.ceil(0.01 * n_samples))
         if args.edge_support_diff is None:
@@ -37,8 +35,6 @@ def set_default_args(args):
             args.min_trailing_support = max(2, math.ceil(0.01 * n_samples))
         if args.trailing_recursive is None:
             args.trailing_recursive = 99999999
-        if args.max_cycle_size is None:
-            args.max_cycle_size = 20
         if args.min_edge_support_sv is None:
             args.min_edge_support_sv = max(2, math.ceil(0.01 * n_samples))
         if args.edge_support_diff is None:
@@ -57,8 +53,6 @@ def set_default_args(args):
             args.min_trailing_support = 2
         if args.trailing_recursive is None:
             args.trailing_recursive = 3
-        if args.max_cycle_size is None:
-            args.max_cycle_size = 20
         if args.min_edge_support_sv is None:
             args.min_edge_support_sv = 2
         if args.edge_support_diff is None:
