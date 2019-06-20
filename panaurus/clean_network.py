@@ -351,7 +351,7 @@ def identify_possible_highly_variable(G,
 
     # remove cycles that are too short
     complete_basis = [
-        b for b in complete_basis if len(b) >= cycle_threshold_min
+        b for b in complete_basis if len(b) >= 3
     ]
 
     # merge cycles with more than one node in common (nested)
@@ -374,6 +374,7 @@ def identify_possible_highly_variable(G,
 
 
     for b in merged_basis:
+        if len(b) < cycle_threshold_min: continue
         max_size = max([G.node[node]['size'] for node in b])
         for node in b:
             if G.node[node]['size'] < (size_diff_threshold*max_size):
