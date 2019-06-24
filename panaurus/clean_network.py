@@ -355,28 +355,22 @@ def identify_possible_highly_variable(G,
     ]
 
     # merge cycles with more than one node in common (nested)
-    merged_basis = []
-    while len(complete_basis) > 0:
-        first, *rest = complete_basis
-        is_merged = False
-        while not is_merged:
-            is_merged = True
-            rest2 = []
-            for r in rest:
-                if len(first.intersection(r)) > 1:
-                    first |= set(r)
-                    is_merged = False
-                else:
-                    rest2.append(r)
-            rest = rest2
-        merged_basis.append(first)
-        complete_basis = rest
-
+    merged_basis = [[1, set(complete_basis[0])]]
+    for b in complete_basis[1:]:
+        b = set(b)
+        merged=False
+        for i, mb in enumerate(merged_basis):
+            if len(mb[1].intersection(b)) > 1:
+                merged=True
+                merged_basis[i][0] += 1
+                merged_basis[i][1] |= b
+        if not merged:
+            merged_basis.append([1, b])
 
     for b in merged_basis:
-        if len(b) < cycle_threshold_min: continue
-        max_size = max([G.node[node]['size'] for node in b])
-        for node in b:
+        if b[0] < cycle_threshold_min: continue
+        max_size = max([G.node[node]['size'] for node in b[1]])
+        for node in b[1]:
             if G.node[node]['size'] < (size_diff_threshold*max_size):
                 G.node[node]['highVar'] = 1
 
