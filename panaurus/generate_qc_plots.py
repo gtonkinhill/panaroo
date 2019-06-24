@@ -131,6 +131,30 @@ def plot_ngenes(input_gffs, outdir):
     plt.tight_layout()
     fig.savefig(outdir + "ngenes_barplot.png")
 
+    # generate interactive boxplot
+    data = [
+    go.Box(
+        y=ngenes,
+        text=file_names,
+        hoverinfo="text",
+        boxpoints='all',
+        jitter=0.3,
+        pointpos=-1.8
+    )
+    ]
+    layout = go.Layout(autosize=True,
+                       xaxis=dict(title='',
+                                  titlefont=dict(size=18, color='black'),
+                                  showticklabels=False,
+                                  automargin=True),
+                       yaxis=dict(title="Number of Genes",
+                                  titlefont=dict(size=18, color='black'),
+                                  showticklabels=True,
+                                  tickfont=dict(size=10, color='black')))
+
+    fig = go.Figure(data=data, layout=layout)
+    offline.plot(fig, filename="ngenes_boxplot.html", auto_open=False)
+
     return
 
 
@@ -162,6 +186,30 @@ def plot_ncontigs(input_gffs, outdir):
     plt.xlabel("Number of Contigs")
     plt.tight_layout()
     fig.savefig(outdir + "ncontigs_barplot.png")
+
+    # generate interactive boxplot
+    data = [
+    go.Box(
+        y=ncontigs,
+        text=file_names,
+        hoverinfo="text",
+        boxpoints='all',
+        jitter=0.3,
+        pointpos=-1.8
+    )
+    ]
+    layout = go.Layout(autosize=True,
+                       xaxis=dict(title='',
+                                  titlefont=dict(size=18, color='black'),
+                                  showticklabels=False,
+                                  automargin=True),
+                       yaxis=dict(title="Number of Contigs",
+                                  titlefont=dict(size=18, color='black'),
+                                  showticklabels=True,
+                                  tickfont=dict(size=10, color='black')))
+
+    fig = go.Figure(data=data, layout=layout)
+    offline.plot(fig, filename="ncontigs_boxplot.html", auto_open=False)    
 
     return
 
