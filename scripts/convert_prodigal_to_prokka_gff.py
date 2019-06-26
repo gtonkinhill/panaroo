@@ -28,7 +28,7 @@ def convert(gfffile, fastafile, outputfile):
 
 def main():
 
-    parser = argparse.ArgumentParser(description='Fragments a reference genome.')
+    parser = argparse.ArgumentParser(description='Converts prodigal output to prokka format.')
 
     parser.add_argument('-g', '--gff', dest='gff', type=str, required=True,
                        help='input gff file name')
