@@ -34,6 +34,7 @@ def convert(gfffile, outputfile):
                                dbfn=":memory:",
                                force=True,
                                keep_order=False,
+                               merge_strategy="create_unique",
                                from_string=True)
 
     with open(outputfile, 'w') as outfile:
