@@ -146,6 +146,8 @@ def translate_sequences(sequence_dic):
     protein_list = []
     for strain_id in sequence_dic:
         sequence_record = sequence_dic[strain_id]
+        if (len(sequence_record.seq)%3) != 0:
+            raise ValueError("Coding sequence not divisible by 3, is it complete?!")
         protien_sequence = translate(str(sequence_record.seq))
         if protien_sequence[-1] == "*":
             protien_sequence = protien_sequence[0:-1]

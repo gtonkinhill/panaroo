@@ -50,6 +50,24 @@ def convert(gfffile, outputfile):
             # skip non CDS and overlapping regions
             if "CDS" not in entry.featuretype: continue
             if (entry.chrom==prev_chrom) and (entry.start<prev_end): continue
+            # skip CDS that dont appear to be complete or have a premature stop codon
+            
+            premature_stop = False
+            for sequence_index in range(len(sequences)):
+                scaffold_id = sequences[sequence_index].id
+                if scaffold_id == entry.seqid:
+                    gene_sequence = sequences[sequence_index].seq[(entry.start -
+                                                                1):entry.stop]
+                    if len(gene_sequence)%3 > 0: 
+                        premature_stop = True
+                        break
+                    if entry.strand == "-":
+                        gene_sequence = gene_sequence.reverse_complement()
+                    if "*" in str(gene_sequence.translate())[:-1]:
+                        premature_stop=True
+                        break
+            if premature_stop: continue
+            
             c=1
             while entry.attributes['ID'][0] in ids:
                 entry.attributes['ID'][0] += "." + str(c)
