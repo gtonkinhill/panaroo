@@ -96,6 +96,13 @@ def get_options():
         action='store_true',
         default=None)
     graph.add_argument(
+        "--high_var_flag",
+        dest="cycle_threshold_min",
+        help=
+        ("minimum number of nested cycles to call a highly variable gene region (default = 5)."),
+        type=int,
+        default=5)
+    graph.add_argument(
         "--min_edge_support_sv",
         dest="min_edge_support_sv",
         help=("minimum edge support required to call structural variants" +
@@ -233,7 +240,10 @@ def main():
     # identify possible family level paralogs
     if args.verbose:
         print("identifying potentialy highly variable genes...")
-    G = identify_possible_highly_variable(G)
+    G = identify_possible_highly_variable(G, 
+        cycle_threshold_max=20,
+        cycle_threshold_min=args.cycle_threshold_min,
+        size_diff_threshold=0.5)
 
     # find genes that Prokka has missed
     G = find_missing(G,

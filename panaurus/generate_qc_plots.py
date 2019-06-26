@@ -133,14 +133,12 @@ def plot_ngenes(input_gffs, outdir):
 
     # generate interactive boxplot
     data = [
-    go.Box(
-        y=ngenes,
-        text=file_names,
-        hoverinfo="text",
-        boxpoints='all',
-        jitter=0.3,
-        pointpos=-1.8
-    )
+        go.Box(y=ngenes,
+               text=file_names,
+               hoverinfo="text",
+               boxpoints='all',
+               jitter=0.3,
+               pointpos=-1.8)
     ]
     layout = go.Layout(autosize=True,
                        xaxis=dict(title='',
@@ -189,14 +187,12 @@ def plot_ncontigs(input_gffs, outdir):
 
     # generate interactive boxplot
     data = [
-    go.Box(
-        y=ncontigs,
-        text=file_names,
-        hoverinfo="text",
-        boxpoints='all',
-        jitter=0.3,
-        pointpos=-1.8
-    )
+        go.Box(y=ncontigs,
+               text=file_names,
+               hoverinfo="text",
+               boxpoints='all',
+               jitter=0.3,
+               pointpos=-1.8)
     ]
     layout = go.Layout(autosize=True,
                        xaxis=dict(title='',
@@ -209,7 +205,7 @@ def plot_ncontigs(input_gffs, outdir):
                                   tickfont=dict(size=10, color='black')))
 
     fig = go.Figure(data=data, layout=layout)
-    offline.plot(fig, filename="ncontigs_boxplot.html", auto_open=False)    
+    offline.plot(fig, filename="ncontigs_boxplot.html", auto_open=False)
 
     return
 
