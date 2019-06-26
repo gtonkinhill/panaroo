@@ -45,10 +45,15 @@ def convert(gfffile, outputfile):
             
         prev_chrom=""
         prev_end=-1
+        ids = set()
         for entry in parsed_gff.all_features(featuretype=()):
             # skip non CDS and overlapping regions
             if "CDS" not in entry.featuretype: continue
             if (entry.chrom==prev_chrom) and (entry.start<prev_end): continue
+            c=1
+            while entry.id in ids:
+                entry.id += "." + str(c)
+                c += 1
             prev_chrom = entry.chrom
             prev_end = entry.end
             print(entry, file=outfile)
