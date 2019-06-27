@@ -16,26 +16,34 @@ def clean_gff_string(gff_string):
     return cleaned_gff
 
 
-def convert(gfffile, outputfile):
+def convert(gfffile, outputfile, fastafile=None):
 
     #Split file and parse
     with open(gfffile, 'r') as infile:
         lines = infile.read()
-    split = lines.split('##FASTA')
 
-    if len(split) != 2:
-        print("Problem reading GFF3 file: ", gff_file.name)
-        raise RuntimeError("Error reading GFF3 input!")
+    if fastafile is None:
+        split = lines.split('##FASTA')
+        if len(split) != 2:
+            print("Problem reading GFF3 file: ", gfffile)
+            raise RuntimeError("Error reading GFF3 input!")
+    else:
+        with open(fastafile, 'r') as infile:
+            fasta_lines = infile.read()
+        split = [
+            lines,
+            fasta_lines
+        ]
 
     with StringIO(split[1]) as temp_fasta:
         sequences = list(SeqIO.parse(temp_fasta, 'fasta'))
 
     parsed_gff = gff.create_db(clean_gff_string(split[0]),
-                               dbfn=":memory:",
-                               force=True,
-                               keep_order=False,
-                               merge_strategy="create_unique",
-                               from_string=True)
+                            dbfn=":memory:",
+                            force=True,
+                            keep_order=False,
+                            merge_strategy="create_unique",
+                            from_string=True)
 
     with open(outputfile, 'w') as outfile:
         # write gff part
@@ -90,12 +98,15 @@ def main():
     parser.add_argument('-g', '--gff', dest='gff', type=str, required=True,
                        help='input gff file name')
 
+    parser.add_argument('-f', '--fasta', dest='fasta', type=str, default=None,
+                       help='input fasta file name (if seperate from the GFF)')
+
     parser.add_argument('-o', '--out', dest='out', type=str, required=True,
                        help='output file name')
 
     args = parser.parse_args()
 
-    convert(args.gff, args.out)
+    convert(args.gff, args.out, args.fasta)
 
     return
 
