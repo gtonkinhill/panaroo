@@ -259,8 +259,9 @@ def collapse_paralogs(G, quiet=False):
                             # possible conflict (try splitting by neighbours)
                             neigh_neighbours = defaultdict(list)
                             for n in neigbour_centroids[centroid]:
-                                neigh_neighbours[tuple(sorted(
-                                    G.neighbors(n)))].append(n)
+                                neighs = tuple(sorted(G.neighbors(n)))
+                                if len(neighs)>0:
+                                    neigh_neighbours[neighs].append(n)
 
                             for nn in neigh_neighbours:
                                 if len(neigh_neighbours[nn]) < 2: continue
