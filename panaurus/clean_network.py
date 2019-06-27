@@ -268,7 +268,7 @@ def collapse_paralogs(G, quiet=False):
                                 genomes = []
                                 for tn in neigh_neighbours[nn]:
                                     genomes += G.node[tn]['members']
-                                if len(genomes) == len(set(genomes)): continue
+                                if len(genomes) > len(set(genomes)): continue
                                 # we've found subsets that share the same neighbours so merge
                                 was_merged = True
                                 node_count += 1
