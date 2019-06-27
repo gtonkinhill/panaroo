@@ -58,7 +58,7 @@ def convert(gfffile, outputfile):
                 if scaffold_id == entry.seqid:
                     gene_sequence = sequences[sequence_index].seq[(entry.start -
                                                                 1):entry.stop]
-                    if len(gene_sequence)%3 > 0: 
+                    if (len(gene_sequence)%3 > 0) or (len(gene_sequence)<30): 
                         premature_stop = True
                         break
                     if entry.strand == "-":
