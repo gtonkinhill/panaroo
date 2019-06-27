@@ -54,7 +54,7 @@ def convert(gfffile, outputfile, fastafile=None):
         prev_chrom=""
         prev_end=-1
         ids = set()
-        for entry in parsed_gff.all_features(featuretype=()):
+        for entry in parsed_gff.all_features(featuretype=(), order_by=('seqid','start')):
             # skip non CDS and overlapping regions
             if "CDS" not in entry.featuretype: continue
             if (entry.chrom==prev_chrom) and (entry.start<prev_end): continue
