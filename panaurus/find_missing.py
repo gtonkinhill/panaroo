@@ -211,6 +211,7 @@ def search_seq_gff(member,
         contigB = contig_names[gene_locations[1][0]]
         gene_num_A = gene_locations[0][1]
         gene_num_B = gene_locations[1][1]
+
         metaA = contig_records[contigA]['annotations'][gene_num_A]
         metaB = contig_records[contigB]['annotations'][gene_num_B]
 

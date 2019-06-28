@@ -54,6 +54,8 @@ def convert(gfffile, outputfile, fastafile=None):
         prev_chrom=""
         prev_end=-1
         ids = set()
+        seen = set()
+        seq_order = []
         for entry in parsed_gff.all_features(featuretype=(), order_by=('seqid','start')):
             # skip non CDS and overlapping regions
             if "CDS" not in entry.featuretype: continue
@@ -66,7 +68,7 @@ def convert(gfffile, outputfile, fastafile=None):
                 if scaffold_id == entry.seqid:
                     gene_sequence = sequences[sequence_index].seq[(entry.start -
                                                                 1):entry.stop]
-                    if (len(gene_sequence)%3 > 0) or (len(gene_sequence)<33): 
+                    if (len(gene_sequence)%3 > 0) or (len(gene_sequence)<34): 
                         premature_stop = True
                         break
                     if entry.strand == "-":
@@ -83,10 +85,14 @@ def convert(gfffile, outputfile, fastafile=None):
             ids.add(entry.attributes['ID'][0])
             prev_chrom = entry.chrom
             prev_end = entry.end
+            if entry.chrom not in seen:
+                seq_order.append(entry.chrom)
+                seen.add(entry.chrom)
             print(entry, file=outfile)
 
         # write fasta part
         outfile.write("##FASTA\n")
+        sequences = [seq for x in seq_order for seq in sequences if seq.id == x] 
         SeqIO.write(sequences, outfile, "fasta")
 
     return
