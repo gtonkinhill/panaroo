@@ -290,16 +290,18 @@ def main():
     generate_gene_mobility(G, output_dir=args.output_dir)
 
     # write out common structural differences in a matrix format
+    isolate_names = [
+        os.path.splitext(os.path.basename(x.name))[0] for x in args.input_files
+    ]
+    
     generate_common_struct_presence_absence(
         G,
         output_dir=args.output_dir,
         n_members=len(args.input_files),
+        isolate_names=isolate_names,
         min_variant_support=args.min_edge_support_sv)
 
     #Write out core/pan-genome alignments
-    isolate_names = [
-        os.path.splitext(os.path.basename(x.name))[0] for x in args.input_files
-    ]
     if args.aln == "pan":
         if args.verbose: print("generating pan genome MSAs...")
         generate_pan_genome_alignment(G, temp_dir, args.output_dir, args.n_cpu,

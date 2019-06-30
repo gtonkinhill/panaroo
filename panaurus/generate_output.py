@@ -131,6 +131,7 @@ def generate_gene_mobility(G, output_dir):
 def generate_common_struct_presence_absence(G,
                                             output_dir,
                                             n_members,
+                                            isolate_names,
                                             min_variant_support=2):
 
     struct_variants = {}
@@ -149,16 +150,16 @@ def generate_common_struct_presence_absence(G,
             G.node[variant[2]]['name']
         ]))
 
-    with open(output_dir + "struct_presence_absence.csv", 'w') as outfile:
-        outfile.write(",".join(header) + "\n")
-        for member in range(n_members):
-            variant_calls = []
-            for variant in struct_variants:
+    with open(output_dir + "struct_presence_absence.Rtab", 'w') as Rtab_outfile:
+        Rtab_outfile.write("\t".join((["Gene"] + isolate_names)) + "\n")
+        for h, variant in zip(header, struct_variants):
+            variant_calls = [h]
+            for member in range(n_members):
                 if str(member) in struct_variants[variant]:
                     variant_calls.append("1")
                 else:
                     variant_calls.append("0")
-            outfile.write(",".join(variant_calls) + "\n")
+            Rtab_outfile.write("\t".join(variant_calls) + "\n")
 
     return
 
