@@ -38,11 +38,15 @@ def convert(gfffile, outputfile, fastafile=None):
     with StringIO(split[1]) as temp_fasta:
         sequences = list(SeqIO.parse(temp_fasta, 'fasta'))
 
+    for seq in sequences:
+        seq.description = ""
+
     parsed_gff = gff.create_db(clean_gff_string(split[0]),
                             dbfn=":memory:",
                             force=True,
                             keep_order=False,
                             merge_strategy="create_unique",
+                            sort_attribute_values=True,
                             from_string=True)
 
     with open(outputfile, 'w') as outfile:
@@ -57,6 +61,7 @@ def convert(gfffile, outputfile, fastafile=None):
         seen = set()
         seq_order = []
         for entry in parsed_gff.all_features(featuretype=(), order_by=('seqid','start')):
+            entry.chrom = entry.chrom.split()[0]
             # skip non CDS and overlapping regions
             if "CDS" not in entry.featuretype: continue
             if (entry.chrom==prev_chrom) and (entry.start<prev_end): continue
@@ -93,6 +98,8 @@ def convert(gfffile, outputfile, fastafile=None):
         # write fasta part
         outfile.write("##FASTA\n")
         sequences = [seq for x in seq_order for seq in sequences if seq.id == x] 
+        if len(sequences)!=len(seen):
+            raise RuntimeError("Mismatch between fasta and GFF!")
         SeqIO.write(sequences, outfile, "fasta")
 
     return

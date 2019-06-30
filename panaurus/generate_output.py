@@ -226,7 +226,7 @@ def concatenate_core_genome_alignments(core_names, output_dir):
             if iso in gene[1]:
                 seq += gene[1][iso][1]
             else:
-                seq += "_" * gene[2]
+                seq += "-" * gene[2]
         isolate_aln.append(SeqRecord(seq, id=iso, description=""))
 
     #Write out the two output files
