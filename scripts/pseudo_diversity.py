@@ -205,7 +205,7 @@ def main():
         out_file_name = (args.output_dir + prefix + "div_" +
                         str(args.diversity) + "_rep_" + str(i) + ".gff")
 
-        add_diversity(args.gff, out_file_name, args.ngenes, args.diversity,
+        sampled_entries = add_diversity(args.gff, out_file_name, args.ngenes, args.diversity,
             sampled_entries)
 
     return
