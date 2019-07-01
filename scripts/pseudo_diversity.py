@@ -78,7 +78,7 @@ def clean_gff_string(gff_string):
     cleaned_gff = "\n".join(splitlines)
     return cleaned_gff
 
-def add_diversity(gfffile, outputfile, ngenes, diversity):
+def add_diversity(gfffile, outputfile, ngenes, diversity, sampled_entries=None):
 
     outfile = open(outputfile, 'w')
 
@@ -105,8 +105,7 @@ def add_diversity(gfffile, outputfile, ngenes, diversity):
                             keep_order=False,
                             merge_strategy="create_unique",
                             sort_attribute_values=True,
-                            from_string=True
-                            sampled_entries=None)
+                            from_string=True)
 
     #Get gene entries to modify
     if sampled_entries is None:
@@ -206,7 +205,7 @@ def main():
         out_file_name = (args.output_dir + prefix + "div_" +
                         str(args.diversity) + "_rep_" + str(i) + ".gff")
 
-        sampled_entries add_diversity(args.gff, out_file_name, args.ngenes, args.diversity,
+        add_diversity(args.gff, out_file_name, args.ngenes, args.diversity,
             sampled_entries)
 
     return
