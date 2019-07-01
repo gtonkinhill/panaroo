@@ -185,7 +185,7 @@ def main():
                         dest='diversity',
                         type=float,
                         required=True,
-                        help='induced diversity (%) in genes')
+                        help='induced percentage diversity in genes')
 
     parser.add_argument('-o',
                         '--out',
