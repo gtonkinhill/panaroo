@@ -105,21 +105,23 @@ def add_diversity(gfffile, outputfile, ngenes, diversity):
                             keep_order=False,
                             merge_strategy="create_unique",
                             sort_attribute_values=True,
-                            from_string=True)
+                            from_string=True
+                            sampled_entries=None)
 
     #Get gene entries to modify
-    sampled_entries = []
-    prev_end = -1
-    for entry in parsed_gff.all_features(featuretype=()):
-        if "CDS" not in entry.featuretype: continue
-        if entry.start < prev_end:
+    if sampled_entries is None:
+        sampled_entries = []
+        prev_end = -1
+        for entry in parsed_gff.all_features(featuretype=()):
+            if "CDS" not in entry.featuretype: continue
+            if entry.start < prev_end:
+                prev_end = entry.end
+                sampled_entries = sampled_entries[0:-1]
+                continue
             prev_end = entry.end
-            sampled_entries = sampled_entries[0:-1]
-            continue
-        prev_end = entry.end
-        sampled_entries.append(entry)
-    index = np.random.choice(len(sampled_entries), size=ngenes, replace=False)
-    sampled_entries = [sampled_entries[i] for i in index]
+            sampled_entries.append(entry)
+        index = np.random.choice(len(sampled_entries), size=ngenes, replace=False)
+        sampled_entries = [sampled_entries[i] for i in index]
 
     #Modify each gene
     for entry in sampled_entries:
@@ -153,7 +155,7 @@ def add_diversity(gfffile, outputfile, ngenes, diversity):
     # close file
     outfile.close()
 
-    return
+    return sampled_entries
 
 
 def main():
@@ -199,12 +201,13 @@ def main():
     args.output_dir = os.path.join(args.output_dir, "")
 
     prefix = os.path.splitext(os.path.basename(args.gff))[0]
-
+    sampled_entries = None
     for i in range(args.nreps):
         out_file_name = (args.output_dir + prefix + "div_" +
                         str(args.diversity) + "_rep_" + str(i) + ".gff")
 
-        add_diversity(args.gff, out_file_name, args.ngenes, args.diversity)
+        sampled_entries add_diversity(args.gff, out_file_name, args.ngenes, args.diversity,
+            sampled_entries)
 
     return
 
