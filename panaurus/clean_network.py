@@ -360,6 +360,9 @@ def identify_possible_highly_variable(G,
     ]
 
     # merge cycles with more than one node in common (nested)
+    if len(complete_basis) < 1:
+        return G
+        
     merged_basis = [[1, set(complete_basis[0])]]
     for b in complete_basis[1:]:
         b = set(b)
