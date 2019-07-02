@@ -6,9 +6,9 @@ An updated pipeline for pan-genome investigation
 ```
 python setup.py install
 ```
-Then run `panaurus` or `run_prokka`.
+Then run `panaroo` or `run_prokka`.
 
-If cloning the repository, instead use `python panaurus-runner.py` or `python prokka-runner.py`.
+If cloning the repository, instead use `python panaroo-runner.py` or `python prokka-runner.py`.
 
 ### Dependencies
 Required:
@@ -35,7 +35,7 @@ run_prokka -i *.gff -o reannotated
 
 Using these GFFs, or alternatively those from Prokka:
 ```
-panaurus --verbose -i reannotated/*.gff -o results
+panaroo --verbose -i reannotated/*.gff -o results
 ```
 
 ### Pipeline

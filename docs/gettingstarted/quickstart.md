@@ -7,7 +7,7 @@ Using GFFs in the same format as output by Prokka run:
 
 ```
 mkdir results
-panaurus -i *.gff -o results
+panaroo -i *.gff -o results
 ```
 
 ### Running Prokka

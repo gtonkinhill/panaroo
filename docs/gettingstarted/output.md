@@ -10,7 +10,7 @@ A csv file indicating the degree (number of edges) of each gene in the graph. Th
 
 ### struct_presence_absence.csv
 
-A csv file which lists the presence and abscence of different genomic rearrangement events. The genes involved in each event are listed in the respective column names of the csv. The thresholds for calling these events can be changed by adjusting the `--min_edge_support_sv` parameter when calling panaurus.
+A csv file which lists the presence and abscence of different genomic rearrangement events. The genes involved in each event are listed in the respective column names of the csv. The thresholds for calling these events can be changed by adjusting the `--min_edge_support_sv` parameter when calling panaroo.
 
 ### pan_genome_reference.fa
 

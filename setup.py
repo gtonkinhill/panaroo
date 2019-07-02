@@ -28,19 +28,19 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name="panaurus",
-    version=find_version("panaurus/__init__.py"),
+    name="panaroo",
+    version=find_version("panaroo/__init__.py"),
     author="Gerry Tonkin-Hill, Neil MacAlistair and Chris Ruis",
     author_email="g.tonkinhill@gmail.com",
     description="A pan-genome analysis pipeline",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/gtonkinhill/panaurus",
+    url="https://github.com/gtonkinhill/panaroo",
     install_requires=[
         'networkx>=2.0', 'gffutils', 'BioPython', 'joblib', 'tqdm'
     ],
     python_requires='>=3.6.0',
-    packages=['panaurus'],
+    packages=['panaroo'],
     keywords='pangenome roary bacteria',
     classifiers=[
         "Programming Language :: Python :: 3",
@@ -52,8 +52,8 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'panaurus = panaurus.__main__:main',
-            'run_prokka = panaurus.run_prokka:main'
+            'panaroo = panaurus.__main__:main',
+            'run_prokka = panaroo.run_prokka:main'
         ],
     },
 )

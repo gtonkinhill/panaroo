@@ -10,8 +10,8 @@ Conda is the simplest way to install Panaurus and all its dependencies.
 
 Download or clone the repository and install by running
 ```
-git clone https://github.com/gtonkinhill/panaurus
-cd panaurus
+git clone https://github.com/gtonkinhill/panaroo
+cd panaroo
 python3 setup.py install
 ```
 

@@ -10,7 +10,7 @@
 - Can call large structural variants
 - Fast and scalable to over 10k bacterial genomes
 
-[GitHub](https://github.com/gtonkinhill/panaurus)
+[GitHub](https://github.com/gtonkinhill/panaroo)
 [Get Started](gettingstarted/quickstart)
 
 
