@@ -1,8 +1,9 @@
 <!-- _coverpage.md -->
 
-![logo](_figures/placeholder_sugar_glider.png)
+<img src="_figures/panaroo.jpeg" width="200">
+<!-- ![logo](_figures/panaroo.jpeg) { width: 100px; } -->
 
-# Panaurus
+# Panaroo
 
 > A Bacterial Pan-Genome Analysis Pipeline.
 

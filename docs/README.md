@@ -1,4 +1,4 @@
-## Panaurus
+## Panaroo
 
 An updated pipeline for pan-genome investigation
 

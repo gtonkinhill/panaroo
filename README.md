@@ -2,7 +2,7 @@
 An updated pipeline for pan-genome investigation
 
 <p align="center">
-<img src="https://github.com/gtonkinhill/panaroo/blob/master/petaurus.jpeg" alt="alt text" width="500">
+<img src="https://github.com/gtonkinhill/panaroo/blob/master/panaroo.jpeg" alt="alt text" width="500">
 </p>
 
 ## Installation

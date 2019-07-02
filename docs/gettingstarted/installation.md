@@ -1,6 +1,6 @@
 # Installation
 
-Conda is the simplest way to install Panaurus and all its dependencies.
+Conda is the simplest way to install Panaroo and all its dependencies.
 
 ### Conda
 
@@ -21,7 +21,7 @@ To install locally, instead run
 python3 setup.py install --user
 ```
 
-Panaurus relies on a number of dependencies that must be installed seperately.
+Panaroo relies on a number of dependencies that must be installed seperately.
 
 #### Dependencies
 Required:
