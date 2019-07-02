@@ -22,12 +22,16 @@ def add_contam(reference_fasta, contam_fasta, output_file,
     # load contamination
     contam_seqs = list(SeqIO.parse(contam_fasta, 'fasta'))
 
-    n_contigs = np.random.poisson(lam=mean_contigs, size=1)
+    n_contigs = int(np.random.poisson(lam=mean_contigs, size=1))
+    if n_contigs<1: return
 
     for i in range(n_contigs):
-        contam_length = np.random.poisson(lam=contam_mean_length, size=1)
-        cseq = sample(contam_seqs, 1)[0]
-        start = np.random.choice(len(cseq)-contam_length, size=1)
+        contam_length = int(np.random.poisson(lam=contam_mean_length, size=1))
+        cseq = str(sample(contam_seqs, 1)[0].seq)
+        if (len(cseq)<contam_length):
+            start=0
+        else:
+            start = int(np.random.choice(len(cseq)-contam_length, size=1))
         cseq = cseq[start:(start+contam_length)]
         outfile.write(">contam_" + str(i) + "\n")
         outfile.write(str(cseq))
