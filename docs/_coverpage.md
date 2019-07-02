@@ -1,6 +1,6 @@
 <!-- _coverpage.md -->
 
-<img src="_figures/panaroo.png" width="200">
+<img src="_figures/panaroo.png" width="370">
 <!-- ![logo](_figures/panaroo.jpeg) { width: 100px; } -->
 
 # Panaroo
