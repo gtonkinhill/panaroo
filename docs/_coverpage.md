@@ -5,7 +5,7 @@
 
 # Panaroo
 
-> A Bacterial Pan-Genome Analysis Pipeline.
+> A Bacterial Pangenome Analysis Pipeline.
 
 - Shares information between genomes to correct errors
 - Can call large structural variants

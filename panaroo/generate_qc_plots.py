@@ -99,7 +99,7 @@ def plot_MDS(dist_mat, file_names, outdir):
                                   showticklabels=True))
     data = [trace]
     fig = go.Figure(data=data, layout=layout)
-    offline.plot(fig, filename="MDS_mash_plot.html", auto_open=False)
+    offline.plot(fig, filename=outdir + "MDS_mash_plot.html", auto_open=False)
 
     return
 
@@ -151,7 +151,7 @@ def plot_ngenes(input_gffs, outdir):
                                   tickfont=dict(size=10, color='black')))
 
     fig = go.Figure(data=data, layout=layout)
-    offline.plot(fig, filename="ngenes_boxplot.html", auto_open=False)
+    offline.plot(fig, filename= outdir + "ngenes_boxplot.html", auto_open=False)
 
     return
 
@@ -205,7 +205,7 @@ def plot_ncontigs(input_gffs, outdir):
                                   tickfont=dict(size=10, color='black')))
 
     fig = go.Figure(data=data, layout=layout)
-    offline.plot(fig, filename="ncontigs_boxplot.html", auto_open=False)
+    offline.plot(fig, filename=outdir + "ncontigs_boxplot.html", auto_open=False)
 
     return
 
@@ -301,7 +301,7 @@ def plot_mash_contam(mash_contam_file, outdir):
     data = [trace]
     fig = go.Figure(data=data, layout=layout)
     offline.plot(fig,
-                 filename="mash_contamination_barplot.html",
+                 filename=outdir + "mash_contamination_barplot.html",
                  auto_open=False)
 
     return
@@ -347,7 +347,7 @@ def generate_qc_plot(method, input_files, outdir, n_cpu, ref_db=None):
 def get_options():
     import argparse
 
-    description = 'Generate quality control plots prior to a Panaurus run'
+    description = 'Generate quality control plots prior to a Panaroo run'
     parser = argparse.ArgumentParser(description=description,
                                      prog='plot_panaroo_qc')
 

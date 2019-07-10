@@ -65,7 +65,6 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir,
     # find position of each search by genome to save reading in the same gff3
     # more than once
     n_found = 0
-    mem_count = 0
 
     print("setting up sample searches")
     neighbour_dict = {}

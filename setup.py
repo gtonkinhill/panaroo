@@ -52,7 +52,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'panaroo = panaurus.__main__:main',
+            'panaroo = panaroo.__main__:main',
             'run_prokka = panaroo.run_prokka:main'
         ],
     },
