@@ -9,7 +9,18 @@ from joblib import Parallel, delayed
 import os
 import gffutils as gff
 from io import StringIO
-from .merge_nodes import delete_node
+from .merge_nodes import delete_node, remove_member_from_node
+
+
+def get_all_paths(G, length=3):
+    all_paths = []
+    for node in G.nodes():
+        neighs = [v for u, v in nx.bfs_edges(G, source=node, depth_limit=length)]
+        for neigh in neighs:
+            for p in nx.all_simple_paths(G, source=node, target=neigh, cutoff=2):
+                if len(p)==length:
+                    all_paths.append(p)
+    return(all_paths)
 
 
 def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir,
@@ -18,18 +29,16 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir,
     # find all the cycles shorter than cycle_threshold
     print("defining basis...")
     complete_basis = set()
-    all_pairs = dict(nx.all_pairs_shortest_path(G, cutoff=2))
-    for source in all_pairs:
-        for sink in all_pairs[source]:
-            if len(all_pairs[source][sink]) == 3:
-                mid_size = G.node[all_pairs[source][sink][1]]['size']
-                if (G.node[source]['size'] > mid_size) or (G.node[sink]['size']
-                                                           > mid_size):
-                    path = all_pairs[source][sink]
-                    complete_basis.add(
+    all_paths = get_all_paths(G, 3)
+
+    for path in all_paths:
+        mid_size = G.node[path[1]]['size']
+        if (G.node[path[0]]['size'] > mid_size) or (
+            G.node[path[2]]['size'] > mid_size):
+            complete_basis.add(
                         (min(path[0], path[2]), path[1], max(path[0],
                                                              path[2])))
-
+        
     # For each cycle check if it looks like somethings missing
     print("identify missing nodes...")
     print("len(complete_basis):", len(complete_basis))
@@ -46,19 +55,6 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir,
                 search_lists[member].append(b)
                 seen_pairs.add((member, b[1]))
                 search_count += 1
-                # # we have a possible search target. First check if theres
-                # # another path between the nodes
-                # paths = list(nx.all_shortest_paths(G, b[0], b[2]))
-                # good_target = True
-                # for path in paths:
-                #     if len(path) < 3: continue
-                #     if member in (set(G.node[path[0]]['members']) & set(
-                #             G.node[path[1]]['members']) & set(
-                #                 G.node[path[2]]['members'])):
-                #         good_target = False
-                # if good_target:
-                #     search_lists[member].append(b)
-                #     search_count+=1
 
     print("num searches", search_count)
     print("search for missing nodes...")
@@ -117,13 +113,45 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir,
     # if requested remove nodes that have more refound than in original
     # that is the consensus appears to be it wasn't a good gene most of the
     # time
+
     bad_nodes = []
-    if remove_by_consensus:
-        for node in additions_by_node:
-            if len(additions_by_node[node])>G.node[node]['size']:
-                bad_nodes.append(node)
+    # if remove_by_consensus:
+    #     for node in additions_by_node:
+    #         if len(additions_by_node[node])>G.node[node]['size']:
+    #             bad_nodes.append(node)
+    # for node in bad_nodes:
+    #     delete_node(G, node)
+
+    # Check if there's more than one path between nodes i.e we found the same bit of DNA twice
+    path_mem_pairs = defaultdict(set)
+    for path in complete_basis:
+        for mem in G.node[path[1]]['members']:
+            path_mem_pairs[(path[0],path[2],mem)].add(path[1])
+        for mem, hit, hit_protein in additions_by_node[path[1]]:
+            path_mem_pairs[(path[0],path[2],mem)].add(path[1])
+    
+    for pmp in path_mem_pairs:
+        if len(path_mem_pairs[pmp]) > 1:
+            # we have two options for a pair for the same member -> delete one
+            node_max = -1
+            best_node = -1
+            for node in path_mem_pairs[pmp]:
+                if node in G.nodes():
+                    if G.node[node]['size']>node_max:
+                        best_node = node
+                        node_max = G.node[node]['size']
+            # remove member from nodes that arent the best
+            for node in path_mem_pairs[pmp]:
+                if node==best_node: continue
+                G = remove_member_from_node(G, node, pmp[2])
+                additions_by_node[node] = [hit for hit in additions_by_node[node] if hit[0]!=pmp[2]]
+    # clean up graph by removing empty nodes
+    for node in G.nodes():
+        if G.node[node]['size']<1:
+            bad_nodes.append(node)
     for node in bad_nodes:
         delete_node(G, node)
+        del additions_by_node[node]
 
     print("update output...")
     with open(dna_seq_file, 'a') as dna_out:
@@ -256,22 +284,6 @@ def search_seq_gff(member,
                 if len(search_sequence) < max_search_length:
                     found_dna = search_dna(seq, search_sequence, prop_match,
                                            pairwise_id_thresh, temp_dir, n_cpu)
-
-        # if found_dna=="":
-        #     print(neighbour_ids)
-        #     print(len(contig_records[contigA]['annotations']),
-        #         len(contig_records[contigB]['annotations']))
-        #     print(len(contig_records[contigA]['seq']),
-        #         len(contig_records[contigB]['seq']))
-        #     print(getattr(metaA, 'bounds')[0], getattr(metaB, 'bounds')[0])
-        #     # print(mis)
-        #     print(len(search_sequence), len(seq))
-        #     # # print(bounds)
-        #     # # print(min(bounds), max(bounds))
-        #     # print(metaA)
-        #     # print(metaB)
-        #     print(search_sequence)
-        #     print(seq)
 
         # add results
         hits.append(found_dna)

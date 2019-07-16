@@ -98,3 +98,13 @@ def delete_node(G, node):
     return G
 
 
+def remove_member_from_node(G, node, member):
+
+    # if its the last member delete the node
+    if member in G.node[node]['members']:
+        # TODO: remove relevent sequence and annotations
+        G.node[node]['members'].remove(member)
+        G.node[node]['size'] -= 1
+        G.node[node]['seqIDs'] = [sid for sid in G.node[node]['seqIDs'] if int(sid.split("_")[0])!=member]
+            
+    return G
