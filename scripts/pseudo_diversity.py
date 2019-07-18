@@ -61,8 +61,7 @@ def translate(seq):
             2, len(seq), 3)]].tostring().decode('ascii')
 
 def random_codon(strand = "+"):
-    # codon = sample(codons, 1)[0]
-    codon = codons[1]
+    codon = sample(codons, 1)[0]
     if strand=="-":
         codon = codon.reverse_complement()
     return np.array(list(str(codon)))
