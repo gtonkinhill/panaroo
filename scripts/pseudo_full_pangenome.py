@@ -202,18 +202,20 @@ def add_diversity(gfffile, nisolates, effective_pop_size, gain_rate, loss_rate,
 
     #Get gene entries to modify
     all_gene_locations = []
+    gene_locations = []
     prev_end = -1
     for entry in parsed_gff.all_features(featuretype=()):
         if "CDS" not in entry.featuretype: continue
+        all_gene_locations.append(entry)
         if entry.start < prev_end:
             prev_end = entry.end
-            all_gene_locations = all_gene_locations[0:-1]
+            gene_locations = gene_locations[0:-1]
             continue
         prev_end = entry.end
-        all_gene_locations.append(entry)
+        gene_locations.append(entry)
 
     # sub-sample genes so that some are conserved
-    gene_locations = sample(all_gene_locations, n_sim_genes)
+    gene_locations = sample(gene_locations, n_sim_genes)
 
     # simulate presence/absence matrix and gene mutations (only swap codons)
     pan_sim = simulate_pangenome(ngenes=len(gene_locations),
@@ -250,15 +252,17 @@ def add_diversity(gfffile, nisolates, effective_pop_size, gain_rate, loss_rate,
 
         # remove genes not in the accessory
         deleted_genes = 0
+        d_index = defaultdict(lambda: np.array([]))
         for g, entry in enumerate(gene_locations):
             if g not in included_genes:
                 deleted_genes+=1
                 left = entry.start - 1
                 right = entry.stop
-                temp_seq_dict[entry.seqid] = np.delete(
-                    temp_seq_dict[entry.seqid], np.arange(left, right))
+                if right < left: raise RuntimeError("Error issue with left/right!")
+                d_index[entry.seqid] = np.append(d_index[entry.seqid], np.arange(left, right))
+        for entryid in d_index:
+            temp_seq_dict[entryid] = np.delete(temp_seq_dict[entry.seqid], d_index[entryid])
 
-        
         print("mutations in genome: ", n_mutations)
         print("genes deleted: ", deleted_genes)
 
