@@ -58,7 +58,7 @@ def collapse_families(G,
         clusters = iterative_cdhit(G,
             G.nodes(),
             outdir,
-            thresholds=[0.99,0.95,0.90,0.85,0.8,0.75,0.7],
+            thresholds=[0.99,0.95,0.90,0.8,0.7],
             n_cpu=n_cpu,
             quiet=True,
             dna=False)
