@@ -348,3 +348,101 @@ def align_dna_cdhit(
     os.remove(temp_output_file.name + ".clstr")
 
     return found_seq
+
+def iterative_cdhit(G,
+        nodes,
+        outdir,
+        dna=False,
+        s=0.0,  # length difference cutoff (%), default 0.0
+        aL=0.0,  # alignment coverage for the longer sequence
+        AL=99999999,  # alignment coverage control for the longer sequence
+        aS=0.0,  # alignment coverage for the shorter sequence
+        AS=99999999,  # alignment coverage control for the shorter sequence
+        accurate=True,  # use the slower but more accurate options
+        use_local=False,  #whether to use local or global sequence alignment
+        strand=1,  # default do both +/+ & +/- alignments if set to 0, only +/+
+        quiet=False,
+        thresholds=[0.99,0.95,0.90,0.85,0.8,0.75,0.7],
+        n_cpu=1):
+
+    # create the files we will need
+    temp_input_file = tempfile.NamedTemporaryFile(delete=False, dir=outdir)
+    temp_input_file.close()
+    temp_output_file = tempfile.NamedTemporaryFile(delete=False, dir=outdir)
+    temp_output_file.close()
+
+    clusters = []
+    with open(temp_input_file.name, 'w') as outfile:
+        for node in nodes:
+            clusters.append([node])
+            outfile.write(">" + str(node) + "\n")
+            if dna:
+                outfile.write(
+                    max(G.node[node]["dna"].split(";"), key=len) + "\n")
+            else:
+                outfile.write(
+                    max(G.node[node]["protein"].split(";"), key=len) + "\n")
+    
+    for cid in thresholds:
+        # run cd-hit
+        if dna:
+            run_cdhit_est(input_file=temp_input_file.name,
+                        output_file=temp_output_file.name,
+                        id=cid,
+                        s=s,
+                        aL=aL,
+                        AL=AL,
+                        aS=AS,
+                        accurate=accurate,
+                        use_local=use_local,
+                        strand=strand,
+                        quiet=quiet,
+                        n_cpu=n_cpu)
+        else:
+            run_cdhit(input_file=temp_input_file.name,
+                    output_file=temp_output_file.name,
+                    id=cid,
+                    s=s,
+                    aL=aL,
+                    AL=AL,
+                    aS=AS,
+                    accurate=accurate,
+                    use_local=use_local,
+                    quiet=quiet,
+                    n_cpu=n_cpu)
+
+        # process the output
+        temp_clusters = []
+        with open(temp_output_file.name + ".clstr", 'rU') as infile:
+            c = []
+            for line in infile:
+                if line[0] == ">":
+                    temp_clusters.append(c)
+                    c = []
+                else:
+                    c.append(int(line.split(">")[1].split("...")[0]))
+            temp_clusters.append(c)
+        temp_clusters = temp_clusters[1:]
+
+        # collapse previously clustered
+        temp_clust_dict = {}
+        for c, clust in enumerate(temp_clusters):
+            for n in clust:
+                temp_clust_dict[n] = c
+        clust_dict = defaultdict(list)  
+        for clust in clusters:
+            c = -1
+            for n in clust:
+                if n in temp_clust_dict:
+                    c = temp_clust_dict[n]
+            for n in clust:
+                clust_dict[c].append(n)
+        clusters = clust_dict.values()
+
+        # cleanup and rename for next round
+        os.remove(temp_input_file.name)
+        os.remove(temp_output_file.name + ".clstr")
+        temp_input_file.name = temp_output_file.name
+        temp_output_file.name = temp_output_file.name + "t" + str(cid)
+
+    return(clusters)

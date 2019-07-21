@@ -1,5 +1,5 @@
 import networkx as nx
-from panaroo.cdhit import cluster_nodes_cdhit
+from panaroo.cdhit import cluster_nodes_cdhit, iterative_cdhit
 from panaroo.merge_nodes import merge_nodes
 from collections import defaultdict
 from panaroo.cdhit import is_valid
@@ -11,7 +11,7 @@ from itertools import chain
 def trim_low_support_trailing_ends(G, min_support=3, max_recursive=2):
 
     # fix trailing
-    for iter in range(max_recursive):
+    for i in range(max_recursive):
         bad_nodes = []
         removed = False
         for (node, val) in G.degree():
@@ -38,9 +38,34 @@ def collapse_families(G,
     node_count = max(list(G.nodes())) + 10
 
     if correct_mistranslations:
-        depths = [3]
+        depths = [2]
     else:
-        depths = [5]  # range(1,10)
+        depths = [2]  # range(1,10)
+
+    # precluster for speed
+    if correct_mistranslations:
+        clusters = iterative_cdhit(
+            G,
+            G.nodes(),
+            outdir,
+            thresholds=[1,0.99],
+            n_cpu=n_cpu,
+            quiet=True,
+            dna=True,
+            use_local=False,
+            accurate=False)
+    else:
+        clusters = iterative_cdhit(G,
+            G.nodes(),
+            outdir,
+            thresholds=[0.99,0.95,0.90,0.85,0.8,0.75,0.7],
+            n_cpu=n_cpu,
+            quiet=True,
+            dna=False)
+    cluster_dict = {}
+    for c, clust in enumerate(clusters):
+        for n in clust:
+            cluster_dict[n] = c
 
     for d in depths:
         search_space = set(G.nodes())
@@ -62,29 +87,11 @@ def collapse_families(G,
                     v for u, v in nx.bfs_edges(G, source=node, depth_limit=d)
                 ]
 
-                if correct_mistranslations:
-                    clusters = cluster_nodes_cdhit(
-                        G,
-                        neighbours,
-                        outdir,
-                        id=dna_error_threshold,
-                        n_cpu=n_cpu,
-                        quiet=True,
-                        dna=True,
-                        use_local=False,
-                        # aS=0.9,
-                        prevent_para=False,
-                        accurate=False)
-                else:
-                    clusters = cluster_nodes_cdhit(G,
-                                                   neighbours,
-                                                   outdir,
-                                                   id=family_threshold,
-                                                   n_cpu=n_cpu,
-                                                   quiet=True,
-                                                   dna=False,
-                                                   prevent_para=False)
-
+                clusters = defaultdict(list)
+                for neigh in neighbours:
+                    clusters[cluster_dict[neigh]].append(neigh)
+                clusters = clusters.values()
+                
                 # for cluster in cluster_dict.values():
                 for cluster in clusters:
                     # check if there are any to collapse
@@ -104,10 +111,12 @@ def collapse_families(G,
                         temp_c = cluster.copy()
                         G = merge_nodes(G, temp_c.pop(), temp_c.pop(),
                                         node_count)
+                        cluster_dict[node_count] = cluster_dict[cluster[0]]
                         while (len(temp_c) > 0):
                             G = merge_nodes(G, node_count, temp_c.pop(),
                                             node_count + 1)
                             node_count += 1
+                            cluster_dict[node_count] = cluster_dict[cluster[0]]
                         search_space.add(node_count)
                     else:
                         if correct_mistranslations:
@@ -147,6 +156,7 @@ def collapse_families(G,
                                                 temp_c.pop(),
                                                 node_count,
                                                 check_merge_mems=False)
+                                cluster_dict[node_count] = cluster_dict[cluster[0]]
                                 while (len(temp_c) > 0):
                                     G = merge_nodes(G,
                                                     node_count,
@@ -154,6 +164,7 @@ def collapse_families(G,
                                                     node_count + 1,
                                                     check_merge_mems=False)
                                     node_count += 1
+                                    cluster_dict[node_count] = cluster_dict[cluster[0]]
                                 search_space.add(node_count)
                         else:
                             # there is a conflict in the merge, check if we can split based on neighbours
@@ -192,6 +203,7 @@ def collapse_families(G,
                                     node_count += 1
                                     G = merge_nodes(G, best_merge[1],
                                                     best_merge[2], node_count)
+                                    cluster_dict[node_count] = cluster_dict[cluster[0]]
                                     if best_merge[1] in search_space:
                                         search_space.remove(best_merge[1])
                                     if best_merge[2] in search_space:
