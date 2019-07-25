@@ -13,6 +13,12 @@ from scipy import optimize
 from numba import jit
 from joblib import Parallel, delayed
 
+@jit(nopython=True) 
+def log1mexp(a):
+    if a < np.log(0.5):
+        return(np.log1p(-np.exp(a)))
+    return(np.log(-np.expm1(a)))
+
 def load_pa(presence_absence_file):
 
     with open(presence_absence_file, 'r') as infile:
@@ -36,42 +42,46 @@ def load_pa(presence_absence_file):
 
 @jit(nopython=True) 
 def trans_llk_prob(xl, xn, t, a, v):
-    
+    a_l = np.log(a)
+    v_l = np.log(v)
+    av_l = np.logaddexp(a_l, v_l)
+
     if (xl==0) and (xn==0):
-        p = v/(a+v)+(a/(a+v))*np.exp(-(a+v)*t)
+        p = np.logaddexp(v_l - av_l, (a_l - av_l) + -(a+v)*t)
     elif (xl==0) and (xn==1):
-        p = (a/(a+v))*(1-np.exp(-(a+v)*t))
+        p = (a_l - av_l) + log1mexp(-(a+v)*t)
     elif (xl==1) and (xn==0):
-        p = (v/(a+v))*(1-np.exp(-(a+v)*t))
+        p = (v_l - av_l) + log1mexp(-(a+v)*t)
     else:
-        p = a/(a+v)+(v/(a+v))*np.exp(-(a+v)*t)
+        p = (a_l - av_l) + (v_l - av_l) -(a+v)*t
 
-    return(np.log(p))
+    return(p)
 
-def calc_llk_gene(in_tree, presence_absence, a, v):
-    # set lead nodes
-    for node in in_tree.leaf_node_iter():
-        node.llk = [0.0, 0.0]
-        node.llk[0] = 0.0 if presence_absence[node.taxon.label]==0 else -math.inf
-        node.llk[1] = 0.0 if presence_absence[node.taxon.label]==1 else -math.inf
+# def calc_llk_gene(in_tree, presence_absence, a, v):
+    
+#     # set lead nodes
+#     for node in in_tree.leaf_node_iter():
+#         node.llk = [0.0, 0.0]
+#         node.llk[0] = 0.0 if presence_absence[node.taxon.label]==0 else -math.inf
+#         node.llk[1] = 0.0 if presence_absence[node.taxon.label]==1 else -math.inf
 
-    # now iterate bottom up to fill in the values for internal nodes
-    for node in in_tree.postorder_internal_node_iter():
-        node.llk = [-math.inf, -math.inf]
-        for xl in [0,1]:
-            for xn in [0,1]:
-                for xm in [0,1]:
-                    children = node.child_nodes()                    
-                    node.llk[xl] = np.logaddexp(node.llk[xl],
-                        (trans_llk_prob(xl, xn, children[0].edge.length, a, v) + 
-                        children[0].llk[xn] +
-                        trans_llk_prob(xl, xm, children[1].edge.length, a, v) + 
-                        children[1].llk[xm]))
+#     # now iterate bottom up to fill in the values for internal nodes
+#     for node in in_tree.postorder_internal_node_iter():
+#         node.llk = [-math.inf, -math.inf]
+#         for xl in [0,1]:
+#             for xn in [0,1]:
+#                 for xm in [0,1]:
+#                     children = node.child_nodes()                    
+#                     node.llk[xl] = np.logaddexp(node.llk[xl],
+#                         (trans_llk_prob(xl, xn, children[0].edge.length, a, v) + 
+#                         children[0].llk[xn] +
+#                         trans_llk_prob(xl, xm, children[1].edge.length, a, v) + 
+#                         children[1].llk[xm]))
 
-    llk = np.logaddexp(in_tree.seed_node.llk[1]+np.log(a)-np.log(a+v),
-        in_tree.seed_node.llk[0]+np.log(v)-np.log(a+v))
+#     llk = np.logaddexp(in_tree.seed_node.llk[1]+np.log(a)-np.log(a+v),
+#         in_tree.seed_node.llk[0]+np.log(v)-np.log(a+v))
 
-    return(llk)
+#     return(llk)
 
 @jit(nopython=True) 
 def calc_llk_gene_numpy(in_tree, nleaves, l0, l1, a, v):
@@ -98,10 +108,10 @@ def calc_llk_gene_numpy(in_tree, nleaves, l0, l1, a, v):
     return(llk)
 
 def calc_llk(params, in_tree, presence_absence, isolates):
-
+    
     a = params[0]
     v = params[1]
-
+    print("a:", a, "  v:", v)
     # prepare matrix representation of tree
     nnodes = 0
     for node in in_tree.leaf_node_iter():
@@ -155,8 +165,8 @@ def calc_llk(params, in_tree, presence_absence, isolates):
     print("Calculating llk")
     llk = -math.inf
     for g in tqdm(presence_absence):
-        l0 = np.array([0.0 if presence_absence[g][node.taxon.label]==0 else -math.inf for node in in_tree.leaf_node_iter()])
-        l1 = np.array([0.0 if presence_absence[g][node.taxon.label]==1 else -math.inf for node in in_tree.leaf_node_iter()])
+        l0 = presence_absence[g][0]
+        l1 = presence_absence[g][1]
         llk = np.logaddexp(llk, calc_llk_gene_numpy(tree_array, nleaves, l0, l1, a, v) - 
             np.log(1 - np.exp(L_null) - np.exp(L_1)))
 
@@ -228,13 +238,22 @@ def main():
         if iso not in leaf_taxa:
             raise RuntimeError("Mismatch between tree and p/a matrix!")
 
-    # find some decent paramters
-    bounds = ((0,5), (0,5))
-    result = optimize.minimize(calc_llk, (0.1,0.1), args=(tree, presence_absence, isolates),
-        bounds=bounds, options={"disp":True})
-    # calc_llk(1, 1, tree, presence_absence, isolates)
+    # gather gene prescence abscence for convinience in llk calculation
+    presence_absence_llk = {}
+    for gene in presence_absence:
+        presence_absence_llk[gene] = [np.array([0.0 if 
+            presence_absence[gene][node.taxon.label]==0 else 
+            -math.inf for node in tree.leaf_node_iter()]),
+            np.array([0.0 if presence_absence[gene][node.taxon.label]==1 
+                else -math.inf for node in tree.leaf_node_iter()])]
 
-    print(result)
+    calc_llk((1e-6,5), tree, presence_absence_llk, isolates)
+
+    # find some decent paramters
+    # bounds = ((1e-6,5), (1e-6,5))
+    # result = optimize.shgo(calc_llk, bounds=bounds,
+    #     args=(tree, presence_absence_llk, isolates))
+    # print(result)
 
     return
 
