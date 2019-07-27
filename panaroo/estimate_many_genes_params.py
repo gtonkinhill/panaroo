@@ -9,9 +9,11 @@ import copy
 import math
 from collections import defaultdict
 from tqdm import tqdm
-from scipy import optimize
+from scipy import optimize, stats
 from numba import jit
 from joblib import Parallel, delayed
+
+import pickle
 
 @jit(nopython=True) 
 def log1mexp(a):
@@ -34,6 +36,10 @@ def load_pa(presence_absence_file):
             if np.sum([int(pa) for pa in line[1:]]) <= 1:
                 continue
 
+            # skip conserved genes
+            # if np.sum([int(pa) for pa in line[1:]]) == len(line[1:]):
+            #     continue
+
             presence_absence[line[0]] = {}
             for iso, pa in zip(isolates, line[1:]):
                 presence_absence[line[0]][iso] = int(pa)
@@ -45,43 +51,15 @@ def trans_llk_prob(xl, xn, t, a, v):
     a_l = np.log(a)
     v_l = np.log(v)
     av_l = np.logaddexp(a_l, v_l)
-
     if (xl==0) and (xn==0):
-        p = np.logaddexp(v_l - av_l, (a_l - av_l) + -(a+v)*t)
+        p = np.logaddexp(v_l - av_l, (a_l - av_l) - (a+v)*t)
     elif (xl==0) and (xn==1):
         p = (a_l - av_l) + log1mexp(-(a+v)*t)
     elif (xl==1) and (xn==0):
         p = (v_l - av_l) + log1mexp(-(a+v)*t)
     else:
-        p = (a_l - av_l) + (v_l - av_l) -(a+v)*t
-
+        p = np.logaddexp((a_l - av_l), (v_l - av_l) -(a+v)*t)
     return(p)
-
-# def calc_llk_gene(in_tree, presence_absence, a, v):
-    
-#     # set lead nodes
-#     for node in in_tree.leaf_node_iter():
-#         node.llk = [0.0, 0.0]
-#         node.llk[0] = 0.0 if presence_absence[node.taxon.label]==0 else -math.inf
-#         node.llk[1] = 0.0 if presence_absence[node.taxon.label]==1 else -math.inf
-
-#     # now iterate bottom up to fill in the values for internal nodes
-#     for node in in_tree.postorder_internal_node_iter():
-#         node.llk = [-math.inf, -math.inf]
-#         for xl in [0,1]:
-#             for xn in [0,1]:
-#                 for xm in [0,1]:
-#                     children = node.child_nodes()                    
-#                     node.llk[xl] = np.logaddexp(node.llk[xl],
-#                         (trans_llk_prob(xl, xn, children[0].edge.length, a, v) + 
-#                         children[0].llk[xn] +
-#                         trans_llk_prob(xl, xm, children[1].edge.length, a, v) + 
-#                         children[1].llk[xm]))
-
-#     llk = np.logaddexp(in_tree.seed_node.llk[1]+np.log(a)-np.log(a+v),
-#         in_tree.seed_node.llk[0]+np.log(v)-np.log(a+v))
-
-#     return(llk)
 
 @jit(nopython=True) 
 def calc_llk_gene_numpy(in_tree, nleaves, l0, l1, a, v):
@@ -101,43 +79,16 @@ def calc_llk_gene_numpy(in_tree, nleaves, l0, l1, a, v):
                         in_tree[int(in_tree[i][0])][2+xn] +
                         trans_llk_prob(xl, xm, in_tree[i][5], a, v) + 
                         in_tree[int(in_tree[i][1])][2+xm]))
-
+    
     llk = np.logaddexp(in_tree[in_tree.shape[0]-1][3]+np.log(a)-np.log(a+v),
         in_tree[in_tree.shape[0]-1][2]+np.log(v)-np.log(a+v))
 
     return(llk)
 
-def calc_llk(params, in_tree, presence_absence, isolates):
+def calc_llk_fmg(params, tree_array, nleaves, presence_absence, isolates):
     
     a = params[0]
     v = params[1]
-    print("a:", a, "  v:", v)
-    # prepare matrix representation of tree
-    nnodes = 0
-    for node in in_tree.leaf_node_iter():
-        node.label = nnodes
-        nnodes+=1
-    for node in in_tree.postorder_internal_node_iter():
-        node.label = nnodes
-        nnodes += 1
-    tree_array = np.zeros((nnodes, 6))
-    leaves = []
-    node_index = {}
-    for i, node in enumerate(in_tree.leaf_node_iter()):
-        leaves.append(i)
-        node_index[node.label] = i
-        tree_array[i][0] = -1
-        tree_array[i][1] = -1
-
-    nleaves=len(leaves)
-    for i, node in enumerate(in_tree.postorder_internal_node_iter()):
-        j=i+nleaves
-        node_index[node.label] = j
-        children = node.child_nodes()
-        tree_array[j][0] = node_index[children[0].label]
-        tree_array[j][1] = node_index[children[1].label]
-        tree_array[j][4] = children[0].edge.length
-        tree_array[j][5] = children[1].edge.length
 
     # calculate llk of null pattern
     print("Calculating null")
@@ -159,21 +110,200 @@ def calc_llk(params, in_tree, presence_absence, isolates):
             calc_llk_gene_numpy(tree_array, nleaves, l0, l1, a, v))
         l0[i] = 0
         l1[i] = -math.inf
-
     print("L_1: ", L_1)
 
+    # calculate llk of conserved genes
+    print("Calculating null")
+    l0 = np.full(nleaves, -math.inf)
+    l1 = np.zeros(nleaves)
+    L_conserved = calc_llk_gene_numpy(tree_array, nleaves, l0, l1, a, v)
+
+    print("L_null: ", L_null)
+
     print("Calculating llk")
-    llk = -math.inf
+    llk = 0
     for g in tqdm(presence_absence):
         l0 = presence_absence[g][0]
         l1 = presence_absence[g][1]
-        llk = np.logaddexp(llk, calc_llk_gene_numpy(tree_array, nleaves, l0, l1, a, v) - 
-            np.log(1 - np.exp(L_null) - np.exp(L_1)))
+        llk += calc_llk_gene_numpy(tree_array, nleaves, l0, l1, a, v
+            ) - np.log(1 - np.exp(L_null) - np.exp(L_1) - np.exp(L_conserved))
 
     print("llk: ", llk)
 
+    return llk
+
+@jit(nopython=True) 
+def fmg_trans_llk_prob(xl, xn, t, v):
+    if (xl==0) and (xn==0):
+        p = 0
+    elif (xl==0) and (xn==1):
+        p = -math.inf
+    elif (xl==1) and (xn==0):
+        p = log1mexp(-v*t)
+    else:
+        p = -v*t
+    return(p)
+
+
+def get_origin_nodes(in_tree, node_index, presence_absence, n1=False):
+    origin_indices = defaultdict(list)
+
+    if n1:
+        for leaf in in_tree.leaf_node_iter():
+            mrca = in_tree.mrca(taxon_labels=[leaf.taxon.label])
+            origin_nodes = list(mrca.ancestor_iter(inclusive=True))
+            for node in origin_nodes:                    
+                origin_indices[node_index[leaf.label]].append(node_index[node.label])
+    else:
+        for gene in presence_absence:
+            taxon_labels = [tax for tax in presence_absence[gene] if presence_absence[gene][tax]==1]
+            mrca = in_tree.mrca(taxon_labels=taxon_labels)
+            origin_nodes = list(mrca.ancestor_iter(inclusive=True))
+
+            for node in origin_nodes:
+                origin_indices[gene].append(node_index[node.label])
+
+    return origin_indices
+
+@jit(nopython=True)
+def img_llk_all_nodes(in_tree, nleaves, l0, l1, u, v):
+
+    # set lead nodes
+    in_tree[0:nleaves,2] = l0
+    in_tree[0:nleaves,3] = l1
+
+    for i in np.arange(nleaves, in_tree.shape[0]):
+        in_tree[i][2] = -math.inf
+        in_tree[i][3] = -math.inf
+        for xl in [0,1]:
+            for xn in [0,1]:
+                for xm in [0,1]:
+                    in_tree[i][2+xl] = np.logaddexp(in_tree[i][2+xl],
+                        (fmg_trans_llk_prob(xl, xn, in_tree[i][4], v) + 
+                        in_tree[int(in_tree[i][0])][2+xn] +
+                        fmg_trans_llk_prob(xl, xm, in_tree[i][5], v) + 
+                        in_tree[int(in_tree[i][1])][2+xm]))
+    
+    return(in_tree)
+
+# @jit
+def calc_llk_img(params, tree_array, nleaves, origin_nodes, 
+    origin_nodes_n1, presence_absence, isolates):
+    
+    u = params[0]
+    v = params[1]
+
+    u_l = np.log(u)
+    v_l = np.log(v)
+
+    # calculate expected N_null
+    l0 = np.zeros(nleaves)
+    l1 = np.full(nleaves, -math.inf)
+    tree_array = img_llk_all_nodes(tree_array, nleaves, l0, l1, u, v)
+    N_null = -math.inf
+    N_tot = -math.inf
+    for i in np.arange(nleaves, tree_array.shape[0]):
+        if i==(tree_array.shape[0]-1):
+            gn_l = u_l - v_l
+        else:
+            gn_l = u_l - v_l + log1mexp(-v*tree_array[i][6])
+        N_null = np.logaddexp(N_null,
+            tree_array[i][3] + gn_l)
+        N_tot = np.logaddexp(N_tot, gn_l)
+
+    print("N_null: ", N_null)
+
+    # calculate N_1
+    N_1 = -math.inf
+    l0 = np.zeros(nleaves)
+    l1 = np.full(nleaves, -math.inf)
+    for i in tqdm(range(nleaves)):    
+        l0[i] = -math.inf
+        l1[i] = 0
+        tree_array = img_llk_all_nodes(tree_array, nleaves, l0, l1, u, v)
+        for j in origin_nodes_n1[i]:
+            if j==(tree_array.shape[0]-1):
+                gn_l = u_l - v_l
+            else:
+                gn_l = u_l - v_l + log1mexp(-v*tree_array[j][6])
+            N_1 = np.logaddexp(N_1,
+                tree_array[j][3] + gn_l)
+        l0[i] = 0
+        l1[i] = -math.inf
+
+    print("N_1: ", N_1)
+
+    # calculate N_total
+    for i in np.arange(0, nleaves):
+        gn_l = u_l - v_l + log1mexp(-v*tree_array[i][6])
+        N_tot = np.logaddexp(N_tot, gn_l)
+
+    print("N_tot: ", N_tot)
+
+    llk = 0
+    for g in tqdm(presence_absence):
+        N_exp = -math.inf
+        l0 = presence_absence[g][0]
+        l1 = presence_absence[g][1]
+        tree_array = img_llk_all_nodes(tree_array, nleaves, l0, l1, u, v)
+        for i in origin_nodes[g]:
+            if i==(tree_array.shape[0]-1):
+                gn_l = u_l - v_l
+            else:
+                gn_l = u_l - v_l + log1mexp(-v*tree_array[i][6])
+            N_exp = np.logaddexp(N_exp,
+                tree_array[i][3] + gn_l)
+
+        llk += N_exp - np.log(np.exp(N_tot)-np.exp(N_exp)-np.exp(N_1))
+
+    print("N_exp: ", N_exp)
+    print("llk: ", llk)
+
+    return llk
+
+def get_discrete_gamma_rates(alpha, k):
+    points = np.arange(1, 2*k, 2)/(2*k)
+    median_rates = stats.gamma.ppf(q=points, a=alpha, scale=1/alpha)
+    return(median_rates)
+
+
+def calc_llk_fmg_with_rate(params, k, tree_array, nleaves, origin_nodes, 
+    origin_nodes_n1, presence_absence, isolates):
+
+    alpha = params[0]
+    a_rates = params[1:]
+    v_rates = get_discrete_gamma_rates(alpha, k)
+
+    print("alpha:", alpha)
+    print("a_rates:", a_rates)
+    print("v_rates:", v_rates)
+
+    llk = -math.inf
+    for v,a in zip(v_rates, a_rates):
+        print(a,v)
+        llk = np.logaddexp(llk, calc_llk_fmg((a,v), tree_array, nleaves, 
+            presence_absence, isolates) - np.log(k))
+    
     return -llk
 
+def calc_llk_img_with_rate(params, k, tree_array, nleaves, origin_nodes, 
+    origin_nodes_n1, presence_absence, isolates):
+
+    alpha = params[0]
+    u_rates = params[1:]
+    v_rates = get_discrete_gamma_rates(alpha, k)
+
+    print("alpha:", alpha)
+    print("u_rates:", u_rates)
+    print("v_rates:", v_rates)
+
+    llk = -math.inf
+    for v,u in zip(v_rates, u_rates):
+        print(u,v)
+        llk = np.logaddexp(llk, calc_llk_img((u,v), tree_array, nleaves, origin_nodes, 
+            origin_nodes_n1, presence_absence, isolates) - np.log(k))
+    
+    return -llk
 
 def get_options():
     import argparse
@@ -247,12 +377,89 @@ def main():
             np.array([0.0 if presence_absence[gene][node.taxon.label]==1 
                 else -math.inf for node in tree.leaf_node_iter()])]
 
-    calc_llk((1e-6,5), tree, presence_absence_llk, isolates)
+    # generate array form of tree
+    # prepare matrix representation of tree
+    nnodes = 0
+    for node in tree.leaf_node_iter():
+        node.label = nnodes
+        nnodes+=1
+    for node in tree.postorder_internal_node_iter():
+        node.label = nnodes
+        nnodes += 1
+    tree_array = np.zeros((nnodes, 7))
+    leaves = []
+    node_index = {}
+    for i, node in enumerate(tree.leaf_node_iter()):
+        leaves.append(i)
+        node_index[node.label] = i
+        tree_array[i][0] = -1
+        tree_array[i][1] = -1
+        tree_array[i][6] = node.edge.length
+
+    nleaves=len(leaves)
+    for i, node in enumerate(tree.postorder_internal_node_iter()):
+        j=i+nleaves
+        node_index[node.label] = j
+        children = node.child_nodes()
+        
+        tree_array[j][0] = node_index[children[0].label]
+        tree_array[j][1] = node_index[children[1].label]
+        tree_array[j][4] = children[0].edge.length
+        tree_array[j][5] = children[1].edge.length
+        tree_array[j][6] = node.edge.length
+
+    # get origin indices
+    # print("Obtaining origin nodes...")
+    # origin_indices = get_origin_nodes(tree, node_index, presence_absence)
+    # print("Obtaining origin nodes n1...")
+    # origin_indices_n1 = get_origin_nodes(tree, node_index, presence_absence, n1=True)
+
+    # with open("origin_indices.pkl", 'wb') as outfile:
+    #     pickle.dump(origin_indices, outfile)
+    # with open("origin_indices_n1.pkl", 'wb') as outfile:
+    #     pickle.dump(origin_indices_n1, outfile)
+
+    with open("origin_indices.pkl", 'rb') as infile:
+        origin_indices =  pickle.load(infile)
+    with open("origin_indices_n1.pkl", 'rb') as infile:
+        origin_indices_n1 =  pickle.load(infile)
+
 
     # find some decent paramters
-    # bounds = ((1e-6,5), (1e-6,5))
-    # result = optimize.shgo(calc_llk, bounds=bounds,
-    #     args=(tree, presence_absence_llk, isolates))
+    # bounds = ((1e-12,1000), (1e-12,1000))
+    # result = optimize.shgo(calc_llk_img, bounds=bounds,
+    #     args=(tree_array, nleaves, origin_indices, origin_indices_n1, 
+    #         presence_absence_llk, isolates))
+    # print(result)
+
+    # alpha_bounds = (1e-2,100)
+    # u_bounds = (1e-12,1e4)
+    # k=5
+    # bounds = [alpha_bounds]
+    # for u in range(k):
+    #     bounds += [u_bounds]
+    # result = optimize.shgo(calc_llk_img_with_rate, bounds=bounds,
+    #     args=(k, tree_array, nleaves, origin_indices, origin_indices_n1, 
+    #         presence_absence_llk, isolates))
+    # print(result)
+
+
+
+    alpha_bounds = (1e-2,100)
+    a_bounds = (1e-12,1e4)
+    k=5
+    bounds = [alpha_bounds]
+    for u in range(k):
+        bounds += [a_bounds]
+    result = optimize.shgo(calc_llk_fmg_with_rate, bounds=bounds,
+        args=(k, tree_array, nleaves, origin_indices, origin_indices_n1, 
+            presence_absence_llk, isolates))
+    print(result)
+
+    # find some decent paramters
+    # bounds = [(1e-6,1000)]
+    # result = optimize.shgo(calc_llk_fmg, bounds=bounds,
+    #     args=(tree_array, nleaves, presence_absence_llk, isolates))
     # print(result)
 
     return
