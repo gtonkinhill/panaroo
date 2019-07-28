@@ -267,8 +267,8 @@ def get_discrete_gamma_rates(alpha, k):
     return(median_rates)
 
 
-def calc_llk_fmg_with_rate(params, k, tree_array, nleaves, origin_nodes, 
-    origin_nodes_n1, presence_absence, isolates):
+def calc_llk_fmg_with_rate(params, k, tree_array, nleaves, 
+    presence_absence, isolates):
 
     alpha = params[0]
     a_rates = params[1:]
@@ -279,7 +279,7 @@ def calc_llk_fmg_with_rate(params, k, tree_array, nleaves, origin_nodes,
     print("v_rates:", v_rates)
 
     llk = -math.inf
-    for v,a in zip(v_rates, a_rates):
+    for a,v in zip(a_rates, v_rates):
         print(a,v)
         llk = np.logaddexp(llk, calc_llk_fmg((a,v), tree_array, nleaves, 
             presence_absence, isolates) - np.log(k))
@@ -298,7 +298,7 @@ def calc_llk_img_with_rate(params, k, tree_array, nleaves, origin_nodes,
     print("v_rates:", v_rates)
 
     llk = -math.inf
-    for v,u in zip(v_rates, u_rates):
+    for u,v in zip(u_rates, v_rates):
         print(u,v)
         llk = np.logaddexp(llk, calc_llk_img((u,v), tree_array, nleaves, origin_nodes, 
             origin_nodes_n1, presence_absence, isolates) - np.log(k))
@@ -408,59 +408,55 @@ def main():
         tree_array[j][5] = children[1].edge.length
         tree_array[j][6] = node.edge.length
 
-    # get origin indices
-    # print("Obtaining origin nodes...")
-    # origin_indices = get_origin_nodes(tree, node_index, presence_absence)
-    # print("Obtaining origin nodes n1...")
-    # origin_indices_n1 = get_origin_nodes(tree, node_index, presence_absence, n1=True)
 
-    # with open("origin_indices.pkl", 'wb') as outfile:
-    #     pickle.dump(origin_indices, outfile)
-    # with open("origin_indices_n1.pkl", 'wb') as outfile:
-    #     pickle.dump(origin_indices_n1, outfile)
+    if args.model=='IMG':
 
-    with open("origin_indices.pkl", 'rb') as infile:
-        origin_indices =  pickle.load(infile)
-    with open("origin_indices_n1.pkl", 'rb') as infile:
-        origin_indices_n1 =  pickle.load(infile)
+        get origin indices
+        print("Obtaining origin nodes...")
+        origin_indices = get_origin_nodes(tree, node_index, presence_absence)
+        print("Obtaining origin nodes n1...")
+        origin_indices_n1 = get_origin_nodes(tree, node_index, presence_absence, n1=True)
 
+        # with open("origin_indices.pkl", 'wb') as outfile:
+        #     pickle.dump(origin_indices, outfile)
+        # with open("origin_indices_n1.pkl", 'wb') as outfile:
+        #     pickle.dump(origin_indices_n1, outfile)
 
-    # find some decent paramters
-    # bounds = ((1e-12,1000), (1e-12,1000))
-    # result = optimize.shgo(calc_llk_img, bounds=bounds,
-    #     args=(tree_array, nleaves, origin_indices, origin_indices_n1, 
-    #         presence_absence_llk, isolates))
-    # print(result)
+        # with open("origin_indices.pkl", 'rb') as infile:
+        #     origin_indices =  pickle.load(infile)
+        # with open("origin_indices_n1.pkl", 'rb') as infile:
+        #     origin_indices_n1 =  pickle.load(infile)
 
-    # alpha_bounds = (1e-2,100)
-    # u_bounds = (1e-12,1e4)
-    # k=5
-    # bounds = [alpha_bounds]
-    # for u in range(k):
-    #     bounds += [u_bounds]
-    # result = optimize.shgo(calc_llk_img_with_rate, bounds=bounds,
-    #     args=(k, tree_array, nleaves, origin_indices, origin_indices_n1, 
-    #         presence_absence_llk, isolates))
-    # print(result)
+        alpha_bounds = (1e-2,100)
+        u_bounds = (1e-6,1e3)
+        k=5
+        bounds = [alpha_bounds]
+        x0 = [5]
+        x0 += [1]*k
 
+        for u in range(k):
+            bounds += [u_bounds]
 
+        result = optimize.minimize(calc_llk_img_with_rate, bounds=bounds,
+            x0=x0, method='Nelder-Mead',
+            args=(k, tree_array, nleaves, origin_indices, origin_indices_n1, 
+                presence_absence_llk, isolates))
+        print(result)
 
-    alpha_bounds = (1e-2,100)
-    a_bounds = (1e-12,1e4)
-    k=5
-    bounds = [alpha_bounds]
-    for u in range(k):
-        bounds += [a_bounds]
-    result = optimize.shgo(calc_llk_fmg_with_rate, bounds=bounds,
-        args=(k, tree_array, nleaves, origin_indices, origin_indices_n1, 
-            presence_absence_llk, isolates))
-    print(result)
+    else:
+        alpha_bounds = (0.01, 1000)
+        a_bounds = (1e-6,1000)
+        k=5
+        bounds = [alpha_bounds]
+        x0 = [5]
+        x0 += [1]*k
 
-    # find some decent paramters
-    # bounds = [(1e-6,1000)]
-    # result = optimize.shgo(calc_llk_fmg, bounds=bounds,
-    #     args=(tree_array, nleaves, presence_absence_llk, isolates))
-    # print(result)
+        for u in range(k):
+            bounds += [a_bounds]
+        result = optimize.minimize(calc_llk_fmg_with_rate, bounds=bounds,
+            x0=x0, method='Nelder-Mead',
+            args=(k, tree_array, nleaves, presence_absence_llk, isolates))
+        print(result)
 
     return
 
