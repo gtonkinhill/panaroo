@@ -7,7 +7,6 @@ from collections import defaultdict
 import networkx as nx
 from Bio.Seq import reverse_complement
 
-
 def check_cdhit_version(cdhit_exec='cd-hit'):
     """Checks that cd-hit can be run, and returns version.
 

@@ -59,10 +59,11 @@ def generate_network(cluster_file, data_file, prot_seq_file):
         if id.split("_")[-1] == "0":
             # we're at the start of a contig
             prev = current_cluster
-            if G.has_node(prev):
+            if G.has_node(prev) and (prev not in paralogs):
                 G.node[prev]['size'] += 1
                 G.node[prev]['members'].append(genome_id)
                 G.node[prev]['seqIDs'].append(id)
+                G.node[prev]['dna'] += ";" + cluster_centroid_data[prev]['dna_sequence']
             else:
                 if prev in paralogs:
                     # create a new paralog
@@ -87,31 +88,7 @@ def generate_network(cluster_file, data_file, prot_seq_file):
         else:
             is_paralog = current_cluster in paralogs
             if is_paralog:
-                # # check neigbours of previous to see if a matching paralog is present
-                # links = []
-                # # for neig in G.neighbors(prev):
-                # for neig in [
-                #         v
-                #         for u, v in nx.bfs_edges(G, source=prev, depth_limit=3)
-                # ]:
-                #     if G.node[neig]['centroid'] == cluster_centroids[
-                #             current_cluster]:
-                #         links.append(neig)
-                # # if it is and there is no conflict add to this
-                # if (len(links) == 1) and (
-                #         genome_id not in G.node[links[0]]['members']):
-                #     neig = links[0]
-                #     G.node[neig]['size'] += 1
-                #     G.node[neig]['members'].append(genome_id)
-                #     G.node[neig]['seqIDs'].append(id)
-                #     if G.has_edge(prev, neig):
-                #         G[prev][neig]['weight'] += 1
-                #         G[prev][neig]['members'].append(genome_id)
-                #     else:
-                #         G.add_edge(prev, neig, weight=1, members=[genome_id])
-                #     prev = neig
-                # else:
-                # otherwise create a new paralog
+                # create a new paralog
                 n_nodes += 1
                 neighbour = n_nodes
                 temp_nodes.append(neighbour)
@@ -160,6 +137,7 @@ def generate_network(cluster_file, data_file, prot_seq_file):
                     G.node[current_cluster]['size'] += 1
                     G.node[current_cluster]['members'].append(genome_id)
                     G.node[current_cluster]['seqIDs'].append(id)
+                    G.node[current_cluster]['dna'] += ";" + cluster_centroid_data[current_cluster]['dna_sequence']
                     if G.has_edge(prev, current_cluster):
                         G[prev][current_cluster]['weight'] += 1
                         G[prev][current_cluster]['members'].append(genome_id)

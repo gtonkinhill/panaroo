@@ -5,7 +5,6 @@ import os
 import re
 import io
 
-
 # Get version strip
 def read(*names, **kwargs):
     with io.open(os.path.join(os.path.dirname(__file__), *names),

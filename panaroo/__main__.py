@@ -234,9 +234,6 @@ def main():
                                        min_support=args.min_trailing_support,
                                        max_recursive=args.trailing_recursive)
 
-    if args.verbose:
-        print("refinding genes...")
-
     # identify possible family level paralogs
     if args.verbose:
         print("identifying potentialy highly variable genes...")
@@ -244,6 +241,9 @@ def main():
         cycle_threshold_max=20,
         cycle_threshold_min=args.cycle_threshold_min,
         size_diff_threshold=0.5)
+
+    if args.verbose:
+        print("refinding genes...")
 
     # find genes that Prokka has missed
     G = find_missing(G,
@@ -254,7 +254,7 @@ def main():
                      "combined_protein_CDS.fasta",
                      remove_by_consensus=args.remove_by_consensus,
                      n_cpu=args.n_cpu)
-
+    
     # if requested merge paralogs
     if args.merge_paralogs:
         G = merge_paralogs(G)

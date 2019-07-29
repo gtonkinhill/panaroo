@@ -52,6 +52,7 @@ def collapse_families(G,
             n_cpu=n_cpu,
             quiet=True,
             dna=True,
+            # aL=0.6,
             use_local=False,
             accurate=False)
     else:
@@ -87,10 +88,36 @@ def collapse_families(G,
                     v for u, v in nx.bfs_edges(G, source=node, depth_limit=d)
                 ]
 
-                clusters = defaultdict(list)
+                temp_clusters = defaultdict(list)
                 for neigh in neighbours:
-                    clusters[cluster_dict[neigh]].append(neigh)
-                clusters = clusters.values()
+                    temp_clusters[cluster_dict[neigh]].append(neigh)
+                temp_clusters = temp_clusters.values()
+                clusters = []
+                for cluster in temp_clusters:
+                    if len(cluster)<2:
+                        clusters += [cluster]
+                        continue
+                    if correct_mistranslations:
+                        clusters += cluster_nodes_cdhit(
+                            G,
+                            cluster,
+                            outdir,
+                            id=dna_error_threshold,
+                            n_cpu=n_cpu,
+                            quiet=True,
+                            dna=True,
+                            use_local=False,
+                            prevent_para=False,
+                            accurate=False)
+                    else:
+                        clusters += cluster_nodes_cdhit(G,
+                            cluster,
+                            outdir,
+                            id=family_threshold,
+                            n_cpu=n_cpu,
+                            quiet=True,
+                            dna=False,
+                            prevent_para=False)
                 
                 # for cluster in cluster_dict.values():
                 for cluster in clusters:
@@ -110,11 +137,13 @@ def collapse_families(G,
                             if neig in search_space: search_space.remove(neig)
                         temp_c = cluster.copy()
                         G = merge_nodes(G, temp_c.pop(), temp_c.pop(),
-                                        node_count)
+                                        node_count, 
+                                        multi_centroid=(not correct_mistranslations))
                         cluster_dict[node_count] = cluster_dict[cluster[0]]
                         while (len(temp_c) > 0):
                             G = merge_nodes(G, node_count, temp_c.pop(),
-                                            node_count + 1)
+                                            node_count + 1,
+                                            multi_centroid=(not correct_mistranslations))
                             node_count += 1
                             cluster_dict[node_count] = cluster_dict[cluster[0]]
                         search_space.add(node_count)
@@ -155,6 +184,7 @@ def collapse_families(G,
                                                 temp_c.pop(),
                                                 temp_c.pop(),
                                                 node_count,
+                                                multi_centroid=False,
                                                 check_merge_mems=False)
                                 cluster_dict[node_count] = cluster_dict[cluster[0]]
                                 while (len(temp_c) > 0):
@@ -162,6 +192,7 @@ def collapse_families(G,
                                                     node_count,
                                                     temp_c.pop(),
                                                     node_count + 1,
+                                                    multi_centroid=False,
                                                     check_merge_mems=False)
                                     node_count += 1
                                     cluster_dict[node_count] = cluster_dict[cluster[0]]
@@ -321,14 +352,12 @@ def merge_paralogs(G):
         G = merge_nodes(G,
                         temp_c.pop(),
                         temp_c.pop(),
-                        node_count,
-                        check_merge_mems=False)
+                        node_count)
         while (len(temp_c) > 0):
             G = merge_nodes(G,
                             node_count,
                             temp_c.pop(),
-                            node_count + 1,
-                            check_merge_mems=False)
+                            node_count + 1)
             node_count += 1
 
     return (G)

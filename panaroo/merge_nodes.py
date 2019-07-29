@@ -4,7 +4,7 @@ def merge_nodes(G,
                 nodeA,
                 nodeB,
                 newNode,
-                multi_centroid=False,
+                multi_centroid=True,
                 check_merge_mems=True):
 
     if check_merge_mems:
@@ -25,8 +25,8 @@ def merge_nodes(G,
                        set(G.node[nodeA]['protein'].split(";") +
                            G.node[nodeB]['protein'].split(";"))),
                    dna=";".join(
-                       set(G.node[nodeA]['dna'].split(";") +
-                           G.node[nodeB]['dna'].split(";"))),
+                       G.node[nodeA]['dna'].split(";") +
+                           G.node[nodeB]['dna'].split(";")),
                    annotation=";".join(
                        set(G.node[nodeA]['annotation'].split(";") +
                            G.node[nodeB]['annotation'].split(";"))),
@@ -42,7 +42,9 @@ def merge_nodes(G,
                    members=G.node[nodeA]['members'] + G.node[nodeB]['members'],
                    seqIDs=G.node[nodeA]['seqIDs'] + G.node[nodeB]['seqIDs'],
                    protein=G.node[nodeA]['protein'],
-                   dna=G.node[nodeA]['dna'],
+                   dna=";".join(
+                       G.node[nodeA]['dna'].split(";") +
+                           G.node[nodeB]['dna'].split(";")),
                    annotation=G.node[nodeA]['annotation'],
                    description=G.node[nodeA]['description'],
                    paralog=(G.node[nodeA]['paralog']
