@@ -110,17 +110,7 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir,
             if hit == "": continue
             additions_by_node[b[1]].append((member, hit, hit_protein))
 
-    # if requested remove nodes that have more refound than in original
-    # that is the consensus appears to be it wasn't a good gene most of the
-    # time
-
     bad_nodes = []
-    # if remove_by_consensus:
-    #     for node in additions_by_node:
-    #         if len(additions_by_node[node])>G.node[node]['size']:
-    #             bad_nodes.append(node)
-    # for node in bad_nodes:
-    #     delete_node(G, node)
 
     # Check if there's more than one path between nodes i.e we found the same bit of DNA twice
     path_mem_pairs = defaultdict(set)
@@ -153,6 +143,17 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir,
         delete_node(G, node)
         del additions_by_node[node]
 
+    # if requested remove nodes that have more refound than in original
+    # that is the consensus appears to be it wasn't a good gene most of the
+    # time
+    if remove_by_consensus:
+        for node in additions_by_node:
+            if len(additions_by_node[node])>G.node[node]['size']:
+                bad_nodes.append(node)
+    for node in bad_nodes:
+        if node in G.nodes():
+            delete_node(G, node)
+
     print("update output...")
     with open(dna_seq_file, 'a') as dna_out:
         with open(prot_seq_file, 'a') as prot_out:
@@ -175,6 +176,34 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir,
                     ]
                     n_found += 1
 
+    # correct edges in the graph
+    for member, hits in hit_list:
+        for b, hit in zip(search_lists[member], hits):
+            if b[0] not in G.nodes(): continue
+            if b[1] not in G.nodes(): continue
+            if b[2] not in G.nodes(): continue
+            if hit == "": continue
+            # check if refound was in the middle of a contig
+            neighbour_loc = []
+            for n in [0, 2]:
+                for id in G.node[b[n]]['seqIDs']:
+                    loc = id.split("_")
+                    if loc[0] == member:
+                        neighbour_loc.append((loc[1], loc[2]))
+            if neighbour_loc[0][0]==neighbour_loc[1][0]:
+                G[b[0]][b[1]]['members'].append(member)
+                G[b[0]][b[1]]['weight'] += 1
+                G[b[1]][b[2]]['members'].append(member)
+                G[b[1]][b[2]]['weight'] += 1
+            # remove member from old edge
+            if b[2] in G[b[0]]:
+                if member in G[b[0]][b[2]]['members']:
+                    if G[b[0]][b[2]]['weight']<2:
+                        # delete edge
+                        G.remove_edge(b[0], b[2])
+                    else:
+                        G[b[0]][b[2]]['members'].remove(member)
+                        G[b[0]][b[2]]['weight'] -= 1
 
     return G
 
@@ -302,6 +331,18 @@ def search_dna(seq, search_sequence, prop_match, pairwise_id_thresh, temp_dir,
                                 temp_dir=temp_dir,
                                 n_cpu=n_cpu,
                                 use_local=True,
+                                mask=True,
+                                aS=prop_match)
+
+    # if nothing found and lots of Ns try searching without masking Ns
+    if found_dna=="":
+        found_dna = align_dna_cdhit(query=search_sequence,
+                                target=seq,
+                                id=pairwise_id_thresh,
+                                temp_dir=temp_dir,
+                                n_cpu=n_cpu,
+                                use_local=True,
+                                mask=False,
                                 aS=prop_match)
 
     return found_dna

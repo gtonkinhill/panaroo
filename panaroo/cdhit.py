@@ -91,6 +91,7 @@ def run_cdhit_est(
         use_local=False,  #whether to use local or global sequence alignment
         strand=1,  # default do both +/+ & +/- alignments if set to 0, only +/+
         print_aln=False,  # print alignment overlap in cluster file
+        mask=True,
         quiet=False):
 
     cmd = "cd-hit-est"
@@ -104,8 +105,10 @@ def run_cdhit_est(
     cmd += " -aS " + str(aS)
     cmd += " -AS " + str(AS)
     cmd += " -r " + str(strand)
-    cmd += " -mask NX "
     cmd += " -M 0 -d 999"
+
+    if mask:
+        cmd += " -mask NX"
 
     if use_local:
         cmd += " -G 0"
@@ -297,6 +300,7 @@ def align_dna_cdhit(
         accurate=True,  # use the slower but more accurate options
         use_local=False,  #whether to use local or global sequence alignment
         strand=1,  # default do both +/+ & +/- alignments if set to 0, only +/+
+        mask=True,
         quiet=False):
 
     # create the files we will need
@@ -322,6 +326,7 @@ def align_dna_cdhit(
                   use_local=use_local,
                   print_aln=True,
                   strand=strand,
+                  mask=mask,
                   quiet=True)
 
     # process resulting alignment
