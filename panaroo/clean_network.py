@@ -4,7 +4,7 @@ from panaroo.merge_nodes import merge_nodes
 from collections import defaultdict
 from panaroo.cdhit import is_valid
 from itertools import chain
-
+import numpy as np
 
 # Genes at the end of contigs are more likely to be false positives thus
 # we can remove those with low support
@@ -39,8 +39,21 @@ def collapse_families(G,
 
     if correct_mistranslations:
         depths = [1,2]
+        if dna_error_threshold>0.96:
+            threshold = list(np.arange(1, dna_error_threshold, -0.01))
+        else:
+            threshold = list(np.arange(1, 0.97, -0.01)) + list(np.arange(0.96, dna_error_threshold, -0.05))
     else:
         depths = [1,2]  # range(1,10)
+        if family_threshold==1:
+            threshold = [1]
+        else:
+            if family_threshold>0.98:
+                threshold= [family_threshold]
+            elif family_threshold>0.95:
+                threshold = [0.99] + list(np.arange(1, family_threshold, -0.02))
+            else:
+                threshold = [0.99,0.95] + list(np.arange(0.90, family_threshold, -0.1))
 
     # precluster for speed
     if correct_mistranslations:
@@ -48,7 +61,7 @@ def collapse_families(G,
             G,
             G.nodes(),
             outdir,
-            thresholds=[1,0.99],
+            thresholds=threshold,
             n_cpu=n_cpu,
             quiet=True,
             dna=True,
@@ -59,7 +72,7 @@ def collapse_families(G,
         clusters = iterative_cdhit(G,
             G.nodes(),
             outdir,
-            thresholds=[0.99,0.95,0.90,0.8,0.7],
+            thresholds=threshold,
             n_cpu=n_cpu,
             quiet=True,
             dna=False)
