@@ -93,7 +93,7 @@ def collapse_families(G,
                     temp_clusters[cluster_dict[neigh]].append(neigh)
                 temp_clusters = temp_clusters.values()
 
-                temp_clusters = [[item for sublist in temp_clusters for item in sublist]]
+                # temp_clusters = [[item for sublist in temp_clusters for item in sublist]]
                 
                 clusters = []
                 for cluster in temp_clusters:
