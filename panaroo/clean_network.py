@@ -38,9 +38,9 @@ def collapse_families(G,
     node_count = max(list(G.nodes())) + 10
 
     if correct_mistranslations:
-        depths = [2]
+        depths = [1,2]
     else:
-        depths = [2]  # range(1,10)
+        depths = [1,2]  # range(1,10)
 
     # precluster for speed
     if correct_mistranslations:
@@ -92,10 +92,13 @@ def collapse_families(G,
                 for neigh in neighbours:
                     temp_clusters[cluster_dict[neigh]].append(neigh)
                 temp_clusters = temp_clusters.values()
+
+                temp_clusters = [[item for sublist in temp_clusters for item in sublist]]
+                
                 clusters = []
                 for cluster in temp_clusters:
                     if len(cluster)<2:
-                        clusters += [cluster]
+                        clusters.append([cluster])
                         continue
                     if correct_mistranslations:
                         clusters += cluster_nodes_cdhit(

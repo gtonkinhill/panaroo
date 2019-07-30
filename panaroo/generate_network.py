@@ -5,7 +5,7 @@ from panaroo.merge_nodes import merge_nodes
 from panaroo.clean_network import collapse_paralogs
 
 
-def generate_network(cluster_file, data_file, prot_seq_file):
+def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
 
     # associate sequences with their clusters
     seq_to_cluster = {}
@@ -63,7 +63,8 @@ def generate_network(cluster_file, data_file, prot_seq_file):
                 G.node[prev]['size'] += 1
                 G.node[prev]['members'].append(genome_id)
                 G.node[prev]['seqIDs'].append(id)
-                G.node[prev]['dna'] += ";" + cluster_centroid_data[prev]['dna_sequence']
+                if all_dna:
+                    G.node[prev]['dna'] += ";" + cluster_centroid_data[prev]['dna_sequence']
             else:
                 if prev in paralogs:
                     # create a new paralog
@@ -137,7 +138,8 @@ def generate_network(cluster_file, data_file, prot_seq_file):
                     G.node[current_cluster]['size'] += 1
                     G.node[current_cluster]['members'].append(genome_id)
                     G.node[current_cluster]['seqIDs'].append(id)
-                    G.node[current_cluster]['dna'] += ";" + cluster_centroid_data[current_cluster]['dna_sequence']
+                    if all_dna:
+                        G.node[current_cluster]['dna'] += ";" + cluster_centroid_data[current_cluster]['dna_sequence']
                     if G.has_edge(prev, current_cluster):
                         G[prev][current_cluster]['weight'] += 1
                         G[prev][current_cluster]['members'].append(genome_id)

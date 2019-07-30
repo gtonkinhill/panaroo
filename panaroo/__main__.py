@@ -108,6 +108,13 @@ def get_options():
         help=("minimum edge support required to call structural variants" +
               " in the presence/absence sv file"),
         type=int)
+    graph.add_argument(
+        "--all_seq_in_graph",
+        dest="all_seq_in_graph",
+        help=("Retains all DNA sequence for each gene cluster in the graph "
+            + "output. Off by default as it uses a large amount of space."),
+        action='store_true',
+        default=False)
 
     core = parser.add_argument_group('Gene alignment')
     core.add_argument(
@@ -182,7 +189,8 @@ def main():
     G = generate_network(cluster_file=cd_hit_out + ".clstr",
                          data_file=args.output_dir + "gene_data.csv",
                          prot_seq_file=args.output_dir +
-                         "combined_protein_CDS.fasta")
+                         "combined_protein_CDS.fasta", 
+                         all_dna=args.all_seq_in_graph)
 
     # merge paralogs
     G = collapse_paralogs(G)
