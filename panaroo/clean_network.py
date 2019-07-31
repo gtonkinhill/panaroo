@@ -1,5 +1,5 @@
 import networkx as nx
-from panaroo.cdhit import cluster_nodes_cdhit, iterative_cdhit
+from panaroo.cdhit import cluster_nodes_cdhit, iterative_cdhit, many_cdhit_runs
 from panaroo.merge_nodes import merge_nodes
 from collections import defaultdict
 from panaroo.cdhit import is_valid
@@ -55,31 +55,31 @@ def collapse_families(G,
             else:
                 threshold = [0.99,0.95] + list(np.arange(0.90, family_threshold, -0.1))
 
-    # precluster for speed
-    if correct_mistranslations:
-        clusters = iterative_cdhit(
-            G,
-            G.nodes(),
-            outdir,
-            thresholds=threshold,
-            n_cpu=n_cpu,
-            quiet=True,
-            dna=True,
-            # aL=0.6,
-            use_local=False,
-            accurate=False)
-    else:
-        clusters = iterative_cdhit(G,
-            G.nodes(),
-            outdir,
-            thresholds=threshold,
-            n_cpu=n_cpu,
-            quiet=True,
-            dna=False)
-    cluster_dict = {}
-    for c, clust in enumerate(clusters):
-        for n in clust:
-            cluster_dict[n] = c
+    # # precluster for speed
+    # if correct_mistranslations:
+    #     clusters = iterative_cdhit(
+    #         G,
+    #         G.nodes(),
+    #         outdir,
+    #         thresholds=threshold,
+    #         n_cpu=n_cpu,
+    #         quiet=True,
+    #         dna=True,
+    #         # aL=0.6,
+    #         use_local=False,
+    #         accurate=False)
+    # else:
+    #     clusters = iterative_cdhit(G,
+    #         G.nodes(),
+    #         outdir,
+    #         thresholds=threshold,
+    #         n_cpu=n_cpu,
+    #         quiet=True,
+    #         dna=False)
+    # cluster_dict = {}
+    # for c, clust in enumerate(clusters):
+    #     for n in clust:
+    #         cluster_dict[n] = c
 
     for d in depths:
         search_space = set(G.nodes())
@@ -88,53 +88,60 @@ def collapse_families(G,
             # look for nodes to merge
             temp_node_list = list(search_space)
             removed_nodes = set()
+            node_sets = {}
             for node in temp_node_list:
                 if node in removed_nodes: continue
+                if G.degree[node] <= 2:
+                    search_space.remove(node)
+                    removed_nodes.add(node)
+                    continue
+                # find neighbouring nodes and cluster their centroid with cdhit
+                neighbours = [
+                    v for u, v in nx.bfs_edges(G, source=node, depth_limit=d+2)
+                ]
 
+                node_sets[node] = neighbours
+
+            if correct_mistranslations:
+                node_to_clustering_dict = many_cdhit_runs(
+                    node_sets,
+                    G,
+                    outdir,
+                    id=dna_error_threshold,
+                    n_cpu=n_cpu,
+                    quiet=True,
+                    dna=True,
+                    use_local=False,
+                    prevent_para=False,
+                    accurate=False)
+            else:
+                node_to_clustering_dict = many_cdhit_runs(
+                    node_sets,
+                    G,
+                    outdir,
+                    id=family_threshold,
+                    n_cpu=n_cpu,
+                    quiet=True,
+                    dna=False,
+                    prevent_para=False)
+
+            for node in temp_node_list:
+                if node in removed_nodes: continue
                 if G.degree[node] <= 2:
                     search_space.remove(node)
                     removed_nodes.add(node)
                     continue
 
-                # find neighbouring nodes and cluster their centroid with cdhit
                 neighbours = [
-                    v for u, v in nx.bfs_edges(G, source=node, depth_limit=d)
+                    v for u, v in nx.bfs_edges(G, source=node, depth_limit=d+1)
                 ]
 
                 temp_clusters = defaultdict(list)
                 for neigh in neighbours:
-                    temp_clusters[cluster_dict[neigh]].append(neigh)
-                temp_clusters = temp_clusters.values()
+                    temp_clusters[node_to_clustering_dict[G.node[node]['centroid'].split(";"
+                        )[0]][G.node[neigh]['centroid'].split(";")[0]]].append(neigh)
+                clusters = temp_clusters.values()
 
-                # temp_clusters = [[item for sublist in temp_clusters for item in sublist]]
-                
-                clusters = []
-                for cluster in temp_clusters:
-                    if len(cluster)<2:
-                        clusters.append([cluster])
-                        continue
-                    if correct_mistranslations:
-                        clusters += cluster_nodes_cdhit(
-                            G,
-                            cluster,
-                            outdir,
-                            id=dna_error_threshold,
-                            n_cpu=n_cpu,
-                            quiet=True,
-                            dna=True,
-                            use_local=False,
-                            prevent_para=False,
-                            accurate=False)
-                    else:
-                        clusters += cluster_nodes_cdhit(G,
-                            cluster,
-                            outdir,
-                            id=family_threshold,
-                            n_cpu=n_cpu,
-                            quiet=True,
-                            dna=False,
-                            prevent_para=False)
-                
                 # for cluster in cluster_dict.values():
                 for cluster in clusters:
                     # check if there are any to collapse

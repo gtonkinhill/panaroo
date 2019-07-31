@@ -6,6 +6,7 @@ import re
 from collections import defaultdict
 import networkx as nx
 from Bio.Seq import reverse_complement
+from joblib import Parallel, delayed
 
 def check_cdhit_version(cdhit_exec='cd-hit'):
     """Checks that cd-hit can be run, and returns version.
@@ -450,3 +451,35 @@ def iterative_cdhit(G,
         temp_output_file.name = temp_output_file.name + "t" + str(cid)
 
     return(clusters)
+
+
+def many_cdhit_runs(node_sets, G,
+        outdir,
+        id=0.95,
+        dna=False,
+        s=0.0,  # length difference cutoff (%), default 0.0
+        aL=0.0,  # alignment coverage for the longer sequence
+        AL=99999999,  # alignment coverage control for the longer sequence
+        aS=0.0,  # alignment coverage for the shorter sequence
+        AS=99999999,  # alignment coverage control for the shorter sequence
+        accurate=True,  # use the slower but more accurate options
+        use_local=False,  #whether to use local or global sequence alignment
+        strand=1,  # default do both +/+ & +/- alignments if set to 0, only +/+
+        quiet=False,
+        prevent_para=True,
+        n_cpu=1):
+
+    clusterings = Parallel(n_jobs=n_cpu)(
+                delayed(cluster_nodes_cdhit)(G, node_sets[node], outdir,
+                id, dna, s , aL, AL, aS, AS, accurate, use_local, 
+                strand, quiet, prevent_para, 1)
+                for node in node_sets)
+
+    node_to_clustering_dict = {}
+    for node, clusters in zip(node_sets, clusterings):
+        cluster_dict = {}
+        for i, n in enumerate(clusters):
+            cluster_dict[G.node[n]['centroid'].split(";")[0]] = i
+        node_to_clustering_dict[G.node[node]['centroid'].split(";")[0]] = cluster_dict
+
+    return node_to_clustering_dict
