@@ -267,14 +267,21 @@ def main():
     if args.merge_paralogs:
         G = merge_paralogs(G)
 
+   
+    isolate_names = [
+        os.path.splitext(os.path.basename(x.name))[0] for x in args.input_files
+    ]
+    G.graph['isolateNames'] = isolate_names
+    mems_to_isolates = {}
+    for i, iso in enumerate(isolate_names):
+        mems_to_isolates[str(i)] = iso
+
     # write out roary like gene_presence_absence.csv
     G = generate_roary_gene_presence_absence(G,
-                                             file_names=args.input_files,
-                                             dna_file=args.output_dir +
-                                             "combined_DNA_CDS.fasta",
+                                             mems_to_isolates=mems_to_isolates, 
                                              output_dir=args.output_dir)
 
-    # add helpful attributes and write out graph in GML format
+     # add helpful attributes and write out graph in GML format
     for node in G.nodes():
         G.node[node]['size'] = len(set(G.node[node]['members']))
 
@@ -298,15 +305,10 @@ def main():
     generate_gene_mobility(G, output_dir=args.output_dir)
 
     # write out common structural differences in a matrix format
-    isolate_names = [
-        os.path.splitext(os.path.basename(x.name))[0] for x in args.input_files
-    ]
-    
     generate_common_struct_presence_absence(
         G,
         output_dir=args.output_dir,
-        n_members=len(args.input_files),
-        isolate_names=isolate_names,
+        mems_to_isolates=mems_to_isolates,
         min_variant_support=args.min_edge_support_sv)
 
     #Write out core/pan-genome alignments

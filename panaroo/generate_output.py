@@ -14,22 +14,14 @@ from tqdm import tqdm
 from panaroo.generate_alignments import *
 
 
-def generate_roary_gene_presence_absence(G, file_names, dna_file, output_dir):
+def generate_roary_gene_presence_absence(G, mems_to_isolates, output_dir):
 
-    # clean file names
-    file_names = [
-        os.path.splitext(os.path.basename(f.name))[0] for f in file_names
-    ]
-    file_names = [f.replace(",", "") for f in file_names]
-
-    # calculate node average, min and max lengths
-    seq_lengths = {}
-    for rec in SeqIO.parse(dna_file, "fasta"):
-        seq_lengths[str(rec.id)] = len(rec.seq)
-    node_lengths = defaultdict(list)
-    for node in G.nodes():
-        for seq in G.node[node]['seqIDs']:
-            node_lengths[node].append(seq_lengths[seq])
+    # arange isolates
+    isolates = []
+    mems_to_index = {}
+    for i, mem in enumerate(mems_to_isolates):
+        isolates.append(mems_to_isolates[mem])
+        mems_to_index[str(mem)] = i
 
     # generate file
     with open(output_dir + "gene_presence_absence.csv", 'w') as csv_outfile, \
@@ -40,9 +32,9 @@ def generate_roary_gene_presence_absence(G, file_names, dna_file, output_dir):
             "Order within Fragment", "Accessory Fragment",
             "Accessory Order with Fragment", "QC", "Min group size nuc",
             "Max group size nuc", "Avg group size nuc"
-        ] + file_names
+        ] + isolates
         csv_outfile.write(",".join(header) + "\n")
-        Rtab_outfile.write("\t".join((["Gene"] + file_names)) + "\n")
+        Rtab_outfile.write("\t".join((["Gene"] + isolates)) + "\n")
 
         # Iterate through coponents writing out to file
         used_gene_names = set([""])
@@ -73,13 +65,14 @@ def generate_roary_gene_presence_absence(G, file_names, dna_file, output_dir):
                 entry.append(frag)
                 entry.append(count)
                 entry += ["", "", ""]
-                entry.append(np.min(node_lengths[node]))
-                entry.append(np.max(node_lengths[node]))
-                entry.append(np.mean(node_lengths[node]))
-                pres_abs = [""] * len(file_names)
+                entry.append(np.min(G.node[node]['lengths']))
+                entry.append(np.max(G.node[node]['lengths']))
+                entry.append(np.mean(G.node[node]['lengths']))
+                pres_abs = [""] * len(isolates)
                 for seq in G.node[node]['seqIDs']:
-                    sample_id = int(seq.split("_")[0])
-                    pres_abs[sample_id] = seq
+                    sample_id = mems_to_index["_".join(seq.split("_")[:-2])]
+                    if pres_abs[sample_id]=="": #ensures we only take the first one
+                        pres_abs[sample_id] = seq
                 entry += pres_abs
                 csv_outfile.write(",".join([str(e) for e in entry]) + "\n")
                 Rtab_outfile.write(entry[0] + "\t")
@@ -96,13 +89,13 @@ def generate_pan_genome_reference(G, output_dir, split_paralogs=False):
     records = []
 
     for node in G.nodes():
-        if not split_paralogs and G.node[node]['centroid'] in centroids:
+        if not split_paralogs and G.node[node]['centroid'].split(";")[0] in centroids:
             continue
         records.append(
-            SeqRecord(Seq(G.node[node]['dna'], generic_dna),
-                      id=G.node[node]['centroid'],
+            SeqRecord(Seq(G.node[node]['dna'].split(";")[0], generic_dna),
+                      id=G.node[node]['centroid'].split(";")[0],
                       description=""))
-        centroids.add(G.node[node]['centroid'])
+        centroids.add(G.node[node]['centroid'].split(";")[0])
 
     with open(output_dir + "pan_genome_reference.fa", 'w') as outfile:
         SeqIO.write(records, outfile, "fasta")
@@ -130,9 +123,15 @@ def generate_gene_mobility(G, output_dir):
 
 def generate_common_struct_presence_absence(G,
                                             output_dir,
-                                            n_members,
-                                            isolate_names,
+                                            mems_to_isolates,
                                             min_variant_support=2):
+
+    # arange isolates
+    isolates = []
+    members = []
+    for mem in mems_to_isolates:
+        isolates.append(mems_to_isolates[mem])
+        members.append(mem)
 
     struct_variants = {}
     for node in G.nodes():
@@ -151,11 +150,11 @@ def generate_common_struct_presence_absence(G,
         ]))
 
     with open(output_dir + "struct_presence_absence.Rtab", 'w') as Rtab_outfile:
-        Rtab_outfile.write("\t".join((["Gene"] + isolate_names)) + "\n")
+        Rtab_outfile.write("\t".join((["Gene"] + isolates)) + "\n")
         for h, variant in zip(header, struct_variants):
             variant_calls = [h]
-            for member in range(n_members):
-                if str(member) in struct_variants[variant]:
+            for member in members:
+                if member in struct_variants[variant]:
                     variant_calls.append("1")
                 else:
                     variant_calls.append("0")

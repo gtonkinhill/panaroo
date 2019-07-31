@@ -33,9 +33,14 @@ def merge_nodes(G,
                    description=";".join(
                        set(G.node[nodeA]['description'].split(";") +
                            G.node[nodeB]['description'].split(";"))),
+                   lengths=G.node[nodeA]['lengths'] + G.node[nodeB]['lengths'],
                    paralog=(G.node[nodeA]['paralog']
                             or G.node[nodeB]['paralog']))
     else:
+        # take node with most support as the 'consensus'
+        if G.node[nodeA]['size']<G.node[nodeB]['size']:
+            nodeB, nodeA = nodeA, nodeB
+            
         G.add_node(newNode,
                    size=G.node[nodeA]['size'] + G.node[nodeB]['size'],
                    centroid=G.node[nodeA]['centroid'],
@@ -49,6 +54,7 @@ def merge_nodes(G,
                    description=G.node[nodeA]['description'],
                    paralog=(G.node[nodeA]['paralog']
                             or G.node[nodeB]['paralog']),
+                   lengths=G.node[nodeA]['lengths'] + G.node[nodeB]['lengths'],
                    mergedDNA=True)
 
     # Now iterate through neighbours of each node and add them to the new node
@@ -103,10 +109,12 @@ def delete_node(G, node):
 def remove_member_from_node(G, node, member):
 
     # if its the last member delete the node
-    if member in G.node[node]['members']:
+    while member in G.node[node]['members']:
         # TODO: remove relevent sequence and annotations
-        G.node[node]['members'].remove(member)
+        rm_index = G.node[node]['members'].index(member)
+        del G.node[node]['members'][rm_index]
         G.node[node]['size'] -= 1
-        G.node[node]['seqIDs'] = [sid for sid in G.node[node]['seqIDs'] if int(sid.split("_")[0])!=member]
+        del G.node[node]['seqIDs'][rm_index]
+        del G.node[node]['lengths'][rm_index]
             
     return G

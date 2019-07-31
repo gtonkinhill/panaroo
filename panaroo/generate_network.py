@@ -63,6 +63,8 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                 G.node[prev]['size'] += 1
                 G.node[prev]['members'].append(genome_id)
                 G.node[prev]['seqIDs'].append(id)
+                G.node[current_cluster]['lengths'].append(len(cluster_centroid_data[prev]
+                        ['dna_sequence']))
                 if all_dna:
                     G.node[prev]['dna'] += ";" + cluster_centroid_data[prev]['dna_sequence']
             else:
@@ -85,6 +87,8 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                     ['annotation'],
                     description=cluster_centroid_data[current_cluster]
                     ['description'],
+                    lengths=[len(cluster_centroid_data[current_cluster]
+                        ['dna_sequence'])],
                     paralog=(current_cluster in paralogs))
         else:
             is_paralog = current_cluster in paralogs
@@ -107,6 +111,8 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                     ['annotation'],
                     description=cluster_centroid_data[current_cluster]
                     ['description'],
+                    lengths=[len(cluster_centroid_data[current_cluster]
+                        ['dna_sequence'])],
                     paralog=True)
                 # add edge between nodes
                 G.add_edge(prev, neighbour, weight=1, members=[genome_id])
@@ -128,6 +134,8 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                         ['annotation'],
                         description=cluster_centroid_data[current_cluster]
                         ['description'],
+                        lengths=[len(cluster_centroid_data[current_cluster]
+                        ['dna_sequence'])],
                         paralog=is_paralog)
                     # add edge between nodes
                     G.add_edge(prev,
@@ -138,6 +146,8 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                     G.node[current_cluster]['size'] += 1
                     G.node[current_cluster]['members'].append(genome_id)
                     G.node[current_cluster]['seqIDs'].append(id)
+                    G.node[current_cluster]['lengths'].append(len(cluster_centroid_data[current_cluster]
+                        ['dna_sequence']))
                     if all_dna:
                         G.node[current_cluster]['dna'] += ";" + cluster_centroid_data[current_cluster]['dna_sequence']
                     if G.has_edge(prev, current_cluster):
