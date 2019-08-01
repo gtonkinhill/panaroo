@@ -172,15 +172,15 @@ def main():
         print("pre-processing gff3 files...")
 
     # convert input GFF3 files into summary files
-    process_prokka_input(args.input_files, args.output_dir, args.n_cpu)
+    # process_prokka_input(args.input_files, args.output_dir, args.n_cpu)
 
     # Cluster protein sequences using cdhit
     cd_hit_out = args.output_dir + "combined_protein_cdhit_out.txt"
-    run_cdhit(input_file=args.output_dir + "combined_protein_CDS.fasta",
-              output_file=cd_hit_out,
-              id=args.id,
-              s=args.len_dif_percent,
-              n_cpu=args.n_cpu)
+    # run_cdhit(input_file=args.output_dir + "combined_protein_CDS.fasta",
+    #           output_file=cd_hit_out,
+    #           id=args.id,
+    #           s=args.len_dif_percent,
+    #           n_cpu=args.n_cpu)
 
     if args.verbose:
         print("generating initial network...")
@@ -216,7 +216,7 @@ def main():
                                        max_recursive=args.trailing_recursive)
 
     if args.verbose:
-        print("collapse gene families...")
+        print("collapse mistranslations...")
 
     # clean up translation errors
     G = collapse_families(G,
@@ -225,6 +225,9 @@ def main():
                           correct_mistranslations=True,
                           n_cpu=args.n_cpu,
                           quiet=(not args.verbose))
+
+    if args.verbose:
+        print("collapse gene families...")
 
     # collapse gene families
     G = collapse_families(G,
@@ -254,14 +257,14 @@ def main():
         print("refinding genes...")
 
     # find genes that Prokka has missed
-    G = find_missing(G,
-                     args.input_files,
-                     temp_dir=temp_dir,
-                     dna_seq_file=args.output_dir + "combined_DNA_CDS.fasta",
-                     prot_seq_file=args.output_dir +
-                     "combined_protein_CDS.fasta",
-                     remove_by_consensus=args.remove_by_consensus,
-                     n_cpu=args.n_cpu)
+    # G = find_missing(G,
+    #                  args.input_files,
+    #                  temp_dir=temp_dir,
+    #                  dna_seq_file=args.output_dir + "combined_DNA_CDS.fasta",
+    #                  prot_seq_file=args.output_dir +
+    #                  "combined_protein_CDS.fasta",
+    #                  remove_by_consensus=args.remove_by_consensus,
+    #                  n_cpu=args.n_cpu)
     
     # if requested merge paralogs
     if args.merge_paralogs:

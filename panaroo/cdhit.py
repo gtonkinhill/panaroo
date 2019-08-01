@@ -6,7 +6,12 @@ import re
 from collections import defaultdict
 import networkx as nx
 from Bio.Seq import reverse_complement
-from joblib import Parallel, delayed
+import pyopa 
+import itertools
+import numpy as np
+from scipy.cluster.hierarchy import linkage, fcluster
+from scipy.spatial.distance import pdist
+
 
 def check_cdhit_version(cdhit_exec='cd-hit'):
     """Checks that cd-hit can be run, and returns version.
@@ -453,33 +458,55 @@ def iterative_cdhit(G,
     return(clusters)
 
 
-def many_cdhit_runs(node_sets, G,
-        outdir,
-        id=0.95,
-        dna=False,
-        s=0.0,  # length difference cutoff (%), default 0.0
-        aL=0.0,  # alignment coverage for the longer sequence
-        AL=99999999,  # alignment coverage control for the longer sequence
-        aS=0.0,  # alignment coverage for the shorter sequence
-        AS=99999999,  # alignment coverage control for the shorter sequence
-        accurate=True,  # use the slower but more accurate options
-        use_local=False,  #whether to use local or global sequence alignment
-        strand=1,  # default do both +/+ & +/- alignments if set to 0, only +/+
-        quiet=False,
-        prevent_para=True,
-        n_cpu=1):
+def pwdist_pyopa(G, cdhit_clusters, dna=False, n_cpu=1):
 
-    clusterings = Parallel(n_jobs=n_cpu)(
-                delayed(cluster_nodes_cdhit)(G, node_sets[node], outdir,
-                id, dna, s , aL, AL, aS, AS, accurate, use_local, 
-                strand, quiet, prevent_para, 1)
-                for node in node_sets)
+    # Generate an environment for pyopa
+    log_pam1_env = pyopa.read_env_json(os.path.join(pyopa.matrix_dir(), 'logPAM1.json'))
+    pam250_env = pyopa.generate_env(log_pam1_env, 250)
+    
+    # map nodes to centroids
+    node_to_centroid = {}
+    for node in G.nodes():
+        node_to_centroid[node] = G.node[node]["centroid"].split(";")[0]
 
-    node_to_clustering_dict = {}
-    for node, clusters in zip(node_sets, clusterings):
-        cluster_dict = {}
-        for i, n in enumerate(clusters):
-            cluster_dict[G.node[n]['centroid'].split(";")[0]] = i
-        node_to_clustering_dict[G.node[node]['centroid'].split(";")[0]] = cluster_dict
+    # Prepare sequences
+    seqs = {}
+    for node in G.nodes():
+        if node_to_centroid[node] in seqs: continue
+        if dna:
+            seqs[node_to_centroid[node]] = pyopa.Sequence(
+                G.node[node]['dna'].split(";")[0])
+        else:
+            seqs[node_to_centroid[node]] = pyopa.Sequence(
+                G.node[node]['protein'].split(";")[0])
 
-    return node_to_clustering_dict
+    # get pairwise id between sequences in the same cdhit clusters
+    distances_bwtn_centroids = defaultdict(lambda: 100)
+    for cluster in cdhit_clusters:
+        for n1, n2 in itertools.combinations(cluster, 2):
+            aln = pyopa.align_strings(seqs[node_to_centroid[n1]], 
+                seqs[node_to_centroid[n1]], pam250_env, is_global=True)
+            a1 = np.array(list(str(aln[0])))
+            a2 = np.array(list(str(aln[1])))
+            aln_cols = ((np.cumsum(a1!="-") * np.cumsum(a2!="-")) * 
+                np.flip(np.cumsum(np.flip(a1)!="-") * np.cumsum(np.flip(a2)!="-")))!=0
+            pwid = np.sum((a1==a2) & aln_cols)/(1.0*np.sum(aln_cols))
+            distances_bwtn_centroids[(node_to_centroid[n1],node_to_centroid[n2])] = 1.0-pwid
+            distances_bwtn_centroids[(node_to_centroid[n2],node_to_centroid[n1])] = 1.0-pwid
+
+    return distances_bwtn_centroids
+
+def cluster_centroids_linkage(G, nodes, distances_bwtn_centroids, threshold):
+
+    nnodes = len(nodes)
+    centroids = [G.node[node]["centroid"].split(";")[0] for node in nodes]
+    nodes = np.array(nodes)
+
+    y = pdist(np.arange(nnodes).reshape((nnodes, 1)), 
+        lambda u, v: distances_bwtn_centroids[(centroids[int(u)], centroids[int(v)])])
+
+    cluster_assignments = fcluster(linkage(y, 'single'), t=1.0-threshold, criterion="distance")
+    clusters = [list(nodes[cluster_assignments == i]
+        ) for i in range(np.max(cluster_assignments)+1)]
+
+    return clusters
