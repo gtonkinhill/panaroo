@@ -475,12 +475,12 @@ def pwdist_pyopa(G, cdhit_clusters, dna=False, n_cpu=1):
         if node_to_centroid[node] in seqs: continue
         if dna:
             seqs[node_to_centroid[node]] = pyopa.Sequence(
-                G.node[node]['dna'].split(";")[0])
-                # max(G.node[node]["dna"].split(";"), key=len))
+                # G.node[node]['dna'].split(";")[0])
+                max(G.node[node]["dna"].split(";"), key=len))
         else:
             seqs[node_to_centroid[node]] = pyopa.Sequence(
-                G.node[node]['protein'].split(";")[0])
-                # max(G.node[node]["protein"].split(";"), key=len))
+                # G.node[node]['protein'].split(";")[0])
+                max(G.node[node]["protein"].split(";"), key=len))
 
     # get pairwise id between sequences in the same cdhit clusters
     distances_bwtn_centroids = defaultdict(lambda: 100)
@@ -509,6 +509,6 @@ def cluster_centroids_linkage(G, nodes, distances_bwtn_centroids, threshold):
 
     cluster_assignments = fcluster(linkage(y, 'single'), t=1.0-threshold, criterion="distance")
     clusters = [list(nodes[cluster_assignments == i]
-        ) for i in range(np.max(cluster_assignments)+1)]
+        ) for i in range(1, np.max(cluster_assignments)+1)]
 
     return clusters

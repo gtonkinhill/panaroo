@@ -101,12 +101,65 @@ def collapse_families(G,
                     v for u, v in nx.bfs_edges(G, source=node, depth_limit=d)
                 ]
 
+                f = set(["2_1_128","3_2_434","0_1_337","1_2_438","0_1_338","1_2_439","0_1_339","1_2_440","0_1_340","2_1_126","1_2_436","1_2_435","2_1_125","1_2_437","2_1_127","1_2_434","2_1_124","0_1_336","3_2_433"])
+                printstuff = False
+                for n in neighbours:
+                    if len(set(G.node[n]['seqIDs']).intersection(f))>0:
+                        printstuff=True
+
+                if printstuff:
+                    if correct_mistranslations:
+                        clusters = cluster_nodes_cdhit(
+                            G,
+                            neighbours,
+                            outdir,
+                            id=dna_error_threshold,
+                            n_cpu=n_cpu,
+                            quiet=True,
+                            dna=True,
+                            use_local=False,
+                            prevent_para=False,
+                            accurate=False)
+                    else:
+                        clusters = cluster_nodes_cdhit(G,
+                            neighbours,
+                            outdir,
+                            id=family_threshold,
+                            n_cpu=n_cpu,
+                            quiet=True,
+                            dna=False,
+                            prevent_para=False)
+
+                    print("*****")
+                    print("old: ", clusters)
+                    for cluster in clusters:
+                        members = list(
+                            chain.from_iterable(
+                                [G.node[n]['members'] for n in cluster]))
+                        if (len(members) == len(set(members))):
+                            print("no conflicts!")
+                        else:
+                            print("conflicts!")
+
+                
                 if correct_mistranslations:
                     clusters = cluster_centroids_linkage(G, neighbours, 
                         distances_bwtn_centroids, threshold=dna_error_threshold)
                 else:
                     clusters = cluster_centroids_linkage(G, neighbours, 
                         distances_bwtn_centroids, threshold=family_threshold)
+                if printstuff:
+                    print("new: ", clusters)
+                    for cluster in clusters:
+                        for n in cluster:
+                            print("node:", n, " ids: ", G.node[n]['seqIDs'])
+                        members = list(
+                            chain.from_iterable(
+                                [G.node[n]['members'] for n in cluster]))
+                        if (len(members) == len(set(members))):
+                            print("no conflicts!")
+                        else:
+                            print("conflicts!")
                 
                 for cluster in clusters:
                     # check if there are any to collapse
@@ -154,12 +207,15 @@ def collapse_families(G,
                                 if len(temp_centroids) != len(
                                         set(temp_centroids)):
                                     # matching centroids so dont merge
+                                    if printstuff: print("Here")
                                     should_merge = False
                                 sub_G = G.subgraph(member_to_nodes[mem])
                                 if not nx.is_connected(sub_G):
+                                    if printstuff: print("Here2")
                                     should_merge = False
 
                             if should_merge:
+                                if printstuff: print("Merging!")
                                 node_count += 1
                                 for neig in cluster:
                                     removed_nodes.add(neig)
