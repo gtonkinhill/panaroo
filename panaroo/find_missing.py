@@ -177,33 +177,33 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir,
                     n_found += 1
 
     # correct edges in the graph
-    for member, hits in hit_list:
-        for b, hit in zip(search_lists[member], hits):
-            if b[0] not in G.nodes(): continue
-            if b[1] not in G.nodes(): continue
-            if b[2] not in G.nodes(): continue
-            if hit == "": continue
-            # check if refound was in the middle of a contig
-            neighbour_loc = []
-            for n in [0, 2]:
-                for id in G.node[b[n]]['seqIDs']:
-                    loc = id.split("_")
-                    if loc[0] == member:
-                        neighbour_loc.append((loc[1], loc[2]))
-            if neighbour_loc[0][0]==neighbour_loc[1][0]:
-                G[b[0]][b[1]]['members'].append(member)
-                G[b[0]][b[1]]['weight'] += 1
-                G[b[1]][b[2]]['members'].append(member)
-                G[b[1]][b[2]]['weight'] += 1
-            # remove member from old edge
-            if b[2] in G[b[0]]:
-                if member in G[b[0]][b[2]]['members']:
-                    if G[b[0]][b[2]]['weight']<2:
-                        # delete edge
-                        G.remove_edge(b[0], b[2])
-                    else:
-                        G[b[0]][b[2]]['members'].remove(member)
-                        G[b[0]][b[2]]['weight'] -= 1
+    # for member, hits in hit_list:
+    #     for b, hit in zip(search_lists[member], hits):
+    #         if b[0] not in G.nodes(): continue
+    #         if b[1] not in G.nodes(): continue
+    #         if b[2] not in G.nodes(): continue
+    #         if hit == "": continue
+    #         # check if refound was in the middle of a contig
+    #         neighbour_loc = []
+    #         for n in [0, 2]:
+    #             for id in G.node[b[n]]['seqIDs']:
+    #                 loc = id.split("_")
+    #                 if loc[0] == member:
+    #                     neighbour_loc.append((loc[1], loc[2]))
+    #         if neighbour_loc[0][0]==neighbour_loc[1][0]:
+    #             G[b[0]][b[1]]['members'].append(member)
+    #             G[b[0]][b[1]]['weight'] += 1
+    #             G[b[1]][b[2]]['members'].append(member)
+    #             G[b[1]][b[2]]['weight'] += 1
+    #         # remove member from old edge
+    #         if b[2] in G[b[0]]:
+    #             if member in G[b[0]][b[2]]['members']:
+    #                 if G[b[0]][b[2]]['weight']<2:
+    #                     # delete edge
+    #                     G.remove_edge(b[0], b[2])
+    #                 else:
+    #                     G[b[0]][b[2]]['members'].remove(member)
+    #                     G[b[0]][b[2]]['weight'] -= 1
 
     return G
 
