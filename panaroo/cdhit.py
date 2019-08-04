@@ -13,6 +13,7 @@ from scipy.cluster.hierarchy import linkage, fcluster
 from scipy.spatial.distance import pdist
 from joblib import Parallel, delayed
 from tqdm import tqdm
+import math
 
 def check_cdhit_version(cdhit_exec='cd-hit'):
     """Checks that cd-hit can be run, and returns version.
@@ -486,7 +487,8 @@ def pwdist_pyopa(G, cdhit_clusters, dna=False, n_cpu=1):
     # get pairwise id between sequences in the same cdhit clusters
     distances_bwtn_centroids = defaultdict(lambda: 100)
 
-    all_distances = Parallel(n_jobs=n_cpu)(
+    bsize = math.ceil(len(cdhit_clusters)/n_cpu/10)
+    all_distances = Parallel(n_jobs=n_cpu, batch_size=200)(
                 delayed(run_pw)(cluster, seqs, node_to_centroid, pam250_env)
                 for cluster in tqdm(cdhit_clusters))
     for distances in all_distances:
