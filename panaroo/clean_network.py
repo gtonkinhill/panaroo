@@ -5,6 +5,8 @@ from collections import defaultdict
 from panaroo.cdhit import is_valid
 from itertools import chain
 import numpy as np
+from scipy.sparse import csr_matrix
+from scipy.sparse.csgraph import connected_components
 
 # Genes at the end of contigs are more likely to be false positives thus
 # we can remove those with low support
@@ -26,7 +28,7 @@ def trim_low_support_trailing_ends(G, min_support=3, max_recursive=2):
 
     return G
 
-
+@profile
 def collapse_families(G,
                       outdir,
                       family_threshold=0.7,
@@ -68,8 +70,9 @@ def collapse_families(G,
             # aL=0.6,
             use_local=False,
             accurate=False)
-        distances_bwtn_centroids = pwdist_pyopa(G, cdhit_clusters,
+        distances_bwtn_centroids, centroid_to_index = pwdist_pyopa(G, cdhit_clusters,
             dna=False, n_cpu=n_cpu)
+        distances_bwtn_centroids = distances_bwtn_centroids>dna_error_threshold
     else:
         cdhit_clusters = iterative_cdhit(G,
             G.nodes(),
@@ -78,8 +81,9 @@ def collapse_families(G,
             n_cpu=n_cpu,
             quiet=True,
             dna=False)
-        distances_bwtn_centroids = pwdist_pyopa(G, cdhit_clusters,
+        distances_bwtn_centroids, centroid_to_index = pwdist_pyopa(G, cdhit_clusters,
             dna=True, n_cpu=n_cpu)
+        distances_bwtn_centroids = distances_bwtn_centroids>family_threshold
     
     
     for d in depths:
@@ -123,12 +127,20 @@ def collapse_families(G,
                 #         dna=False,
                 #         prevent_para=False)
 
-                if correct_mistranslations:
-                    clusters = cluster_centroids_linkage(G, neighbours, 
-                        distances_bwtn_centroids, threshold=dna_error_threshold)
-                else:
-                    clusters = cluster_centroids_linkage(G, neighbours, 
-                        distances_bwtn_centroids, threshold=family_threshold)
+                # find clusters
+                index = np.array([centroid_to_index[G.node[neigh]["centroid"].split(";")[0]] for neigh in neighbours], dtype=int)
+                neigh_array = np.array(neighbours)
+                n_components, labels = connected_components(csgraph=distances_bwtn_centroids[index][:, index], 
+                    directed=False, return_labels=True)
+                clusters = [list(neigh_array[labels == i]
+                    ) for i in np.unique(labels)]
+
+                # if correct_mistranslations:
+                #     clusters = cluster_centroids_linkage(G, neighbours, 
+                #         distances_bwtn_centroids, threshold=dna_error_threshold)
+                # else:
+                #     clusters = cluster_centroids_linkage(G, neighbours, 
+                #         distances_bwtn_centroids, threshold=family_threshold)
 
                 
                 for cluster in clusters:

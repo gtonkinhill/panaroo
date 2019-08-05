@@ -270,6 +270,8 @@ def get_discrete_gamma_rates(alpha, k):
 def calc_llk_fmg_with_rate(params, k, tree_array, nleaves, 
     presence_absence, isolates):
 
+    observed_Nall = len(np.unique(presence_absence, axis=0))
+
     alpha = params[0]
     a_rates = params[1:]
     v_rates = get_discrete_gamma_rates(alpha, k)

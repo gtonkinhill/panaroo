@@ -9,8 +9,8 @@ from Bio.Seq import reverse_complement
 import pyopa 
 import itertools
 import numpy as np
-from scipy.cluster.hierarchy import linkage, fcluster
-from scipy.spatial.distance import pdist
+from scipy.sparse import csr_matrix
+from scipy.sparse.csgraph import connected_components
 from joblib import Parallel, delayed
 from tqdm import tqdm
 import math
@@ -468,8 +468,14 @@ def pwdist_pyopa(G, cdhit_clusters, dna=False, n_cpu=1):
     
     # map nodes to centroids
     node_to_centroid = {}
+    centroid_to_index = {}
+    node_index = 0
     for node in G.nodes():
-        node_to_centroid[node] = G.node[node]["centroid"].split(";")[0]
+        centroid = G.node[node]["centroid"].split(";")[0]
+        node_to_centroid[node] = centroid
+        if centroid not in centroid_to_index:
+            centroid_to_index[centroid] = node_index
+            node_index+=1
 
     # Prepare sequences
     seqs = {}
@@ -487,15 +493,17 @@ def pwdist_pyopa(G, cdhit_clusters, dna=False, n_cpu=1):
     # get pairwise id between sequences in the same cdhit clusters
     distances_bwtn_centroids = defaultdict(lambda: 100)
 
-    bsize = math.ceil(len(cdhit_clusters)/n_cpu/10)
-    all_distances = Parallel(n_jobs=n_cpu, batch_size=200)(
-                delayed(run_pw)(cluster, seqs, node_to_centroid, pam250_env)
-                for cluster in tqdm(cdhit_clusters))
-    for distances in all_distances:
-        for dist in distances:
-            distances_bwtn_centroids[(node_to_centroid[dist[0]],node_to_centroid[dist[1]])] = 1.0-dist[2]
-            distances_bwtn_centroids[(node_to_centroid[dist[1]],node_to_centroid[dist[0]])] = 1.0-dist[2]
 
+    all_distances = []
+    for cluster in tqdm(cdhit_clusters):
+        all_distances += Parallel(n_jobs=n_cpu)(
+                    delayed(run_pw)(seqs[node_to_centroid[n1]], seqs[node_to_centroid[n1]], pam250_env, n1, n2)
+                    for n1, n2 in itertools.combinations(cluster, 2))
+    
+    distances_bwtn_centroids = csr_matrix(([1.0-d[2] for d in all_distances],
+        ([centroid_to_index[node_to_centroid[d[0]]] for d in all_distances], 
+         [centroid_to_index[node_to_centroid[d[1]]] for d in all_distances])),
+         shape=(node_index, node_index))
     
     # for cluster in tqdm(cdhit_clusters):
     #     for n1, n2 in itertools.combinations(cluster, 2):
@@ -509,34 +517,44 @@ def pwdist_pyopa(G, cdhit_clusters, dna=False, n_cpu=1):
     #         distances_bwtn_centroids[(node_to_centroid[n1],node_to_centroid[n2])] = 1.0-pwid
     #         distances_bwtn_centroids[(node_to_centroid[n2],node_to_centroid[n1])] = 1.0-pwid
 
-    return distances_bwtn_centroids
+    return distances_bwtn_centroids, centroid_to_index
 
-def run_pw(cluster, seqs, node_to_centroid, pam250_env):
-    distances = []
-    for n1, n2 in itertools.combinations(cluster, 2):
-        aln = pyopa.align_strings(seqs[node_to_centroid[n1]], 
-            seqs[node_to_centroid[n1]], pam250_env, is_global=True)
-        a1 = np.array(list(str(aln[0])))
-        a2 = np.array(list(str(aln[1])))
-        aln_cols = ((np.cumsum(a1!="-") * np.cumsum(a2!="-")) * 
-            np.flip(np.cumsum(np.flip(a1)!="-") * np.cumsum(np.flip(a2)!="-")))!=0
-        pwid = np.sum((a1==a2) & aln_cols)/(1.0*np.sum(aln_cols))
-        distances.append((n1,n2,pwid))
+# def run_pw(cluster, seqs, node_to_centroid, pam250_env, n1,  n2):
+#     distances = []
+#     for n1, n2 in itertools.combinations(cluster, 2):
+#         aln = pyopa.align_strings(seqs[node_to_centroid[n1]], 
+#             seqs[node_to_centroid[n1]], pam250_env, is_global=True)
+#         a1 = np.array(list(str(aln[0])))
+#         a2 = np.array(list(str(aln[1])))
+#         aln_cols = ((np.cumsum(a1!="-") * np.cumsum(a2!="-")) * 
+#             np.flip(np.cumsum(np.flip(a1)!="-") * np.cumsum(np.flip(a2)!="-")))!=0
+#         pwid = np.sum((a1==a2) & aln_cols)/(1.0*np.sum(aln_cols))
+#         distances.append((n1,n2,pwid))
 
-    return(distances)
+#     return(distances)
 
+def run_pw(seqA, seqB, pam250_env, n1, n2):
+    aln = pyopa.align_strings(seqA, 
+        seqB, pam250_env, is_global=True)
+    a1 = np.array(list(str(aln[0])))
+    a2 = np.array(list(str(aln[1])))
+    aln_cols = ((np.cumsum(a1!="-") * np.cumsum(a2!="-")) * 
+        np.flip(np.cumsum(np.flip(a1)!="-") * np.cumsum(np.flip(a2)!="-")))!=0
+    pwid = np.sum((a1==a2) & aln_cols)/(1.0*np.sum(aln_cols))
 
-def cluster_centroids_linkage(G, nodes, distances_bwtn_centroids, threshold):
+    return((n1,n2,pwid))
 
-    nnodes = len(nodes)
-    centroids = [G.node[node]["centroid"].split(";")[0] for node in nodes]
-    nodes = np.array(nodes)
+# def cluster_centroids_linkage(G, nodes, distances_bwtn_centroids, threshold):
 
-    y = pdist(np.arange(nnodes).reshape((nnodes, 1)), 
-        lambda u, v: distances_bwtn_centroids[(centroids[int(u)], centroids[int(v)])])
+#     nnodes = len(nodes)
+#     centroids = [G.node[node]["centroid"].split(";")[0] for node in nodes]
+#     nodes = np.array(nodes)
 
-    cluster_assignments = fcluster(linkage(y, 'single'), t=1.0-threshold, criterion="distance")
-    clusters = [list(nodes[cluster_assignments == i]
-        ) for i in range(1, np.max(cluster_assignments)+1)]
+#     y = pdist(np.arange(nnodes).reshape((nnodes, 1)), 
+#         lambda u, v: distances_bwtn_centroids[(centroids[int(u)], centroids[int(v)])])
 
-    return clusters
+#     cluster_assignments = fcluster(linkage(y, 'single'), t=1.0-threshold, criterion="distance")
+#     clusters = [list(nodes[cluster_assignments == i]
+#         ) for i in range(1, np.max(cluster_assignments)+1)]
+
+#     return clusters
