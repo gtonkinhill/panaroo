@@ -70,9 +70,8 @@ def collapse_families(G,
             # aL=0.6,
             use_local=False,
             accurate=False)
-        distances_bwtn_centroids, centroid_to_index = pwdist_pyopa(G, cdhit_clusters,
+        distances_bwtn_centroids, centroid_to_index = pwdist_pyopa(G, cdhit_clusters, dna_error_threshold,
             dna=False, n_cpu=n_cpu)
-        distances_bwtn_centroids = distances_bwtn_centroids>dna_error_threshold
     else:
         cdhit_clusters = iterative_cdhit(G,
             G.nodes(),
@@ -81,11 +80,8 @@ def collapse_families(G,
             n_cpu=n_cpu,
             quiet=True,
             dna=False)
-        distances_bwtn_centroids, centroid_to_index = pwdist_pyopa(G, cdhit_clusters,
+        distances_bwtn_centroids, centroid_to_index = pwdist_pyopa(G, cdhit_clusters, family_threshold,
             dna=True, n_cpu=n_cpu)
-        distances_bwtn_centroids = distances_bwtn_centroids>family_threshold
-    
-    
     for d in depths:
         search_space = set(G.nodes())
         while len(search_space) > 0:
@@ -105,28 +101,6 @@ def collapse_families(G,
                     v for u, v in nx.bfs_edges(G, source=node, depth_limit=d)
                 ]
 
-                # if correct_mistranslations:
-                #     clusters = cluster_nodes_cdhit(
-                #         G,
-                #         neighbours,
-                #         outdir,
-                #         id=dna_error_threshold,
-                #         n_cpu=n_cpu,
-                #         quiet=True,
-                #         dna=True,
-                #         use_local=False,
-                #         prevent_para=False,
-                #         accurate=False)
-                # else:
-                #     clusters = cluster_nodes_cdhit(G,
-                #         neighbours,
-                #         outdir,
-                #         id=family_threshold,
-                #         n_cpu=n_cpu,
-                #         quiet=True,
-                #         dna=False,
-                #         prevent_para=False)
-
                 # find clusters
                 index = np.array([centroid_to_index[G.node[neigh]["centroid"].split(";")[0]] for neigh in neighbours], dtype=int)
                 neigh_array = np.array(neighbours)
@@ -134,15 +108,7 @@ def collapse_families(G,
                     directed=False, return_labels=True)
                 clusters = [list(neigh_array[labels == i]
                     ) for i in np.unique(labels)]
-
-                # if correct_mistranslations:
-                #     clusters = cluster_centroids_linkage(G, neighbours, 
-                #         distances_bwtn_centroids, threshold=dna_error_threshold)
-                # else:
-                #     clusters = cluster_centroids_linkage(G, neighbours, 
-                #         distances_bwtn_centroids, threshold=family_threshold)
-
-                
+   
                 for cluster in clusters:
                     # check if there are any to collapse
                     if len(cluster) <= 1: continue
