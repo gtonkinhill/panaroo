@@ -267,45 +267,43 @@ def get_discrete_gamma_rates(alpha, k):
     return(median_rates)
 
 
-def calc_llk_fmg_with_rate(params, k, tree_array, nleaves, 
-    presence_absence, isolates):
+# def calc_llk_fmg_with_rate(params, k, tree_array, nleaves, 
+#     presence_absence, isolates):
 
-    observed_Nall = len(np.unique(presence_absence, axis=0))
+#     alpha = params[0]
+#     a_rates = params[1:]
+#     v_rates = get_discrete_gamma_rates(alpha, k)
 
-    alpha = params[0]
-    a_rates = params[1:]
-    v_rates = get_discrete_gamma_rates(alpha, k)
+#     print("alpha:", alpha)
+#     print("a_rates:", a_rates)
+#     print("v_rates:", v_rates)
 
-    print("alpha:", alpha)
-    print("a_rates:", a_rates)
-    print("v_rates:", v_rates)
-
-    llk = -math.inf
-    for a,v in zip(a_rates, v_rates):
-        print(a,v)
-        llk = np.logaddexp(llk, calc_llk_fmg((a,v), tree_array, nleaves, 
-            presence_absence, isolates) - np.log(k))
+#     llk = -math.inf
+#     for a,v in zip(a_rates, v_rates):
+#         print(a,v)
+#         llk = np.logaddexp(llk, calc_llk_fmg((a,v), tree_array, nleaves, 
+#             presence_absence, isolates) - np.log(k))
     
-    return -llk
+#     return -llk
 
-def calc_llk_img_with_rate(params, k, tree_array, nleaves, origin_nodes, 
-    origin_nodes_n1, presence_absence, isolates):
+# def calc_llk_img_with_rate(params, k, tree_array, nleaves, origin_nodes, 
+#     origin_nodes_n1, presence_absence, isolates):
 
-    alpha = params[0]
-    u_rates = params[1:]
-    v_rates = get_discrete_gamma_rates(alpha, k)
+#     alpha = params[0]
+#     u_rates = params[1:]
+#     v_rates = get_discrete_gamma_rates(alpha, k)
 
-    print("alpha:", alpha)
-    print("u_rates:", u_rates)
-    print("v_rates:", v_rates)
+#     print("alpha:", alpha)
+#     print("u_rates:", u_rates)
+#     print("v_rates:", v_rates)
 
-    llk = -math.inf
-    for u,v in zip(u_rates, v_rates):
-        print(u,v)
-        llk = np.logaddexp(llk, calc_llk_img((u,v), tree_array, nleaves, origin_nodes, 
-            origin_nodes_n1, presence_absence, isolates) - np.log(k))
+#     llk = -math.inf
+#     for u,v in zip(u_rates, v_rates):
+#         print(u,v)
+#         llk = np.logaddexp(llk, calc_llk_img((u,v), tree_array, nleaves, origin_nodes, 
+#             origin_nodes_n1, presence_absence, isolates) - np.log(k))
     
-    return -llk
+#     return -llk
 
 def get_options():
     import argparse
@@ -410,10 +408,11 @@ def main():
         tree_array[j][5] = children[1].edge.length
         tree_array[j][6] = node.edge.length
 
+    # observed_Nall = len(np.unique(presence_absence, axis=0))
 
     if args.model=='IMG':
 
-        get origin indices
+        # get origin indices
         print("Obtaining origin nodes...")
         origin_indices = get_origin_nodes(tree, node_index, presence_absence)
         print("Obtaining origin nodes n1...")
@@ -429,39 +428,28 @@ def main():
         # with open("origin_indices_n1.pkl", 'rb') as infile:
         #     origin_indices_n1 =  pickle.load(infile)
 
-        alpha_bounds = (1e-2,100)
         u_bounds = (1e-6,1e3)
-        k=5
-        bounds = [alpha_bounds]
-        x0 = [5]
-        x0 += [1]*k
+        v_bounds = (1e-6,1e3)
+        bounds = [u_bounds, v_bounds]
+        x0 = [1, 1]
 
-        for u in range(k):
-            bounds += [u_bounds]
-
-        result = optimize.minimize(calc_llk_img_with_rate, bounds=bounds,
+        result = optimize.minimize(calc_llk_img, bounds=bounds,
             x0=x0, method='Nelder-Mead',
-            args=(k, tree_array, nleaves, origin_indices, origin_indices_n1, 
+            args=(tree_array, nleaves, origin_indices, origin_indices_n1, 
                 presence_absence_llk, isolates))
         print(result)
-
     else:
-        alpha_bounds = (0.01, 1000)
-        a_bounds = (1e-6,1000)
-        k=5
-        bounds = [alpha_bounds]
-        x0 = [5]
-        x0 += [1]*k
+        a_bounds = (1e-6,1e3)
+        v_bounds = (1e-6,1e3)
+        bounds = [a_bounds, v_bounds]
+        x0 = [1, 1]
 
-        for u in range(k):
-            bounds += [a_bounds]
-        result = optimize.minimize(calc_llk_fmg_with_rate, bounds=bounds,
+        result = optimize.minimize(calc_llk_fmg, bounds=bounds,
             x0=x0, method='Nelder-Mead',
-            args=(k, tree_array, nleaves, presence_absence_llk, isolates))
+            args=(tree_array, nleaves, presence_absence_llk, isolates))
         print(result)
 
     return
-
 
 if __name__ == '__main__':
     main()

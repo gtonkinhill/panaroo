@@ -28,7 +28,6 @@ def trim_low_support_trailing_ends(G, min_support=3, max_recursive=2):
 
     return G
 
-@profile
 def collapse_families(G,
                       outdir,
                       family_threshold=0.7,
