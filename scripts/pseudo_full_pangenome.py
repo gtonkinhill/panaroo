@@ -117,7 +117,7 @@ def simulate_img_with_mutation(in_tree,
                 range(n_additions, n_additions + n_new))
             n_additions += n_new
 
-    print("accesory size: ", n_additions)
+    print("accessory size: ", n_additions)
 
     # Now add core
     ncore = ngenes - n_additions
@@ -136,7 +136,7 @@ def simulate_img_with_mutation(in_tree,
             # copy mutations from parent
             for g in node.acc_genes:
                 if g in node.parent_node.gene_mutations:
-                    node.gene_mutations[g] = node.parent_node.gene_mutations[g]
+                    node.gene_mutations[g] = node.parent_node.gene_mutations[g].copy()
             # add mutations
             for g in node.acc_genes:
                 n_new = np.random.poisson(lam=node.edge.length *
@@ -204,8 +204,19 @@ def add_diversity(gfffile, nisolates, effective_pop_size, gain_rate, loss_rate,
     all_gene_locations = []
     gene_locations = []
     prev_end = -1
+    gene_seqs = []
+
     for entry in parsed_gff.all_features(featuretype=()):
         if "CDS" not in entry.featuretype: continue
+
+        left = entry.start - 1
+        right = entry.stop
+        gene_sequence = Seq(''.join(seq_dict[entry.seqid][left:right]))
+        if entry.strand == "-":
+            gene_sequence = gene_sequence.reverse_complement()
+        gene_sequence = gene_sequence.translate()
+        gene_seqs.append(SeqRecord(gene_sequence, id=entry.id, description=""))
+
         all_gene_locations.append(entry)
         if entry.start < prev_end:
             prev_end = entry.end
@@ -254,12 +265,19 @@ def add_diversity(gfffile, nisolates, effective_pop_size, gain_rate, loss_rate,
         deleted_genes = 0
         d_index = defaultdict(lambda: np.array([]))
         for g, entry in enumerate(gene_locations):
+            left = entry.start - 1
+            right = entry.stop
+            if right < left: raise RuntimeError("Error issue with left/right!")
             if g not in included_genes:
                 deleted_genes+=1
-                left = entry.start - 1
-                right = entry.stop
-                if right < left: raise RuntimeError("Error issue with left/right!")
                 d_index[entry.seqid] = np.append(d_index[entry.seqid], np.arange(left, right))
+            else:
+                gene_sequence = Seq(''.join(temp_seq_dict[entry.seqid][left:right]))
+                if entry.strand == "-":
+                    gene_sequence = gene_sequence.reverse_complement()
+                gene_sequence = gene_sequence.translate()
+                gene_seqs.append(SeqRecord(gene_sequence, id=entry.id, description=""))
+
         for entryid in d_index:
             temp_seq_dict[entryid] = np.delete(temp_seq_dict[entry.seqid], d_index[entryid])
 
@@ -276,6 +294,11 @@ def add_diversity(gfffile, nisolates, effective_pop_size, gain_rate, loss_rate,
         SeqIO.write(sequences, outfile, 'fasta')
         # close file
         outfile.close()
+
+    # write out database for prokka
+    prokka_db_name = prefix  + "_prokka_DB.fasta"
+    with open(prokka_db_name, 'w') as dboutfile:
+        SeqIO.write(gene_seqs, dboutfile, 'fasta')
 
     # write presence/absence file
     pa_by_iso = []
