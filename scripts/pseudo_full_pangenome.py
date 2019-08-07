@@ -249,7 +249,7 @@ def add_diversity(gfffile, nisolates, effective_pop_size, gain_rate, loss_rate,
             right = entry.stop
             if right < left: raise RuntimeError("Error issue with left/right!")
 
-            start_sites = list(range(left, right, 3))
+            start_sites = list(range(left, right, 3))[1:-1]
 
             n_mutations += len(gene[1])
             # swap codons at chosen start sites
