@@ -271,12 +271,12 @@ def add_diversity(gfffile, nisolates, effective_pop_size, gain_rate, loss_rate,
             if g not in included_genes:
                 deleted_genes+=1
                 d_index[entry.seqid] = np.append(d_index[entry.seqid], np.arange(left, right))
-            else:
-                gene_sequence = Seq(''.join(temp_seq_dict[entry.seqid][left:right]))
-                if entry.strand == "-":
-                    gene_sequence = gene_sequence.reverse_complement()
-                gene_sequence = gene_sequence.translate()
-                gene_seqs.append(SeqRecord(gene_sequence, id=entry.id, description=""))
+
+            gene_sequence = Seq(''.join(temp_seq_dict[entry.seqid][left:right]))
+            if entry.strand == "-":
+                gene_sequence = gene_sequence.reverse_complement()
+            gene_sequence = gene_sequence.translate()
+            gene_seqs.append(SeqRecord(gene_sequence, id=entry.id, description=""))
 
         for entryid in d_index:
             temp_seq_dict[entryid] = np.delete(temp_seq_dict[entry.seqid], d_index[entryid])

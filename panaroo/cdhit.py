@@ -463,8 +463,20 @@ def iterative_cdhit(G,
 def pwdist_pyopa(G, cdhit_clusters, threshold, dna=False, n_cpu=1):
 
     # Generate an environment for pyopa
-    log_pam1_env = pyopa.read_env_json(os.path.join(pyopa.matrix_dir(), 'logPAM1.json'))
-    pam250_env = pyopa.generate_env(log_pam1_env, 250)
+    if dna:
+        # get matrix needed for alingment.We use a protein modified to be suitable for DNA 
+        # are dealing with high identities it does okay on DNA
+        pam250_env = pyopa.AlignmentEnvironment()
+        pam250_env.gap_ext = np.array(-4)
+        pam250_env.gap_open = np.array(-12)
+        m = np.full((26,26), -3.0)
+        np.fill_diagonal(m , 5.0)
+        pam250_env.float64_matrix = m
+        pam250_env.float64_matrix = pam250_env.float64_matrix.astype("float64")
+        pam250_env.create_scaled_matrices()
+    else:
+        log_pam1_env = pyopa.read_env_json(os.path.join(pyopa.matrix_dir(), 'logPAM1.json'))
+        pam250_env = pyopa.generate_env(log_pam1_env, 250)
     
     # map nodes to centroids
     node_to_centroid = {}

@@ -2,7 +2,7 @@ import networkx as nx
 import io, sys
 from collections import defaultdict
 import numpy as np
-from Bio.Seq import translate, reverse_complement
+from Bio.Seq import translate, reverse_complement, Seq
 from Bio import SeqIO
 from panaroo.cdhit import align_dna_cdhit
 from joblib import Parallel, delayed
@@ -10,6 +10,7 @@ import os
 import gffutils as gff
 from io import StringIO
 from .merge_nodes import delete_node, remove_member_from_node
+import pyopa 
 
 
 def get_all_paths(G, length=3):
@@ -88,7 +89,7 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir,
 
     hit_list = Parallel(n_jobs=n_cpu)(delayed(search_seq_gff)(
         member, gff_file_handles[int(member)], neighbour_dict[member],
-        search_seq_dict[member], missing_dict[member], temp_dir, 1)
+        search_seq_dict[member], missing_dict[member], temp_dir, 0.2)
                                       for member in search_lists)
 
 
@@ -189,6 +190,17 @@ def search_seq_gff(member,
                    pairwise_id_thresh=0.95,
                    n_cpu=1):
 
+    # get matrix needed for alingment.We use a protein modified to be suitable for DNA 
+    # are dealing with high identities it does okay on DNA
+    env = pyopa.AlignmentEnvironment()
+    env.gap_ext = np.array(-4)
+    env.gap_open = np.array(-12)
+    m = np.full((26,26), -3.0)
+    np.fill_diagonal(m , 5.0)
+    env.float64_matrix = m
+    env.float64_matrix = env.float64_matrix.astype("float64")
+    env.create_scaled_matrices()
+
     # reset file handle to the beginning
     gff_handle.seek(0)
     split = gff_handle.read().split("##FASTA\n")
@@ -231,6 +243,12 @@ def search_seq_gff(member,
     for neighbour_ids, seq, mis in zip(neighbour_id_list, search_sequence_list,
                                        missing):
         found_dna = ""
+        
+        # printmore=False
+        # for tid in neighbour_ids:
+        #     if tid in ["0_5_127","1_1_639","2_1_562","3_0_182","2_1_561","1_1_640","1_1_641","2_1_559","2_1_560","0_5_128","3_0_181"]:
+        #         printmore=True
+
         gene_locations = [(int(tid.split("_")[1]), int(tid.split("_")[2]))
                           for tid in neighbour_ids]
         # print(neighbour_ids)
@@ -242,15 +260,22 @@ def search_seq_gff(member,
         metaA = contig_records[contigA]['annotations'][gene_num_A]
         metaB = contig_records[contigB]['annotations'][gene_num_B]
 
+        # if printmore:
+        #     print(neighbour_ids)
+        #     print(contigA, contigB)
+        #     print(gene_num_A, gene_num_B)
+        #     print(prop_match)
+        #     print(pairwise_id_thresh)
+
         # determine search area in contigs
         found_dna = ""
         if (contigA == contigB) and (abs(gene_num_A - gene_num_B) <= 2):
             # the flanking genes are on the same contig, search inbetween
-            l_bound = min(metaA.end, metaB.end)
-            r_bound = max(metaA.start, metaB.start)
+            l_bound = min(metaA.end, metaB.end, metaA.start, metaB.start)
+            r_bound = max(metaA.start, metaB.start, metaA.end, metaB.end)
             search_sequence = contig_records[contigA]['seq'][l_bound:r_bound]
             found_dna = search_dna(seq, search_sequence, prop_match,
-                                   pairwise_id_thresh, temp_dir, n_cpu)
+                                   pairwise_id_thresh, env)#temp_dir, n_cpu)#
         else:
             # if it looks like the genes are near the terminal ends search here
             max_search_length = 4 * len(seq)
@@ -260,7 +285,7 @@ def search_seq_gff(member,
                     metaA.start, metaA.end)]
                 if len(search_sequence) < max_search_length:
                     found_dna = search_dna(seq, search_sequence, prop_match,
-                                           pairwise_id_thresh, temp_dir, n_cpu)
+                                           pairwise_id_thresh, env)#temp_dir, n_cpu)#
             if (found_dna == "") and (len(
                     contig_records[contigA]['annotations']) - gene_num_A < 20):
                 # we're at the  end of contigA
@@ -268,14 +293,14 @@ def search_seq_gff(member,
                     metaA.start, metaA.end):]
                 if len(search_sequence) < max_search_length:
                     found_dna = search_dna(seq, search_sequence, prop_match,
-                                           pairwise_id_thresh, temp_dir, n_cpu)
+                                           pairwise_id_thresh, env)#temp_dir, n_cpu)#
             if (found_dna == "") and (gene_num_B < 20):
                 # we're at the start of contigB
                 search_sequence = contig_records[contigB]['seq'][:min(
                     metaB.start, metaB.end)]
                 if len(search_sequence) < max_search_length:
                     found_dna = search_dna(seq, search_sequence, prop_match,
-                                           pairwise_id_thresh, temp_dir, n_cpu)
+                                           pairwise_id_thresh, env)#temp_dir, n_cpu)#
             if (found_dna == "") and (len(
                     contig_records[contigB]['annotations']) - gene_num_B < 20):
                 # we're at the  end of contigB
@@ -283,38 +308,65 @@ def search_seq_gff(member,
                     metaB.start, metaB.end):]
                 if len(search_sequence) < max_search_length:
                     found_dna = search_dna(seq, search_sequence, prop_match,
-                                           pairwise_id_thresh, temp_dir, n_cpu)
+                                           pairwise_id_thresh, env)#temp_dir, n_cpu)#
 
         # add results
         hits.append(found_dna)
+
+        # if printmore:
+        #     print(search_sequence)
+        #     print(seq)
+        #     print(found_dna)
 
     # print(hits)
 
     return (member, hits)
 
 
-def search_dna(seq, search_sequence, prop_match, pairwise_id_thresh, temp_dir,
-               n_cpu):
+def search_dna(seq, search_sequence, prop_match, pairwise_id_thresh, env):#temp_dir, n_cpu):
 
-    found_dna = align_dna_cdhit(query=search_sequence,
-                                target=seq,
-                                id=pairwise_id_thresh,
-                                temp_dir=temp_dir,
-                                n_cpu=n_cpu,
-                                use_local=True,
-                                mask=True,
-                                aS=prop_match)
+    # found_dna = align_dna_cdhit(query=search_sequence,
+    #                             target=seq,
+    #                             id=pairwise_id_thresh,
+    #                             temp_dir=temp_dir,
+    #                             n_cpu=n_cpu,
+    #                             use_local=True,
+    #                             mask=True,
+    #                             aS=prop_match)
 
-    # if nothing found and lots of Ns try searching without masking Ns
-    if found_dna=="":
-        found_dna = align_dna_cdhit(query=search_sequence,
-                                target=seq,
-                                id=pairwise_id_thresh,
-                                temp_dir=temp_dir,
-                                n_cpu=n_cpu,
-                                use_local=True,
-                                mask=False,
-                                aS=prop_match)
+    # # if nothing found and lots of Ns try searching without masking Ns
+    # if found_dna=="":
+    #     found_dna = align_dna_cdhit(query=search_sequence,
+    #                             target=seq,
+    #                             id=pairwise_id_thresh,
+    #                             temp_dir=temp_dir,
+    #                             n_cpu=n_cpu,
+    #                             use_local=True,
+    #                             mask=False,
+    #                             aS=prop_match)
+    gap = np.array("-")
+    found_dna = ""
+
+    for sq in [search_sequence, str(Seq(search_sequence).reverse_complement())]:
+        query = pyopa.Sequence(sq)
+        target = pyopa.Sequence(seq)
+
+        aln = pyopa.align_strings(query, 
+            target, env, is_global=False)
+        
+        a1 = np.array(list(str(aln[0])))
+        a2 = np.array(list(str(aln[1])))
+
+        if len(a1)<1: continue
+
+        aln_cols = ((np.cumsum(a1!=gap) * np.cumsum(a2!=gap)) * 
+            np.flip(np.cumsum(np.flip(a1)!=gap) * np.cumsum(np.flip(a2)!=gap)))!=0
+        Ns = (a1=="N") | (a2=="N")
+        pwid = np.sum(((a1==a2) | Ns) & aln_cols)/(1.0*np.sum(aln_cols))
+
+        if (pwid>=pairwise_id_thresh) and (len(a1)/(1.0*len(target)) >= prop_match):
+            keep = (a1!=gap) & (a1!="_")
+            found_dna="".join(list(a1[keep]))
 
     return found_dna
 
