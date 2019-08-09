@@ -53,16 +53,20 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
     G = nx.Graph()
     n_nodes = len(cluster_members)
     temp_nodes = []
+    prev = None
+
     for i, id in enumerate(seq_ids):
         current_cluster = seq_to_cluster[id]
         genome_id = id.split("_")[0]
         if id.split("_")[-1] == "0":
             # we're at the start of a contig
+            if prev is not None: G.node[prev]['hasEnd'] = True
             prev = current_cluster
             if G.has_node(prev) and (prev not in paralogs):
                 G.node[prev]['size'] += 1
                 G.node[prev]['members'].append(genome_id)
                 G.node[prev]['seqIDs'].append(id)
+                G.node[prev]['hasEnd'] = True
                 G.node[current_cluster]['lengths'].append(len(cluster_centroid_data[prev]
                         ['dna_sequence']))
                 if all_dna:
@@ -80,6 +84,7 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                     centroid=cluster_centroids[current_cluster],
                     members=[genome_id],
                     seqIDs=[id],
+                    hasEnd = True,
                     protein=cluster_centroid_data[current_cluster]
                     ['prot_sequence'],
                     dna=cluster_centroid_data[current_cluster]['dna_sequence'],
@@ -103,6 +108,7 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                     centroid=cluster_centroids[current_cluster],
                     members=[genome_id],
                     seqIDs=[id],
+                    hasEnd = False,
                     protein=cluster_centroid_data[current_cluster]
                     ['prot_sequence'],
                     dna=cluster_centroid_data[current_cluster]
@@ -126,6 +132,7 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                         centroid=cluster_centroids[current_cluster],
                         members=[genome_id],
                         seqIDs=[id],
+                        hasEnd = False,
                         protein=cluster_centroid_data[current_cluster]
                         ['prot_sequence'],
                         dna=cluster_centroid_data[current_cluster]

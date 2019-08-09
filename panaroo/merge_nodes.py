@@ -21,6 +21,8 @@ def merge_nodes(G,
                            G.node[nodeB]['centroid'].split(";"))),
                    members=G.node[nodeA]['members'] + G.node[nodeB]['members'],
                    seqIDs=G.node[nodeA]['seqIDs'] + G.node[nodeB]['seqIDs'],
+                   hasEnd=(G.node[nodeA]['hasEnd']
+                    or G.node[nodeB]['hasEnd']),
                    protein=";".join(
                        set(G.node[nodeA]['protein'].split(";") +
                            G.node[nodeB]['protein'].split(";"))),
@@ -46,6 +48,8 @@ def merge_nodes(G,
                    centroid=G.node[nodeA]['centroid'],
                    members=G.node[nodeA]['members'] + G.node[nodeB]['members'],
                    seqIDs=G.node[nodeA]['seqIDs'] + G.node[nodeB]['seqIDs'],
+                   hasEnd=(G.node[nodeA]['hasEnd']
+                    or G.node[nodeB]['hasEnd']),
                    protein=G.node[nodeA]['protein'],
                    dna=";".join(
                        G.node[nodeA]['dna'].split(";") +

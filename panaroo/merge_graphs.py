@@ -126,6 +126,7 @@ def simple_merge_graphs(graphs, clusters):
         annotation = ""
         description = ""
         paralog = False
+        hasEnd = False
 
         for prev in reverse_mapping[node]:
             size += graphs[prev[0]].node[prev[1]]['size']
@@ -147,12 +148,14 @@ def simple_merge_graphs(graphs, clusters):
             annotation += ";" + graphs[prev[0]].node[prev[1]]['annotation']
             description += ";" + graphs[prev[0]].node[prev[1]]['description']
             paralog = (paralog or graphs[prev[0]].node[prev[1]]['paralog'])
+            hasEnd = (paralog or graphs[prev[0]].node[prev[1]]['hasEnd'])
 
         merged_G.node[node]['size'] = size                
         merged_G.node[node]['members'] = members
         merged_G.node[node]['lengths'] = lengths
         merged_G.node[node]['centroid'] = centroid
         merged_G.node[node]['seqIDs'] = seqIDs
+        merged_G.node[node]['hasEnd'] = hasEnd
         merged_G.node[node]['protein'] = protein
         merged_G.node[node]['annotation'] = annotation
         merged_G.node[node]['description'] = description
