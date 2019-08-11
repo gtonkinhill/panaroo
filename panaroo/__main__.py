@@ -82,10 +82,10 @@ def get_options():
               "nodes near the end of contigs"),
         type=int)
     graph.add_argument(
-        "--edge_support_diff",
-        dest="edge_support_diff",
-        help=("maximum fraction difference between an edge's support " +
-              "and those of the nodes it connects"),
+        "--edge_support_threshold",
+        dest="edge_support_threshold",
+        help=("minimum support required to keep and edge that has been flagged" +
+            " as a possible mis-assembly"),
         type=float)
     graph.add_argument(
         "--remove_by_consensus",
@@ -237,9 +237,6 @@ def main():
                           n_cpu=args.n_cpu,
                           quiet=(not args.verbose))
 
-    # remove edges that are likely due to misassemblies (by consensus)
-    G = clean_misassembly_edges(G, threshold=args.edge_support_diff)
-
     # re-trim low support trailing ends
     G = trim_low_support_trailing_ends(G,
                                        min_support=args.min_trailing_support,
@@ -265,6 +262,10 @@ def main():
                      "combined_protein_CDS.fasta",
                      remove_by_consensus=args.remove_by_consensus,
                      n_cpu=args.n_cpu)
+
+    # remove edges that are likely due to misassemblies (by consensus)
+    G = clean_misassembly_edges(G, 
+        edge_support_threshold=args.edge_support_threshold)
     
     # if requested merge paralogs
     if args.merge_paralogs:

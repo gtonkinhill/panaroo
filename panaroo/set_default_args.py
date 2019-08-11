@@ -19,10 +19,10 @@ def set_default_args(args):
             args.trailing_recursive = 99999999
         if args.min_edge_support_sv is None:
             args.min_edge_support_sv = max(2, math.ceil(0.01 * n_samples))
-        if args.edge_support_diff is None:
-            args.edge_support_diff = 0.05
         if args.remove_by_consensus is None:
             args.remove_by_consensus = True
+        if args.edge_support_threshold is None:
+            args.edge_support_threshold = max(2, math.ceil(0.01 * n_samples))
 
     elif args.mode == 'moderate':
         if args.id is None:
@@ -37,10 +37,10 @@ def set_default_args(args):
             args.trailing_recursive = 99999999
         if args.min_edge_support_sv is None:
             args.min_edge_support_sv = max(2, math.ceil(0.01 * n_samples))
-        if args.edge_support_diff is None:
-            args.edge_support_diff = 0.01
         if args.remove_by_consensus is None:
             args.remove_by_consensus = False
+        if args.edge_support_threshold is None:
+            args.edge_support_threshold = max(2, math.ceil(0.01 * n_samples))
 
     else:
         if args.id is None:
@@ -52,12 +52,12 @@ def set_default_args(args):
         if args.min_trailing_support is None:
             args.min_trailing_support = 2
         if args.trailing_recursive is None:
-            args.trailing_recursive = 3
+            args.trailing_recursive = 1
         if args.min_edge_support_sv is None:
             args.min_edge_support_sv = 2
-        if args.edge_support_diff is None:
-            args.edge_support_diff = 0.0
         if args.remove_by_consensus is None:
             args.remove_by_consensus = False
+        if args.edge_support_threshold is None:
+            args.edge_support_threshold = 0.0
 
     return args

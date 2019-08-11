@@ -346,16 +346,30 @@ def merge_paralogs(G):
     return (G)
 
 
-def clean_misassembly_edges(G, threshold):
 
-    bad_edges = []
+def clean_misassembly_edges(G, edge_support_threshold):
+
+    bad_edges = set()
+    max_weight = 0
+
+    # remove edges with low support near contig ends
+    for node in G.nodes():
+        max_weight = max(max_weight, G.nodes[node]['size'])
+        for neigh in G.neighbors(node):
+            if G.node[neigh]['hasEnd']:
+                if G[node][neigh]['weight'] < edge_support_threshold:
+                    bad_edges.add((node, neigh))
+    
+    # remove edges that have much lower support than the nodes they connect
     for edge in G.edges():
-        if float(G.edges[edge]['weight']) < (threshold * min(
+        if float(G.edges[edge]['weight']) < (0.05 * min(
                 int(G.node[edge[0]]['size']), int(G.node[edge[1]]['size']))):
-            bad_edges.append(edge)
+            if float(G.edges[edge]['weight']) < edge_support_threshold:
+                bad_edges.add(edge)
 
     for edge in bad_edges:
-        G.remove_edge(edge[0], edge[1])
+        if G.has_edge(edge[0], edge[1]):
+            G.remove_edge(edge[0], edge[1])
 
     return (G)
 
