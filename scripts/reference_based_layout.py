@@ -32,9 +32,6 @@ def add_to_queue(g, s, nodes, visited, sink, mapping, ref_g_id, max_dist):
 
 
 def create_mapping(g, ref_g_id):
-    #ref_g_id = "453" Pseudomons hzi v1
-    #ref_g_id = "421" #Pseudomonas hzi v2
-    #ref_g_id = "101"
     #look up table for name vs node id
     gene_dict = {}
     for n in list(g):
@@ -54,7 +51,6 @@ def create_mapping(g, ref_g_id):
     mapping.columns = ["gene_id"]
     #we dont want to include refound genes in this step TODO also consider in add reference edges step
     mapping = mapping.loc[~mapping.loc[:,"gene_id"].str.contains("refound"),]
-    print(mapping)
     return mapping
 
 def add_ref_edges(g, mapping):
@@ -79,7 +75,6 @@ def remove_var_edges(g):
     g.remove_nodes_from(var_nodes)
     return g
 
-    sys.exit(0)
 
 def layout(graph, ref_g_id, cut_edges_out, ignore_high_var, add_reference_edges):
     g = nx.read_gml(graph)
@@ -91,6 +86,7 @@ def layout(graph, ref_g_id, cut_edges_out, ignore_high_var, add_reference_edges)
         g = remove_var_edges(g)
     if add_reference_edges:
         g = add_ref_edges(g, mapping)
+        #write gml with reference edges to disk to be used in cytoscape instead of the original final_graph.gml
         nx.write_gml(g, "with_ref_" + graph)
     name_dict = dict([(g.nodes[n]['name'], n) for n in list(g)])
     #set capacity for edges for the min cut algorithm as the weight of that edge
@@ -99,8 +95,6 @@ def layout(graph, ref_g_id, cut_edges_out, ignore_high_var, add_reference_edges)
             g.edges[e]["capacity"] = g.edges[e]["weight"]
         except:
             g.edges[e]["capacity"] = 1
-
-
     #store edges to be taken out of the graph
     cut_edges = []
     i = 0
@@ -134,7 +128,6 @@ def layout(graph, ref_g_id, cut_edges_out, ignore_high_var, add_reference_edges)
             s_t_graph = function.induced_subgraph(g, visited)
             s_t_graph = nx.Graph(s_t_graph)
             #the induced graph could contain reference edges which need to be removed
-            #TODO need to check this step more carefully
             remove = []
             for e in s_t_graph.edges:
                 if "%s_0_" % ref_g_id in g.nodes[e[0]]['geneIDs'] \
@@ -155,7 +148,7 @@ def layout(graph, ref_g_id, cut_edges_out, ignore_high_var, add_reference_edges)
                 for p2_node in partitions[1]:
                     if s_t_graph.has_edge(p1_node,p2_node):
                         cut.append((p1_node,p2_node))
-
+            #cardinality cut TODO make this an option
             #cut = cuts.minimum_edge_cut(s_t_graph, nid, sink["sink"])
             for e in cut:
                 print(g.nodes[e[0]]['name'], g.nodes[e[1]]['name'])
@@ -164,8 +157,7 @@ def layout(graph, ref_g_id, cut_edges_out, ignore_high_var, add_reference_edges)
             if len(cut) == 0:
                 #something happened as no min cut can be found
                 i += 1
-                sys.exit(0)
-                continue            
+                sys.exit("no min cut could be found; sorry this shouldn't happen")
             g.remove_edges_from(cut)
             sink["sink"] = None
             #there may be more paths from that node -> apply again on the same node
@@ -175,7 +167,6 @@ def layout(graph, ref_g_id, cut_edges_out, ignore_high_var, add_reference_edges)
             sink["sink"] = None
     #write cut edges to disk
     with open(cut_edges_out, "w") as f:
-    #with open("abscessus/cut_edges_%s_v3.txt" %ref_g_id, "w") as f:
         f.write("shared name\tis_cut_edge\n")
         for e in cut_edges:
             f.write("%s (interacts with) %s\t1\n" %(e[0], e[1]))
