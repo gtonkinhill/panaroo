@@ -138,6 +138,17 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir,
     
     for pmp in path_mem_pairs:
         if len(path_mem_pairs[pmp]) > 1:
+            
+            neigh_mem_count = 0
+            for nA in path_mem_pairs[pmp]:
+                memfound=0
+                for nB in G.neighbors(nA):
+                    if pmp[2] in G[nA][nB]['members']:
+                        memfound=1
+                    break
+                neigh_mem_count += memfound
+            if neigh_mem_count>1: continue
+
             # we have two options for a pair for the same member -> delete one
             node_max = -1
             best_node = -1
