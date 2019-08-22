@@ -135,19 +135,19 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir,
             path_mem_pairs[(path[0],path[2],mem)].add(path[1])
         for mem, hit, hit_protein in additions_by_node[path[1]]:
             path_mem_pairs[(path[0],path[2],mem)].add(path[1])
-    
+
+
     for pmp in path_mem_pairs:
         if len(path_mem_pairs[pmp]) > 1:
             
-            neigh_mem_count = 0
-            for nA in path_mem_pairs[pmp]:
-                memfound=0
-                for nB in G.neighbors(nA):
-                    if pmp[2] in G[nA][nB]['members']:
-                        memfound=1
-                    break
-                neigh_mem_count += memfound
-            if neigh_mem_count>1: continue
+            # check that we have added one
+            has_added = False
+            for node in path_mem_pairs[pmp]:
+                if node in additions_by_node:
+                    for add in additions_by_node[node]:
+                        if pmp[2]==add[0]:
+                            has_added=True
+            if not has_added: continue
 
             # we have two options for a pair for the same member -> delete one
             node_max = -1
