@@ -69,7 +69,7 @@ def collapse_families(G,
             # aL=0.6,
             use_local=False,
             accurate=False)
-        distances_bwtn_centroids, centroid_to_index = pwdist_pyopa(G, cdhit_clusters, dna_error_threshold,
+        distances_bwtn_centroids, centroid_to_index = pwdist_edlib(G, cdhit_clusters, dna_error_threshold,
             dna=False, n_cpu=n_cpu)
     else:
         cdhit_clusters = iterative_cdhit(G,
@@ -79,7 +79,7 @@ def collapse_families(G,
             n_cpu=n_cpu,
             quiet=True,
             dna=False)
-        distances_bwtn_centroids, centroid_to_index = pwdist_pyopa(G, cdhit_clusters, family_threshold,
+        distances_bwtn_centroids, centroid_to_index = pwdist_edlib(G, cdhit_clusters, family_threshold,
             dna=True, n_cpu=n_cpu)
     for d in depths:
         search_space = set(G.nodes())
