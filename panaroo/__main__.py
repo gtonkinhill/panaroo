@@ -3,6 +3,7 @@ import tempfile
 from Bio import SeqIO
 import shutil
 import networkx as nx
+import ast
 
 from .isvalid import *
 from .set_default_args import set_default_args
@@ -12,7 +13,7 @@ from .cdhit import run_cdhit
 from .generate_network import generate_network
 from .generate_output import *
 from .clean_network import *
-from .find_missing2 import find_missing
+from .find_missing import find_missing
 
 from .__init__ import __version__
 
@@ -90,16 +91,17 @@ def get_options():
     graph.add_argument(
         "--remove_by_consensus",
         dest="remove_by_consensus",
+        type=ast.literal_eval,
+        choices=[True, False],
         help=
         ("if a gene is called in the same region with similar sequence a minority "
-         + "of the time, remove it"),
-        action='store_true',
+         + "of the time, remove it. One of 'True' or 'False'"),
         default=None)
     graph.add_argument(
         "--high_var_flag",
         dest="cycle_threshold_min",
-        help=
-        ("minimum number of nested cycles to call a highly variable gene region (default = 5)."),
+        help=("minimum number of nested cycles to call a highly variable gene " +
+            "region (default = 5)."),
         type=int,
         default=5)
     graph.add_argument(
@@ -111,8 +113,8 @@ def get_options():
     graph.add_argument(
         "--all_seq_in_graph",
         dest="all_seq_in_graph",
-        help=("Retains all DNA sequence for each gene cluster in the graph "
-            + "output. Off by default as it uses a large amount of space."),
+        help=("Retains all DNA sequence for each gene cluster in the graph " +
+             "output. Off by default as it uses a large amount of space."),
         action='store_true',
         default=False)
 
