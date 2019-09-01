@@ -12,7 +12,6 @@ import numpy as np
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import connected_components
 from joblib import Parallel, delayed
-from tqdm import tqdm
 import math
 
 def check_cdhit_version(cdhit_exec='cd-hit'):
@@ -486,7 +485,7 @@ def pwdist_edlib(G, cdhit_clusters, threshold, dna=False, n_cpu=1):
     distances_bwtn_centroids = defaultdict(lambda: 100)
 
     all_distances = []
-    for cluster in tqdm(cdhit_clusters):
+    for cluster in cdhit_clusters:
         all_distances += Parallel(n_jobs=n_cpu)(
                     delayed(run_pw)(seqs[node_to_centroid[n1]], seqs[node_to_centroid[n1]], n1, n2, dna)
                     for n1, n2 in itertools.combinations(cluster, 2))
