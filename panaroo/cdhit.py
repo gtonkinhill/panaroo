@@ -517,7 +517,7 @@ def run_pw(seqA, seqB, n1, n2, dna):
         for sA in [seqA, str(Seq(seqA).reverse_complement())]:
             aln = edlib.align(sA, seqB, mode="HW", task='locations', k=10*len(seqA),
                     additionalEqualities=[('A','N'), ('C','N'), ('G','N'), ('T','N')])
-        pwid = max(pwid, 1.0-aln['editDistance']/float(len(seqA)))
+            pwid = max(pwid, 1.0-aln['editDistance']/float(len(seqA)))
     else:
         aln = edlib.align(seqA, seqB, mode="HW", task='locations', k=10*len(seqA),
                     additionalEqualities=[('*', 'X'),('A', 'X'),('C', 'X'),('B', 'X'),('E', 'X'),
@@ -526,8 +526,8 @@ def run_pw(seqA, seqB, n1, n2, dna):
                                             ('P', 'X'),('S', 'X'),('R', 'X'),('T', 'X'),('W', 'X'),
                                             ('V', 'X'),('Y', 'X'),('X', 'X'),('Z', 'X'),('D', 'B'),
                                             ('N', 'B'),('E', 'Z'),('Q', 'Z')])
-        pwid = 1.0-aln['editDistance']/float(len(seqA))
+        pwid = 1.0 - aln['editDistance']/float(len(seqA))
 
-    return((n1,n2,pwid))
+    return((n1, n2, pwid))
 
 
