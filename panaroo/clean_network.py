@@ -8,6 +8,7 @@ import numpy as np
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import connected_components
 
+
 # Genes at the end of contigs are more likely to be false positives thus
 # we can remove those with low support
 def trim_low_support_trailing_ends(G, min_support=3, max_recursive=2):
@@ -28,6 +29,7 @@ def trim_low_support_trailing_ends(G, min_support=3, max_recursive=2):
 
     return G
 
+
 def collapse_families(G,
                       outdir,
                       family_threshold=0.7,
@@ -39,22 +41,25 @@ def collapse_families(G,
     node_count = max(list(G.nodes())) + 10
 
     if correct_mistranslations:
-        depths = [1,2,3]
-        if dna_error_threshold>0.96:
+        depths = [1, 2, 3]
+        if dna_error_threshold > 0.96:
             threshold = list(np.arange(1, dna_error_threshold, -0.01))
         else:
-            threshold = list(np.arange(1, 0.97, -0.01)) + list(np.arange(0.96, dna_error_threshold, -0.05))
+            threshold = list(np.arange(1, 0.97, -0.01)) + list(
+                np.arange(0.96, dna_error_threshold, -0.05))
     else:
-        depths = [1,2,3]
-        if family_threshold==1:
+        depths = [1, 2, 3]
+        if family_threshold == 1:
             threshold = [1]
         else:
-            if family_threshold>0.98:
-                threshold= [family_threshold]
-            elif family_threshold>0.95:
-                threshold = [0.99] + list(np.arange(1, family_threshold, -0.02))
+            if family_threshold > 0.98:
+                threshold = [family_threshold]
+            elif family_threshold > 0.95:
+                threshold = [0.99] + list(np.arange(1, family_threshold,
+                                                    -0.02))
             else:
-                threshold = [0.99,0.95] + list(np.arange(0.90, family_threshold, -0.1))
+                threshold = [0.99, 0.95] + list(
+                    np.arange(0.90, family_threshold, -0.1))
 
     # precluster for speed
     if correct_mistranslations:
@@ -69,18 +74,18 @@ def collapse_families(G,
             # aL=0.6,
             use_local=False,
             accurate=False)
-        distances_bwtn_centroids, centroid_to_index = pwdist_edlib(G, cdhit_clusters, dna_error_threshold,
-            dna=True, n_cpu=n_cpu)
+        distances_bwtn_centroids, centroid_to_index = pwdist_edlib(
+            G, cdhit_clusters, dna_error_threshold, dna=True, n_cpu=n_cpu)
     else:
         cdhit_clusters = iterative_cdhit(G,
-            G.nodes(),
-            outdir,
-            thresholds=threshold,
-            n_cpu=n_cpu,
-            quiet=True,
-            dna=False)
-        distances_bwtn_centroids, centroid_to_index = pwdist_edlib(G, cdhit_clusters, family_threshold,
-            dna=False, n_cpu=n_cpu)
+                                         G.nodes(),
+                                         outdir,
+                                         thresholds=threshold,
+                                         n_cpu=n_cpu,
+                                         quiet=True,
+                                         dna=False)
+        distances_bwtn_centroids, centroid_to_index = pwdist_edlib(
+            G, cdhit_clusters, family_threshold, dna=False, n_cpu=n_cpu)
     for d in depths:
         search_space = set(G.nodes())
         while len(search_space) > 0:
@@ -101,13 +106,20 @@ def collapse_families(G,
                 ]
 
                 # find clusters
-                index = np.array([centroid_to_index[G.node[neigh]["centroid"].split(";")[0]] for neigh in neighbours], dtype=int)
+                index = np.array([
+                    centroid_to_index[G.node[neigh]["centroid"].split(";")[0]]
+                    for neigh in neighbours
+                ],
+                                 dtype=int)
                 neigh_array = np.array(neighbours)
-                n_components, labels = connected_components(csgraph=distances_bwtn_centroids[index][:, index], 
-                    directed=False, return_labels=True)
-                clusters = [list(neigh_array[labels == i]
-                    ) for i in np.unique(labels)]
-   
+                n_components, labels = connected_components(
+                    csgraph=distances_bwtn_centroids[index][:, index],
+                    directed=False,
+                    return_labels=True)
+                clusters = [
+                    list(neigh_array[labels == i]) for i in np.unique(labels)
+                ]
+
                 for cluster in clusters:
                     # check if there are any to collapse
                     if len(cluster) <= 1: continue
@@ -124,13 +136,19 @@ def collapse_families(G,
                             removed_nodes.add(neig)
                             if neig in search_space: search_space.remove(neig)
                         temp_c = cluster.copy()
-                        G = merge_nodes(G, temp_c.pop(), temp_c.pop(),
-                                        node_count, 
-                                        multi_centroid=(not correct_mistranslations))
+                        G = merge_nodes(
+                            G,
+                            temp_c.pop(),
+                            temp_c.pop(),
+                            node_count,
+                            multi_centroid=(not correct_mistranslations))
                         while (len(temp_c) > 0):
-                            G = merge_nodes(G, node_count, temp_c.pop(),
-                                            node_count + 1,
-                                            multi_centroid=(not correct_mistranslations))
+                            G = merge_nodes(
+                                G,
+                                node_count,
+                                temp_c.pop(),
+                                node_count + 1,
+                                multi_centroid=(not correct_mistranslations))
                             node_count += 1
                         search_space.add(node_count)
                     else:
@@ -286,9 +304,9 @@ def collapse_paralogs(G, quiet=False):
                             neigh_neighbours = defaultdict(list)
                             for n in neigbour_centroids[centroid]:
                                 neighs = tuple(sorted(G.neighbors(n)))
-                                if len(neighs)>0:
+                                if len(neighs) > 0:
                                     neigh_neighbours[neighs].append(n)
-                            
+
                             for nn in neigh_neighbours:
                                 if len(neigh_neighbours[nn]) < 2: continue
                                 genomes = []
@@ -332,19 +350,12 @@ def merge_paralogs(G):
     for centroid in paralog_centroid_dict:
         node_count += 1
         temp_c = paralog_centroid_dict[centroid]
-        G = merge_nodes(G,
-                        temp_c.pop(),
-                        temp_c.pop(),
-                        node_count)
+        G = merge_nodes(G, temp_c.pop(), temp_c.pop(), node_count)
         while (len(temp_c) > 0):
-            G = merge_nodes(G,
-                            node_count,
-                            temp_c.pop(),
-                            node_count + 1)
+            G = merge_nodes(G, node_count, temp_c.pop(), node_count + 1)
             node_count += 1
 
     return (G)
-
 
 
 def clean_misassembly_edges(G, edge_support_threshold):
@@ -359,7 +370,7 @@ def clean_misassembly_edges(G, edge_support_threshold):
             if G.node[neigh]['hasEnd']:
                 if G[node][neigh]['weight'] < edge_support_threshold:
                     bad_edges.add((node, neigh))
-    
+
     # remove edges that have much lower support than the nodes they connect
     for edge in G.edges():
         if float(G.edges[edge]['weight']) < (0.05 * min(
@@ -375,9 +386,9 @@ def clean_misassembly_edges(G, edge_support_threshold):
 
 
 def identify_possible_highly_variable(G,
-                                   cycle_threshold_max=20,
-                                   cycle_threshold_min=5,
-                                   size_diff_threshold=0.5):
+                                      cycle_threshold_max=20,
+                                      cycle_threshold_min=5,
+                                      size_diff_threshold=0.5):
 
     # add family paralog attribute to nodes
     for node in G.nodes():
@@ -393,21 +404,19 @@ def identify_possible_highly_variable(G,
         ]
 
     # remove cycles that are too short
-    complete_basis = [
-        b for b in complete_basis if len(b) >= 3
-    ]
+    complete_basis = [b for b in complete_basis if len(b) >= 3]
 
     # merge cycles with more than one node in common (nested)
     if len(complete_basis) < 1:
         return G
-        
+
     merged_basis = [[1, set(complete_basis[0])]]
     for b in complete_basis[1:]:
         b = set(b)
-        merged=False
+        merged = False
         for i, mb in enumerate(merged_basis):
             if len(mb[1].intersection(b)) > 1:
-                merged=True
+                merged = True
                 merged_basis[i][0] += 1
                 merged_basis[i][1] |= b
         if not merged:
@@ -417,7 +426,7 @@ def identify_possible_highly_variable(G,
         if b[0] < cycle_threshold_min: continue
         max_size = max([G.node[node]['size'] for node in b[1]])
         for node in b[1]:
-            if G.node[node]['size'] < (size_diff_threshold*max_size):
+            if G.node[node]['size'] < (size_diff_threshold * max_size):
                 G.node[node]['highVar'] = 1
 
     return G

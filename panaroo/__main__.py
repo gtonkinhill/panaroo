@@ -62,6 +62,22 @@ def get_options():
                           action='store_true',
                           default=False)
 
+    refind = parser.add_argument_group('Refind')
+    refind.add_argument(
+        "--search_radius",
+        dest="search_radius",
+        help=("the distance in nucleotides surronding the " +
+              "neighbour of an accessory gene in which to search for it"),
+        default=1000,
+        type=int)
+    refind.add_argument(
+        "--refind_prop_match",
+        dest="refind_prop_match",
+        help=("the proportion of an accessory gene that must " +
+              "be found in order to consider it a match"),
+        default=0.2,
+        type=int)
+
     graph = parser.add_argument_group('Graph correction')
     graph.add_argument(
         "--mode",
@@ -85,7 +101,8 @@ def get_options():
     graph.add_argument(
         "--edge_support_threshold",
         dest="edge_support_threshold",
-        help=("minimum support required to keep and edge that has been flagged" +
+        help=(
+            "minimum support required to keep and edge that has been flagged" +
             " as a possible mis-assembly"),
         type=float)
     graph.add_argument(
@@ -100,7 +117,8 @@ def get_options():
     graph.add_argument(
         "--high_var_flag",
         dest="cycle_threshold_min",
-        help=("minimum number of nested cycles to call a highly variable gene " +
+        help=(
+            "minimum number of nested cycles to call a highly variable gene " +
             "region (default = 5)."),
         type=int,
         default=5)
@@ -114,7 +132,7 @@ def get_options():
         "--all_seq_in_graph",
         dest="all_seq_in_graph",
         help=("Retains all DNA sequence for each gene cluster in the graph " +
-             "output. Off by default as it uses a large amount of space."),
+              "output. Off by default as it uses a large amount of space."),
         action='store_true',
         default=False)
 
@@ -191,7 +209,7 @@ def main():
     G = generate_network(cluster_file=cd_hit_out + ".clstr",
                          data_file=args.output_dir + "gene_data.csv",
                          prot_seq_file=args.output_dir +
-                         "combined_protein_CDS.fasta", 
+                         "combined_protein_CDS.fasta",
                          all_dna=args.all_seq_in_graph)
 
     # merge paralogs
@@ -247,7 +265,8 @@ def main():
     # identify possible family level paralogs
     if args.verbose:
         print("identifying potentialy highly variable genes...")
-    G = identify_possible_highly_variable(G, 
+    G = identify_possible_highly_variable(
+        G,
         cycle_threshold_max=20,
         cycle_threshold_min=args.cycle_threshold_min,
         size_diff_threshold=0.5)
@@ -261,20 +280,22 @@ def main():
                      dna_seq_file=args.output_dir + "combined_DNA_CDS.fasta",
                      prot_seq_file=args.output_dir +
                      "combined_protein_CDS.fasta",
-                     gene_data_file = args.output_dir + "gene_data.csv",
+                     gene_data_file=args.output_dir + "gene_data.csv",
                      remove_by_consensus=args.remove_by_consensus,
+                     search_radius=args.search_radius,
+                     prop_match=args.refind_prop_match,
+                     pairwise_id_thresh=args.id,
                      merge_id_thresh=max(0.8, args.family_threshold),
                      n_cpu=args.n_cpu)
 
     # remove edges that are likely due to misassemblies (by consensus)
-    G = clean_misassembly_edges(G, 
-        edge_support_threshold=args.edge_support_threshold)
-    
+    G = clean_misassembly_edges(
+        G, edge_support_threshold=args.edge_support_threshold)
+
     # if requested merge paralogs
     if args.merge_paralogs:
         G = merge_paralogs(G)
 
-   
     isolate_names = [
         os.path.splitext(os.path.basename(x.name))[0] for x in args.input_files
     ]
@@ -285,10 +306,10 @@ def main():
 
     # write out roary like gene_presence_absence.csv
     G = generate_roary_gene_presence_absence(G,
-                                             mems_to_isolates=mems_to_isolates, 
+                                             mems_to_isolates=mems_to_isolates,
                                              output_dir=args.output_dir)
 
-     # add helpful attributes and write out graph in GML format
+    # add helpful attributes and write out graph in GML format
     for node in G.nodes():
         G.node[node]['size'] = len(set(G.node[node]['members']))
 

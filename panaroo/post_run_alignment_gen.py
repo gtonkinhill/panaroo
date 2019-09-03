@@ -84,7 +84,7 @@ def main():
     with open(args.output_dir + "gene_data.csv", 'r') as infile:
         next(infile)
         for line in infile:
-            iso=line.split(",")[0]
+            iso = line.split(",")[0]
             if iso not in seen:
                 isolate_names.append(iso)
                 seen.add(iso)

@@ -1,5 +1,6 @@
 import itertools
 
+
 def merge_nodes(G,
                 nodeA,
                 nodeB,
@@ -21,14 +22,12 @@ def merge_nodes(G,
                            G.node[nodeB]['centroid'].split(";"))),
                    members=G.node[nodeA]['members'] + G.node[nodeB]['members'],
                    seqIDs=G.node[nodeA]['seqIDs'] + G.node[nodeB]['seqIDs'],
-                   hasEnd=(G.node[nodeA]['hasEnd']
-                    or G.node[nodeB]['hasEnd']),
+                   hasEnd=(G.node[nodeA]['hasEnd'] or G.node[nodeB]['hasEnd']),
                    protein=";".join(
                        set(G.node[nodeA]['protein'].split(";") +
                            G.node[nodeB]['protein'].split(";"))),
-                   dna=";".join(
-                       G.node[nodeA]['dna'].split(";") +
-                           G.node[nodeB]['dna'].split(";")),
+                   dna=";".join(G.node[nodeA]['dna'].split(";") +
+                                G.node[nodeB]['dna'].split(";")),
                    annotation=";".join(
                        set(G.node[nodeA]['annotation'].split(";") +
                            G.node[nodeB]['annotation'].split(";"))),
@@ -40,20 +39,18 @@ def merge_nodes(G,
                             or G.node[nodeB]['paralog']))
     else:
         # take node with most support as the 'consensus'
-        if G.node[nodeA]['size']<G.node[nodeB]['size']:
+        if G.node[nodeA]['size'] < G.node[nodeB]['size']:
             nodeB, nodeA = nodeA, nodeB
-            
+
         G.add_node(newNode,
                    size=G.node[nodeA]['size'] + G.node[nodeB]['size'],
                    centroid=G.node[nodeA]['centroid'],
                    members=G.node[nodeA]['members'] + G.node[nodeB]['members'],
                    seqIDs=G.node[nodeA]['seqIDs'] + G.node[nodeB]['seqIDs'],
-                   hasEnd=(G.node[nodeA]['hasEnd']
-                    or G.node[nodeB]['hasEnd']),
+                   hasEnd=(G.node[nodeA]['hasEnd'] or G.node[nodeB]['hasEnd']),
                    protein=G.node[nodeA]['protein'],
-                   dna=";".join(
-                       G.node[nodeA]['dna'].split(";") +
-                           G.node[nodeB]['dna'].split(";")),
+                   dna=";".join(G.node[nodeA]['dna'].split(";") +
+                                G.node[nodeB]['dna'].split(";")),
                    annotation=G.node[nodeA]['annotation'],
                    description=G.node[nodeA]['description'],
                    paralog=(G.node[nodeA]['paralog']
@@ -88,7 +85,7 @@ def merge_nodes(G,
     # remove old nodes from Graph
     G.remove_nodes_from([nodeA, nodeB])
 
-    if len(max(G.nodes[newNode]["dna"].split(";"), key=len))<=0:
+    if len(max(G.nodes[newNode]["dna"].split(";"), key=len)) <= 0:
         print(G.node[newNode]["dna"])
         raise NameError("Problem!")
 
@@ -98,15 +95,14 @@ def merge_nodes(G,
 def delete_node(G, node):
     # add in new edges
     for mem in G.node[node]['members']:
-        mem_edges = list(set([e[1] for e in G.edges(node) if mem in G.edges[e]['members']]))
+        mem_edges = list(
+            set([e[1] for e in G.edges(node) if mem in G.edges[e]['members']]))
         for n1, n2 in itertools.combinations(mem_edges, 2):
-            if G.has_edge(n1,n2):
+            if G.has_edge(n1, n2):
                 G[n1][n2]['members'] += [mem]
                 G[n1][n2]['weight'] += 1
             else:
-                G.add_edge(n1, n2,
-                   weight=1,
-                   members=[mem])
+                G.add_edge(n1, n2, weight=1, members=[mem])
 
     # now remove node
     G.remove_node(node)
@@ -124,5 +120,5 @@ def remove_member_from_node(G, node, member):
         G.node[node]['size'] -= 1
         del G.node[node]['seqIDs'][rm_index]
         del G.node[node]['lengths'][rm_index]
-            
+
     return G

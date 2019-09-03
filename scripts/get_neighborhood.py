@@ -1,8 +1,9 @@
 import networkx as nx
 
+
 def index_neighbors(g):
     g2g2n = {}
-    for n, attr in g.nodes(data = True):
+    for n, attr in g.nodes(data=True):
         genomes = attr["genomeIDs"].split(";")
         genome_dict = dict([(genome, True) for genome in genomes])
         for neighbor in g.neighbors(n):
@@ -18,6 +19,7 @@ def index_neighbors(g):
                     else:
                         g2g2n[n][genome].append(neighbor)
     return g2g2n
+
 
 def expand_path(g2g2n, paths, target):
     for genome in paths:
@@ -36,13 +38,16 @@ def expand_path(g2g2n, paths, target):
                 path.append(neighbors[1])
     return paths
 
+
 def join_paths(path_f, path_r, target):
     all_paths = []
     path_dict = {}
-    for g in sorted(list(set([i for i in path_f.keys()] + [i for i in path_r.keys()]))):
+    for g in sorted(
+            list(set([i for i in path_f.keys()] + [i
+                                                   for i in path_r.keys()]))):
         p = []
         if g in path_f and g in path_r:
-            p = path_r[g][::-1] + [target] +  path_f[g]
+            p = path_r[g][::-1] + [target] + path_f[g]
         elif g in path_f:
             p = [target] + path_f[g]
         else:
@@ -51,9 +56,10 @@ def join_paths(path_f, path_r, target):
             path_dict[tuple(p)] = [g]
         else:
             path_dict[tuple(p)].append(g)
-    return path_dict 
+    return path_dict
 
-def get_neighbors(name, g2g2n, graph, length = 10):
+
+def get_neighbors(name, g2g2n, graph, length=10):
     target = g2g2n[name]
     paths_f = {}
     paths_r = {}
@@ -68,21 +74,23 @@ def get_neighbors(name, g2g2n, graph, length = 10):
             else:
                 paths_r[genome].append(target[genome][1])
     for i in range(5):
-        expand_path(g2g2n, paths_r, name) 
-        expand_path(g2g2n, paths_f, name) 
+        expand_path(g2g2n, paths_r, name)
+        expand_path(g2g2n, paths_f, name)
     path_dict = join_paths(paths_f, paths_r, name)
     path_dict_t = {}
-    for p, genomes  in zip(path_dict.keys(), path_dict.values()):
+    for p, genomes in zip(path_dict.keys(), path_dict.values()):
         gene_path = []
         for gene in p:
             gene_path.append(graph.nodes[gene]["name"])
         path_dict_t[tuple(genomes)] = gene_path
-    return path_dict_t 
-    
+    return path_dict_t
+
+
 def get_target(g, gene):
-    for n, attr in g.nodes(data = True):
+    for n, attr in g.nodes(data=True):
         if attr["name"] == gene:
             return n
+
 
 def write_paths(paths, out):
     with open(out, 'w') as f:
@@ -92,13 +100,15 @@ def write_paths(paths, out):
             f.write("\t".join(genomes))
             f.write('\n')
 
+
 def run(gene, graph, out):
     g = nx.read_gml(graph)
     target = get_target(g, gene)
-    g2g2n = index_neighbors(g) 
-    paths = get_neighbors(target, g2g2n, g) 
+    g2g2n = index_neighbors(g)
+    paths = get_neighbors(target, g2g2n, g)
     write_paths(paths, out)
     #"143"'ureR_1'
+
 
 if __name__ == "__main__":
     import argparse

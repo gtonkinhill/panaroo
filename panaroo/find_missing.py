@@ -14,9 +14,17 @@ from .merge_nodes import delete_node, remove_member_from_node
 from tqdm import tqdm
 
 
-def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, 
-                gene_data_file, merge_id_thresh,
-                n_cpu, remove_by_consensus=False):
+def find_missing(G,
+                 gff_file_handles,
+                 dna_seq_file,
+                 prot_seq_file,
+                 gene_data_file,
+                 merge_id_thresh,
+                 search_radius,
+                 prop_match,
+                 pairwise_id_thresh,
+                 n_cpu,
+                 remove_by_consensus=False):
 
     # Iterate over each genome file checking to see if any missing accessory genes
     #  can be found.
@@ -26,7 +34,7 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file,
     with open(gene_data_file, 'r') as infile:
         next(infile)
         for line in infile:
-            line=line.split(",")
+            line = line.split(",")
             if line[2] in id_to_gff:
                 raise NameError("Duplicate internal ids!")
             id_to_gff[line[2]] = line[3]
@@ -34,7 +42,8 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file,
     # identify nodes that have been merged at the protein level
     merged_nodes = {}
     for node in G.nodes():
-        if (len(G.node[node]['centroid'].split(";"))>1) or ("mergedDNA" in G.node[node]):
+        if (len(G.node[node]['centroid'].split(";")) >
+                1) or ("mergedDNA" in G.node[node]):
             merged_nodes[node] = max(G.node[node]["dna"].split(";"), key=len)
 
     # iterate through nodes to identify accessory genes for searching
@@ -51,22 +60,27 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file,
                 # seen_mems.add(member)
                 conflicts[int(member)].add((neigh, id_to_gff[sid]))
                 if member not in G.node[node]['members']:
-                    if len(max(G.node[node]["dna"].split(";"), key=len))<=0:
+                    if len(max(G.node[node]["dna"].split(";"), key=len)) <= 0:
                         print(G.node[node]["dna"])
                         raise NameError("Problem!")
-                    search_list[int(member)][node].add((max(G.node[node]["dna"].split(";"), key=len), 
-                                                     id_to_gff[sid]))
+                    search_list[int(member)][node].add(
+                        (max(G.node[node]["dna"].split(";"),
+                             key=len), id_to_gff[sid]))
                     n_searches += 1
-
 
     print("Number of searches to perform: ", n_searches)
     print("Searching...")
 
     all_hits, all_node_locs, max_seq_lengths = zip(*Parallel(n_jobs=n_cpu)(
-                delayed(search_gff)(
-                    search_list[member], conflicts[member], gff_handle, 
-                    merged_nodes, merge_id_thresh=merge_id_thresh)
-                    for member, gff_handle in tqdm(enumerate(gff_file_handles))))
+        delayed(search_gff)(search_list[member],
+                            conflicts[member],
+                            gff_handle,
+                            merged_nodes=merged_nodes,
+                            search_radius=10000,
+                            prop_match=0.2,
+                            pairwise_id_thresh=0.95,
+                            merge_id_thresh=merge_id_thresh)
+        for member, gff_handle in tqdm(enumerate(gff_file_handles))))
     # ,search_radius, prop_match, pairwise_id_thresh, n_cpu)
 
     print("translating hits...")
@@ -74,9 +88,8 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file,
     hits_trans_dict = {}
     for member, hits in enumerate(all_hits):
         hits_trans_dict[member] = Parallel(n_jobs=n_cpu)(
-                delayed(translate_to_match)(
-                    hit[1], G.node[hit[0]]["protein"].split(";")[0])
-                for hit in hits)
+            delayed(translate_to_match)(hit[1], G.node[
+                hit[0]]["protein"].split(";")[0]) for hit in hits)
 
     bad_nodes = set()
     if remove_by_consensus:
@@ -84,23 +97,25 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file,
         node_hit_counter = Counter()
         for hits in all_hits:
             for node, dna_hit in hits:
-                if dna_hit=="": continue
-                node_hit_counter[node] += 1        
+                if dna_hit == "": continue
+                node_hit_counter[node] += 1
         for node in G:
-            if node_hit_counter[node]>G.node[node]['size']:
+            if node_hit_counter[node] > G.node[node]['size']:
                 bad_nodes.add(node)
         for node in bad_nodes:
             delete_node(G, node)
 
     # remove nodes that conflict (overlap)
-    nodes_by_size = sorted([(G.node[node]['size'], node) for node in G.nodes()],
-        reverse=True)
+    nodes_by_size = sorted([(G.node[node]['size'], node)
+                            for node in G.nodes()],
+                           reverse=True)
     nodes_by_size = [n[1] for n in nodes_by_size]
     member = 0
     bad_node_mem_pairs = []
 
     for node_locs, max_seq_length in zip(all_node_locs, max_seq_lengths):
-        seq_coverage = defaultdict(lambda: np.zeros(max_seq_length+2, dtype=bool))
+        seq_coverage = defaultdict(lambda: np.zeros(max_seq_length + 2,
+                                                    dtype=bool))
 
         for node in nodes_by_size:
             if node in bad_nodes: continue
@@ -108,17 +123,18 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file,
             contig_id = node_locs[node][0]
             loc = node_locs[node][1]
 
-            if np.sum(seq_coverage[contig_id][loc[0]:loc[1]]) >= (0.5*(loc[1]-loc[0])):
+            if np.sum(seq_coverage[contig_id][loc[0]:loc[1]]) >= (
+                    0.5 * (loc[1] - loc[0])):
                 if str(member) in G.node[node]['members']:
                     G.node[node]['members'].remove(str(member))
                     G.node[node]['size'] -= 1
-                bad_node_mem_pairs.append((node,member))
+                bad_node_mem_pairs.append((node, member))
             else:
                 seq_coverage[contig_id][loc[0]:loc[1]] = True
         member += 1
 
     for size, node in [(G.node[node]['size'], node) for node in G.nodes()]:
-        if size<=0:
+        if size <= 0:
             bad_nodes.add(node)
             delete_node(G, node)
 
@@ -130,8 +146,8 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file,
             for member, hits in enumerate(all_hits):
                 i = -1
                 for node, dna_hit in hits:
-                    i+=1
-                    if dna_hit=="": continue
+                    i += 1
+                    if dna_hit == "": continue
                     if node in bad_nodes: continue
                     if (node, member) in bad_node_mem_pairs: continue
                     hit_protein = hits_trans_dict[member][i]
@@ -140,12 +156,12 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file,
                     G.node[node]['dna'] = ";".join(
                         set(G.node[node]['dna'].split(";") + [dna_hit]))
                     dna_out.write(">" + str(member) + "_refound_" +
-                                    str(n_found) + "\n" + dna_hit + "\n")
+                                  str(n_found) + "\n" + dna_hit + "\n")
                     G.node[node]['protein'] = ";".join(
                         set(G.node[node]['protein'].split(";") +
                             [hit_protein]))
                     prot_out.write(">" + str(member) + "_refound_" +
-                                    str(n_found) + "\n" + hit_protein + "\n")
+                                   str(n_found) + "\n" + hit_protein + "\n")
                     G.node[node]['seqIDs'] += [
                         str(member) + "_refound_" + str(n_found)
                     ]
@@ -153,20 +169,18 @@ def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file,
 
     print("Number of refound genes: ", n_found)
 
-
-    return(G)
-
+    return (G)
 
 
 def search_gff(node_search_dict,
-                   conflicts,
-                   gff_handle,
-                   merged_nodes,
-                   search_radius=10000,
-                   prop_match=0.2,
-                   pairwise_id_thresh=0.95,
-                   merge_id_thresh=0.7,
-                   n_cpu=1):
+               conflicts,
+               gff_handle,
+               merged_nodes,
+               search_radius=10000,
+               prop_match=0.2,
+               pairwise_id_thresh=0.95,
+               merge_id_thresh=0.7,
+               n_cpu=1):
 
     # reset file handle to the beginning
     gff_handle.seek(0)
@@ -200,29 +214,33 @@ def search_gff(node_search_dict,
         end = max(gene.start, gene.end)
 
         if node in merged_nodes:
-            db_seq = contigs[gene[0]][max(0,(start-search_radius)):(end+search_radius)]
+            db_seq = contigs[gene[0]][max(0, (start -
+                                              search_radius)):(end +
+                                                               search_radius)]
             db_seq = "".join(list(db_seq))
-            
-            hit, loc = search_dna(db_seq, merged_nodes[node], 
-                prop_match = (end-start)/float(len(merged_nodes[node])),
-                pairwise_id_thresh = merge_id_thresh)
+
+            hit, loc = search_dna(db_seq,
+                                  merged_nodes[node],
+                                  prop_match=(end - start) /
+                                  float(len(merged_nodes[node])),
+                                  pairwise_id_thresh=merge_id_thresh)
 
             # update location
-            loc[0] = loc[0] + max(0,(start-search_radius))
-            loc[1] = loc[1] + max(0,(start-search_radius))
+            loc[0] = loc[0] + max(0, (start - search_radius))
+            loc[1] = loc[1] + max(0, (start - search_radius))
             node_locs[node] = [gene[0], loc]
         else:
-            node_locs[node] = [gene[0], [start-1,end]]
+            node_locs[node] = [gene[0], [start - 1, end]]
 
     for node, geneid in conflicts:
         gene = parsed_gff[geneid]
         start = min(gene.start, gene.end)
         end = max(gene.start, gene.end)
-        contigs[gene[0]][(start-1):end] = "X"
+        contigs[gene[0]][(start - 1):end] = "X"
 
-        if (gene[0], start-1,end) in seen: 
+        if (gene[0], start - 1, end) in seen:
             raise NameError("Duplicate entry!!!")
-        seen.add((gene[0], start-1,end))
+        seen.add((gene[0], start - 1, end))
 
     for sid in contigs:
         contigs[sid] = "".join(list(contigs[sid]))
@@ -236,19 +254,22 @@ def search_gff(node_search_dict,
             gene = parsed_gff[search[1]]
             start = min(gene.start, gene.end)
             end = max(gene.start, gene.end)
-            db_seq = contigs[gene[0]][max(0,(start-search_radius)):(end+search_radius)]
+            db_seq = contigs[gene[0]][max(0, (start -
+                                              search_radius)):(end +
+                                                               search_radius)]
 
-            hit, loc = search_dna(db_seq, search[0], prop_match, pairwise_id_thresh)
+            hit, loc = search_dna(db_seq, search[0], prop_match,
+                                  pairwise_id_thresh)
             # update location
-            loc[0] = loc[0] + max(0,(start-search_radius))
-            loc[1] = loc[1] + max(0,(start-search_radius))
-            
-            if len(hit)>len(best_hit):
+            loc[0] = loc[0] + max(0, (start - search_radius))
+            loc[1] = loc[1] + max(0, (start - search_radius))
+
+            if len(hit) > len(best_hit):
                 best_hit = hit
                 best_loc = [gene[0], loc]
 
         hits.append((node, best_hit))
-        if (best_loc is not None) and (best_hit!=""):
+        if (best_loc is not None) and (best_hit != ""):
             node_locs[node] = best_loc
 
     return [hits, node_locs, max_seq_len]
@@ -259,7 +280,7 @@ def search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh):
     start = None
     end = None
     max_hit = 0
-    loc = [0,0]
+    loc = [0, 0]
 
     # found=False
     # if search_sequence=="GTGGCCGCGACCAGTCCCCGCAGCGCGTCGGGGATGAAGCTTTCCGTGGTGTTCAGGAAGTTCCGCAACGGGACCATACGGCAACCGTATGGCTCACCTGCGGCCAAAAGCTATGGCGACCTACTCGTCATCCTTGGCGTGGTCGGCAACGCCCGGATTCGGATCGCGTGA":
@@ -269,11 +290,15 @@ def search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh):
 
     for i, db in enumerate([db_seq, str(Seq(db_seq).reverse_complement())]):
 
-        aln = edlib.align(search_sequence, 
-            db, mode="HW", task='locations', k=10*len(search_sequence),
-            additionalEqualities=[('A','N'), ('C','N'), ('G','N'), ('T','N')])
-        
-        if aln['editDistance']==-1:
+        aln = edlib.align(search_sequence,
+                          db,
+                          mode="HW",
+                          task='locations',
+                          k=10 * len(search_sequence),
+                          additionalEqualities=[('A', 'N'), ('C', 'N'),
+                                                ('G', 'N'), ('T', 'N')])
+
+        if aln['editDistance'] == -1:
             start = -1
         else:
             start = aln['locations'][0][0]
@@ -284,18 +309,21 @@ def search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh):
         #     print(start, end)
 
         # skip if nothing was found
-        if start==-1: continue
+        if start == -1: continue
 
         # skip if alignment is too short
         n_X = db[start:end].count("X")
-        aln_length = float(end-start-n_X)
-        if (aln_length/len(search_sequence)) <= prop_match: continue
+        aln_length = float(end - start - n_X)
+        if (aln_length / len(search_sequence)) <= prop_match: continue
 
         # determine an approximate percentage identity
-        if (start==0) or  (end==len(db_seq)):
-            pid = 1.0-max(0.0, (aln['editDistance'] - n_X - (len(search_sequence)-aln_length)))/aln_length
+        if (start == 0) or (end == len(db_seq)):
+            pid = 1.0 - max(0.0,
+                            (aln['editDistance'] - n_X -
+                             (len(search_sequence) - aln_length))) / aln_length
         else:
-            pid = 1.0-(aln['editDistance']-n_X)/(1.0*len(search_sequence))
+            pid = 1.0 - (aln['editDistance'] - n_X) / (1.0 *
+                                                       len(search_sequence))
 
         # skip if identity below threshold
         if pid <= pairwise_id_thresh: continue
@@ -303,21 +331,25 @@ def search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh):
         # if found:
         #     print("aln_length:", aln_length)
         #     print("pid:", pid)
-        
-        if max_hit < (pid*aln_length):
+
+        if max_hit < (pid * aln_length):
             found_dna = db[start:end]
-            max_hit = (pid*aln_length)
-            if i==0:
+            max_hit = (pid * aln_length)
+            if i == 0:
                 loc = [start, end]
             else:
-                loc = [len(db_seq)-aln['locations'][0][0]-1, len(db_seq) - aln['locations'][0][1]]
+                loc = [
+                    len(db_seq) - aln['locations'][0][0] - 1,
+                    len(db_seq) - aln['locations'][0][1]
+                ]
             loc = [min(loc), max(loc)]
 
     # if found:
     #     print(found_dna)
     #     print("<<<<<<<<<<<<<<<<<<")
 
-    return found_dna.replace('X','N'), loc
+    return found_dna.replace('X', 'N'), loc
+
 
 def translate_to_match(hit, target_prot):
 
@@ -445,4 +477,3 @@ blosum50 = \
               'F': -4, 'I': -3, 'H': 0, 'K': 1, 'M': -1, 'L': -3, 'N': 0,
               'Q': 4, 'P': -1, 'S': 0, 'R': 0, 'T': -1, 'W': -2, 'V': -3,
               'Y': -2, 'X': -1, 'Z': 5}}
-

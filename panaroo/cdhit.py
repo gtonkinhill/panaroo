@@ -14,6 +14,7 @@ from scipy.sparse.csgraph import connected_components
 from joblib import Parallel, delayed
 import math
 
+
 def check_cdhit_version(cdhit_exec='cd-hit'):
     """Checks that cd-hit can be run, and returns version.
 
@@ -360,7 +361,9 @@ def align_dna_cdhit(
 
     return found_seq
 
-def iterative_cdhit(G,
+
+def iterative_cdhit(
+        G,
         nodes,
         outdir,
         dna=False,
@@ -373,7 +376,7 @@ def iterative_cdhit(G,
         use_local=False,  #whether to use local or global sequence alignment
         strand=1,  # default do both +/+ & +/- alignments if set to 0, only +/+
         quiet=False,
-        thresholds=[0.99,0.95,0.90,0.85,0.8,0.75,0.7],
+        thresholds=[0.99, 0.95, 0.90, 0.85, 0.8, 0.75, 0.7],
         n_cpu=1):
 
     # create the files we will need
@@ -393,34 +396,34 @@ def iterative_cdhit(G,
             else:
                 outfile.write(
                     max(G.node[node]["protein"].split(";"), key=len) + "\n")
-    
+
     for cid in thresholds:
         # run cd-hit
         if dna:
             run_cdhit_est(input_file=temp_input_file.name,
-                        output_file=temp_output_file.name,
-                        id=cid,
-                        s=s,
-                        aL=aL,
-                        AL=AL,
-                        aS=AS,
-                        accurate=accurate,
-                        use_local=use_local,
-                        strand=strand,
-                        quiet=quiet,
-                        n_cpu=n_cpu)
+                          output_file=temp_output_file.name,
+                          id=cid,
+                          s=s,
+                          aL=aL,
+                          AL=AL,
+                          aS=AS,
+                          accurate=accurate,
+                          use_local=use_local,
+                          strand=strand,
+                          quiet=quiet,
+                          n_cpu=n_cpu)
         else:
             run_cdhit(input_file=temp_input_file.name,
-                    output_file=temp_output_file.name,
-                    id=cid,
-                    s=s,
-                    aL=aL,
-                    AL=AL,
-                    aS=AS,
-                    accurate=accurate,
-                    use_local=use_local,
-                    quiet=quiet,
-                    n_cpu=n_cpu)
+                      output_file=temp_output_file.name,
+                      id=cid,
+                      s=s,
+                      aL=aL,
+                      AL=AL,
+                      aS=AS,
+                      accurate=accurate,
+                      use_local=use_local,
+                      quiet=quiet,
+                      n_cpu=n_cpu)
 
         # process the output
         temp_clusters = []
@@ -440,7 +443,7 @@ def iterative_cdhit(G,
         for c, clust in enumerate(temp_clusters):
             for n in clust:
                 temp_clust_dict[n] = c
-        clust_dict = defaultdict(list)  
+        clust_dict = defaultdict(list)
         for clust in clusters:
             c = -1
             for n in clust:
@@ -456,11 +459,11 @@ def iterative_cdhit(G,
         temp_input_file.name = temp_output_file.name
         temp_output_file.name = temp_output_file.name + "t" + str(cid)
 
-    return(clusters)
+    return (clusters)
 
 
 def pwdist_edlib(G, cdhit_clusters, threshold, dna=False, n_cpu=1):
-    
+
     # map nodes to centroids
     node_to_centroid = {}
     centroid_to_index = {}
@@ -470,16 +473,18 @@ def pwdist_edlib(G, cdhit_clusters, threshold, dna=False, n_cpu=1):
         node_to_centroid[node] = centroid
         if centroid not in centroid_to_index:
             centroid_to_index[centroid] = node_index
-            node_index+=1
+            node_index += 1
 
     # Prepare sequences
     seqs = {}
     for node in G.nodes():
         if node_to_centroid[node] in seqs: continue
         if dna:
-            seqs[node_to_centroid[node]] = max(G.node[node]["dna"].split(";"), key=len).upper()
+            seqs[node_to_centroid[node]] = max(G.node[node]["dna"].split(";"),
+                                               key=len).upper()
         else:
-            seqs[node_to_centroid[node]] = max(G.node[node]["protein"].split(";"), key=len).upper()
+            seqs[node_to_centroid[node]] = max(
+                G.node[node]["protein"].split(";"), key=len).upper()
 
     # get pairwise id between sequences in the same cdhit clusters
     distances_bwtn_centroids = defaultdict(lambda: 100)
@@ -487,24 +492,24 @@ def pwdist_edlib(G, cdhit_clusters, threshold, dna=False, n_cpu=1):
     all_distances = []
     for cluster in cdhit_clusters:
         all_distances += Parallel(n_jobs=n_cpu)(
-                    delayed(run_pw)(seqs[node_to_centroid[n1]], seqs[node_to_centroid[n1]], n1, n2, dna)
-                    for n1, n2 in itertools.combinations(cluster, 2))
-    
-    data=[]
-    row_ind=[]
-    col_ind=[]
+            delayed(run_pw)(seqs[node_to_centroid[n1]], seqs[
+                node_to_centroid[n1]], n1, n2, dna)
+            for n1, n2 in itertools.combinations(cluster, 2))
+
+    data = []
+    row_ind = []
+    col_ind = []
     for d in all_distances:
         if d[2] >= threshold:
             data.append(1)
             row_ind.append(centroid_to_index[node_to_centroid[d[0]]])
             col_ind.append(centroid_to_index[node_to_centroid[d[1]]])
 
-    distances_bwtn_centroids = csr_matrix((data,
-        (row_ind, 
-         col_ind)),
-         shape=(node_index, node_index))
+    distances_bwtn_centroids = csr_matrix((data, (row_ind, col_ind)),
+                                          shape=(node_index, node_index))
 
     return distances_bwtn_centroids, centroid_to_index
+
 
 def run_pw(seqA, seqB, n1, n2, dna):
 
@@ -514,19 +519,34 @@ def run_pw(seqA, seqB, n1, n2, dna):
     if dna:
         pwid = 0.0
         for sA in [seqA, str(Seq(seqA).reverse_complement())]:
-            aln = edlib.align(sA, seqB, mode="HW", task='locations', k=10*len(seqA),
-                    additionalEqualities=[('A','N'), ('C','N'), ('G','N'), ('T','N')])
-            pwid = max(pwid, 1.0-aln['editDistance']/float(len(seqA)))
+            aln = edlib.align(sA,
+                              seqB,
+                              mode="HW",
+                              task='locations',
+                              k=10 * len(seqA),
+                              additionalEqualities=[('A', 'N'), ('C', 'N'),
+                                                    ('G', 'N'), ('T', 'N')])
+            pwid = max(pwid, 1.0 - aln['editDistance'] / float(len(seqA)))
     else:
-        aln = edlib.align(seqA, seqB, mode="HW", task='locations', k=10*len(seqA),
-                    additionalEqualities=[('*', 'X'),('A', 'X'),('C', 'X'),('B', 'X'),('E', 'X'),
-                                            ('D', 'X'),('G', 'X'),('F', 'X'),('I', 'X'),('H', 'X'),
-                                            ('K', 'X'),('M', 'X'),('L', 'X'),('N', 'X'),('Q', 'X'),
-                                            ('P', 'X'),('S', 'X'),('R', 'X'),('T', 'X'),('W', 'X'),
-                                            ('V', 'X'),('Y', 'X'),('X', 'X'),('Z', 'X'),('D', 'B'),
-                                            ('N', 'B'),('E', 'Z'),('Q', 'Z')])
-        pwid = 1.0 - aln['editDistance']/float(len(seqA))
+        aln = edlib.align(seqA,
+                          seqB,
+                          mode="HW",
+                          task='locations',
+                          k=10 * len(seqA),
+                          additionalEqualities=[('*', 'X'), ('A', 'X'),
+                                                ('C', 'X'), ('B', 'X'),
+                                                ('E', 'X'), ('D', 'X'),
+                                                ('G', 'X'), ('F', 'X'),
+                                                ('I', 'X'), ('H', 'X'),
+                                                ('K', 'X'), ('M', 'X'),
+                                                ('L', 'X'), ('N', 'X'),
+                                                ('Q', 'X'), ('P', 'X'),
+                                                ('S', 'X'), ('R', 'X'),
+                                                ('T', 'X'), ('W', 'X'),
+                                                ('V', 'X'), ('Y', 'X'),
+                                                ('X', 'X'), ('Z', 'X'),
+                                                ('D', 'B'), ('N', 'B'),
+                                                ('E', 'Z'), ('Q', 'Z')])
+        pwid = 1.0 - aln['editDistance'] / float(len(seqA))
 
-    return((n1, n2, pwid))
-
-
+    return ((n1, n2, pwid))
