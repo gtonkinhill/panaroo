@@ -263,6 +263,7 @@ def main():
                      "combined_protein_CDS.fasta",
                      gene_data_file = args.output_dir + "gene_data.csv",
                      remove_by_consensus=args.remove_by_consensus,
+                     merge_id_thresh=max(0.8, args.family_threshold),
                      n_cpu=args.n_cpu)
 
     # remove edges that are likely due to misassemblies (by consensus)
