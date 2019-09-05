@@ -136,7 +136,8 @@ def simulate_img_with_mutation(in_tree,
             # copy mutations from parent
             for g in node.acc_genes:
                 if g in node.parent_node.gene_mutations:
-                    node.gene_mutations[g] = node.parent_node.gene_mutations[g].copy()
+                    node.gene_mutations[g] = node.parent_node.gene_mutations[
+                        g].copy()
             # add mutations
             for g in node.acc_genes:
                 n_new = np.random.poisson(lam=node.edge.length *
@@ -269,17 +270,21 @@ def add_diversity(gfffile, nisolates, effective_pop_size, gain_rate, loss_rate,
             right = entry.stop
             if right < left: raise RuntimeError("Error issue with left/right!")
             if g not in included_genes:
-                deleted_genes+=1
-                d_index[entry.seqid] = np.append(d_index[entry.seqid], np.arange(left, right))
+                deleted_genes += 1
+                d_index[entry.seqid] = np.append(d_index[entry.seqid],
+                                                 np.arange(left, right))
 
-            gene_sequence = Seq(''.join(temp_seq_dict[entry.seqid][left:right]))
+            gene_sequence = Seq(''.join(
+                temp_seq_dict[entry.seqid][left:right]))
             if entry.strand == "-":
                 gene_sequence = gene_sequence.reverse_complement()
             gene_sequence = gene_sequence.translate()
-            gene_seqs.append(SeqRecord(gene_sequence, id=entry.id, description=""))
+            gene_seqs.append(
+                SeqRecord(gene_sequence, id=entry.id, description=""))
 
         for entryid in d_index:
-            temp_seq_dict[entryid] = np.delete(temp_seq_dict[entry.seqid], d_index[entryid])
+            temp_seq_dict[entryid] = np.delete(temp_seq_dict[entry.seqid],
+                                               d_index[entryid])
 
         print("mutations in genome: ", n_mutations)
         print("genes deleted: ", deleted_genes)
@@ -296,7 +301,7 @@ def add_diversity(gfffile, nisolates, effective_pop_size, gain_rate, loss_rate,
         outfile.close()
 
     # write out database for prokka
-    prokka_db_name = prefix  + "_prokka_DB.fasta"
+    prokka_db_name = prefix + "_prokka_DB.fasta"
     with open(prokka_db_name, 'w') as dboutfile:
         SeqIO.write(gene_seqs, dboutfile, 'fasta')
 
@@ -308,7 +313,7 @@ def add_diversity(gfffile, nisolates, effective_pop_size, gain_rate, loss_rate,
             pa.add(gene[0])
         pa_by_iso.append(pa)
 
-    out_name = prefix  + "_presence_absence.csv"
+    out_name = prefix + "_presence_absence.csv"
 
     seen = set()
     with open(out_name, 'w') as outfile:
@@ -324,9 +329,8 @@ def add_diversity(gfffile, nisolates, effective_pop_size, gain_rate, loss_rate,
 
         for g, entry in enumerate(all_gene_locations):
             if entry.id in seen: continue
-            outfile.write("\t".join(
-                [entry.id] +
-                ["1" for i in range(nisolates)]) + "\n")
+            outfile.write("\t".join([entry.id] +
+                                    ["1" for i in range(nisolates)]) + "\n")
 
     return
 
@@ -396,12 +400,12 @@ def main():
     args.output_dir = os.path.join(args.output_dir, "")
 
     prefix = (args.output_dir + "pan_sim_gr_" + str(args.gain_rate) + "_lr_" +
-                    str(args.loss_rate) + "_mu_" + str(args.mutation_rate))
+              str(args.loss_rate) + "_mu_" + str(args.mutation_rate))
 
     # adjust rates for popsize
-    args.gain_rate = 2.0*args.gain_rate*args.pop_size
-    args.loss_rate = 2.0*args.loss_rate*args.pop_size
-    args.mutation_rate = 2.0*args.mutation_rate*args.pop_size
+    args.gain_rate = 2.0 * args.gain_rate * args.pop_size
+    args.loss_rate = 2.0 * args.loss_rate * args.pop_size
+    args.mutation_rate = 2.0 * args.mutation_rate * args.pop_size
 
     add_diversity(gfffile=args.gff,
                   nisolates=args.nisolates,

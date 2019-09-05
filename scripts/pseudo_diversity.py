@@ -7,16 +7,16 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from io import StringIO
 import numpy as np
-from random import sample 
+from random import sample
 
-codons = ['ATA', 'ATC', 'ATT', 'ATG', 'ACA', 'ACC', 'ACG', 
-    'ACT', 'AAC', 'AAT', 'AAA', 'AAG', 'AGC', 'AGT', 'AGA', 
-    'AGG', 'CTA', 'CTC', 'CTG', 'CTT', 'CCA', 'CCC', 'CCG', 
-    'CCT', 'CAC', 'CAT', 'CAA', 'CAG', 'CGA', 'CGC', 'CGG', 
-    'CGT', 'GTA', 'GTC', 'GTG', 'GTT', 'GCA', 'GCC', 'GCG', 
-    'GCT', 'GAC', 'GAT', 'GAA', 'GAG', 'GGA', 'GGC', 'GGG', 
-    'GGT', 'TCA', 'TCC', 'TCG', 'TCT', 'TTC', 'TTT', 'TTA', 
-    'TTG', 'TAC', 'TAT', 'TGC', 'TGT', 'TGG']
+codons = [
+    'ATA', 'ATC', 'ATT', 'ATG', 'ACA', 'ACC', 'ACG', 'ACT', 'AAC', 'AAT',
+    'AAA', 'AAG', 'AGC', 'AGT', 'AGA', 'AGG', 'CTA', 'CTC', 'CTG', 'CTT',
+    'CCA', 'CCC', 'CCG', 'CCT', 'CAC', 'CAT', 'CAA', 'CAG', 'CGA', 'CGC',
+    'CGG', 'CGT', 'GTA', 'GTC', 'GTG', 'GTT', 'GCA', 'GCC', 'GCG', 'GCT',
+    'GAC', 'GAT', 'GAA', 'GAG', 'GGA', 'GGC', 'GGG', 'GGT', 'TCA', 'TCC',
+    'TCG', 'TCT', 'TTC', 'TTT', 'TTA', 'TTG', 'TAC', 'TAT', 'TGC', 'TGT', 'TGG'
+]
 codons = [Seq(c) for c in codons]
 
 translation_table = np.array([[[b'K', b'N', b'K', b'N', b'X'],
@@ -60,11 +60,13 @@ def translate(seq):
         seq), 3)], indices[np.arange(1, len(seq), 3)], indices[np.arange(
             2, len(seq), 3)]].tostring().decode('ascii')
 
-def random_codon(strand = "+"):
+
+def random_codon(strand="+"):
     codon = sample(codons, 1)[0]
-    if strand=="-":
+    if strand == "-":
         codon = codon.reverse_complement()
     return np.array(list(str(codon)))
+
 
 def clean_gff_string(gff_string):
     splitlines = gff_string.splitlines()
@@ -77,7 +79,9 @@ def clean_gff_string(gff_string):
     cleaned_gff = "\n".join(splitlines)
     return cleaned_gff
 
-def add_diversity(gfffile, outputfile, ngenes, diversity, sampled_entries=None):
+
+def add_diversity(gfffile, outputfile, ngenes, diversity,
+                  sampled_entries=None):
 
     outfile = open(outputfile, 'w')
 
@@ -91,7 +95,7 @@ def add_diversity(gfffile, outputfile, ngenes, diversity, sampled_entries=None):
 
     outfile.write(split[0])
     outfile.write('##FASTA\n')
-    
+
     with StringIO(split[1]) as temp_fasta:
         sequences = list(SeqIO.parse(temp_fasta, 'fasta'))
     seq_dict = OrderedDict()
@@ -99,12 +103,12 @@ def add_diversity(gfffile, outputfile, ngenes, diversity, sampled_entries=None):
         seq_dict[seq.id] = np.array(list(str(seq.seq)))
 
     parsed_gff = gff.create_db(clean_gff_string(split[0]),
-                            dbfn=":memory:",
-                            force=True,
-                            keep_order=False,
-                            merge_strategy="create_unique",
-                            sort_attribute_values=True,
-                            from_string=True)
+                               dbfn=":memory:",
+                               force=True,
+                               keep_order=False,
+                               merge_strategy="create_unique",
+                               sort_attribute_values=True,
+                               from_string=True)
 
     #Get gene entries to modify
     if sampled_entries is None:
@@ -118,24 +122,27 @@ def add_diversity(gfffile, outputfile, ngenes, diversity, sampled_entries=None):
                 continue
             prev_end = entry.end
             sampled_entries.append(entry)
-        index = np.random.choice(len(sampled_entries), size=ngenes, replace=False)
+        index = np.random.choice(len(sampled_entries),
+                                 size=ngenes,
+                                 replace=False)
         sampled_entries = [sampled_entries[i] for i in index]
 
     #Modify each gene
     for entry in sampled_entries:
         left = entry.start - 1
         right = entry.stop
-        if right<left: raise RuntimeError("Error issue with left/right!")
+        if right < left: raise RuntimeError("Error issue with left/right!")
 
-        condon_start_sites = np.random.choice(range(left, right, 3), 
-            size=int(np.ceil((1.0-diversity)*(right-left)/3.0)), 
+        condon_start_sites = np.random.choice(
+            range(left, right, 3),
+            size=int(np.ceil((1.0 - diversity) * (right - left) / 3.0)),
             replace=True)
         # swap codons at chosen start sites
         for start in condon_start_sites:
-            cod = random_codon(strand = entry.strand)
-            if (start<left) or ((start+3)>(right)):
+            cod = random_codon(strand=entry.strand)
+            if (start < left) or ((start + 3) > (right)):
                 raise RuntimeError("Error issue with start!")
-            seq_dict[entry.seqid][start:(start+3)] = cod
+            seq_dict[entry.seqid][start:(start + 3)] = cod
         # if entry.strand=="-":
         #     prot = str(translate(str(Seq(''.join(seq_dict[entry.seqid][left:right])).reverse_complement())))
         # else:
@@ -145,9 +152,10 @@ def add_diversity(gfffile, outputfile, ngenes, diversity, sampled_entries=None):
         #     raise RuntimeError("Error stop where there shouldnt be!")
 
     # write out sequences
-    sequences = [SeqRecord(Seq(''.join(seq_dict[s])),
-                                id=s,
-                                description="") for s in seq_dict]
+    sequences = [
+        SeqRecord(Seq(''.join(seq_dict[s])), id=s, description="")
+        for s in seq_dict
+    ]
     SeqIO.write(sequences, outfile, 'fasta')
 
     # close file
@@ -202,10 +210,10 @@ def main():
     sampled_entries = None
     for i in range(args.nreps):
         out_file_name = (args.output_dir + prefix + "div_" +
-                        str(args.diversity) + "_rep_" + str(i) + ".gff")
+                         str(args.diversity) + "_rep_" + str(i) + ".gff")
 
-        sampled_entries = add_diversity(args.gff, out_file_name, args.ngenes, args.diversity,
-            sampled_entries)
+        sampled_entries = add_diversity(args.gff, out_file_name, args.ngenes,
+                                        args.diversity, sampled_entries)
 
     return
 

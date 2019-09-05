@@ -6,12 +6,11 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from io import StringIO
 import numpy as np
-from random import sample 
+from random import sample
 
 
-
-def add_contam(reference_fasta, contam_fasta, output_file,
-    contam_mean_length, mean_contigs):
+def add_contam(reference_fasta, contam_fasta, output_file, contam_mean_length,
+               mean_contigs):
 
     outfile = open(output_file, 'w')
 
@@ -21,23 +20,23 @@ def add_contam(reference_fasta, contam_fasta, output_file,
 
     # load contamination
     contam_seqs = list(SeqIO.parse(contam_fasta, 'fasta'))
-    contam_seqs = [s for s in contam_seqs if len(s.seq)>500000]
+    contam_seqs = [s for s in contam_seqs if len(s.seq) > 500000]
 
     n_contigs = int(np.random.poisson(lam=mean_contigs, size=1))
-    if n_contigs<1: return
+    if n_contigs < 1: return
 
     for i in range(n_contigs):
         contam_length = int(np.random.poisson(lam=contam_mean_length, size=1))
         cseq = str(sample(contam_seqs, 1)[0].seq)
-        if (len(cseq)<contam_length):
-            start=0
+        if (len(cseq) < contam_length):
+            start = 0
         else:
-            start = int(np.random.choice(len(cseq)-contam_length, size=1))
+            start = int(np.random.choice(len(cseq) - contam_length, size=1))
         print(start, len(cseq), contam_length)
-        cseq = cseq[start:(start+contam_length)]
+        cseq = cseq[start:(start + contam_length)]
         outfile.write(">contam_" + str(i) + "\n")
         outfile.write(str(cseq))
-    
+
     # close file
     outfile.close()
 
@@ -63,7 +62,8 @@ def main():
                         required=True,
                         help='input contamination fasta file name')
 
-    parser.add_argument('-l', '--contam_mean_length',
+    parser.add_argument('-l',
+                        '--contam_mean_length',
                         dest='contam_mean_length',
                         type=float,
                         required=True,
@@ -75,7 +75,8 @@ def main():
                         required=True,
                         help='number of replications')
 
-    parser.add_argument('-m','--mean_contigs',
+    parser.add_argument('-m',
+                        '--mean_contigs',
                         dest='mean_contigs',
                         type=float,
                         required=True,
@@ -96,11 +97,13 @@ def main():
 
     for i in range(args.nreps):
         out_file_name = (args.output_dir + prefix + "_contam_" +
-                        prefix_contam + "_rep_" + str(i) + ".fasta")
+                         prefix_contam + "_rep_" + str(i) + ".fasta")
 
-        add_contam(args.fasta, args.contam, out_file_name, 
-            contam_mean_length=args.contam_mean_length,
-            mean_contigs=args.mean_contigs)
+        add_contam(args.fasta,
+                   args.contam,
+                   out_file_name,
+                   contam_mean_length=args.contam_mean_length,
+                   mean_contigs=args.mean_contigs)
 
     return
 

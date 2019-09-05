@@ -5,6 +5,7 @@ import os
 import re
 import io
 
+
 # Get version strip
 def read(*names, **kwargs):
     with io.open(os.path.join(os.path.dirname(__file__), *names),
@@ -36,7 +37,8 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/gtonkinhill/panaroo",
     install_requires=[
-        'networkx>=2.0', 'gffutils', 'BioPython', 'joblib', 'tqdm','pyopa','scipy','numpy'
+        'networkx>=2.0', 'gffutils', 'BioPython', 'joblib', 'tqdm', 'edlib',
+        'scipy', 'numpy'
     ],
     python_requires='>=3.6.0',
     packages=['panaroo'],

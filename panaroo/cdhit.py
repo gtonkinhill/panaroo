@@ -5,15 +5,15 @@ import sys
 import re
 from collections import defaultdict
 import networkx as nx
-from Bio.Seq import reverse_complement
-import pyopa 
+from Bio.Seq import reverse_complement, Seq
+import edlib
 import itertools
 import numpy as np
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import connected_components
 from joblib import Parallel, delayed
-from tqdm import tqdm
 import math
+
 
 def check_cdhit_version(cdhit_exec='cd-hit'):
     """Checks that cd-hit can be run, and returns version.
@@ -361,7 +361,9 @@ def align_dna_cdhit(
 
     return found_seq
 
-def iterative_cdhit(G,
+
+def iterative_cdhit(
+        G,
         nodes,
         outdir,
         dna=False,
@@ -374,7 +376,7 @@ def iterative_cdhit(G,
         use_local=False,  #whether to use local or global sequence alignment
         strand=1,  # default do both +/+ & +/- alignments if set to 0, only +/+
         quiet=False,
-        thresholds=[0.99,0.95,0.90,0.85,0.8,0.75,0.7],
+        thresholds=[0.99, 0.95, 0.90, 0.85, 0.8, 0.75, 0.7],
         n_cpu=1):
 
     # create the files we will need
@@ -394,34 +396,34 @@ def iterative_cdhit(G,
             else:
                 outfile.write(
                     max(G.node[node]["protein"].split(";"), key=len) + "\n")
-    
+
     for cid in thresholds:
         # run cd-hit
         if dna:
             run_cdhit_est(input_file=temp_input_file.name,
-                        output_file=temp_output_file.name,
-                        id=cid,
-                        s=s,
-                        aL=aL,
-                        AL=AL,
-                        aS=AS,
-                        accurate=accurate,
-                        use_local=use_local,
-                        strand=strand,
-                        quiet=quiet,
-                        n_cpu=n_cpu)
+                          output_file=temp_output_file.name,
+                          id=cid,
+                          s=s,
+                          aL=aL,
+                          AL=AL,
+                          aS=AS,
+                          accurate=accurate,
+                          use_local=use_local,
+                          strand=strand,
+                          quiet=quiet,
+                          n_cpu=n_cpu)
         else:
             run_cdhit(input_file=temp_input_file.name,
-                    output_file=temp_output_file.name,
-                    id=cid,
-                    s=s,
-                    aL=aL,
-                    AL=AL,
-                    aS=AS,
-                    accurate=accurate,
-                    use_local=use_local,
-                    quiet=quiet,
-                    n_cpu=n_cpu)
+                      output_file=temp_output_file.name,
+                      id=cid,
+                      s=s,
+                      aL=aL,
+                      AL=AL,
+                      aS=AS,
+                      accurate=accurate,
+                      use_local=use_local,
+                      quiet=quiet,
+                      n_cpu=n_cpu)
 
         # process the output
         temp_clusters = []
@@ -441,7 +443,7 @@ def iterative_cdhit(G,
         for c, clust in enumerate(temp_clusters):
             for n in clust:
                 temp_clust_dict[n] = c
-        clust_dict = defaultdict(list)  
+        clust_dict = defaultdict(list)
         for clust in clusters:
             c = -1
             for n in clust:
@@ -457,27 +459,11 @@ def iterative_cdhit(G,
         temp_input_file.name = temp_output_file.name
         temp_output_file.name = temp_output_file.name + "t" + str(cid)
 
-    return(clusters)
+    return (clusters)
 
 
-def pwdist_pyopa(G, cdhit_clusters, threshold, dna=False, n_cpu=1):
+def pwdist_edlib(G, cdhit_clusters, threshold, dna=False, n_cpu=1):
 
-    # Generate an environment for pyopa
-    if dna:
-        # get matrix needed for alingment.We use a protein modified to be suitable for DNA 
-        # are dealing with high identities it does okay on DNA
-        pam250_env = pyopa.AlignmentEnvironment()
-        pam250_env.gap_ext = np.array(-4)
-        pam250_env.gap_open = np.array(-12)
-        m = np.full((26,26), -3.0)
-        np.fill_diagonal(m , 5.0)
-        pam250_env.float64_matrix = m
-        pam250_env.float64_matrix = pam250_env.float64_matrix.astype("float64")
-        pam250_env.create_scaled_matrices()
-    else:
-        log_pam1_env = pyopa.read_env_json(os.path.join(pyopa.matrix_dir(), 'logPAM1.json'))
-        pam250_env = pyopa.generate_env(log_pam1_env, 250)
-    
     # map nodes to centroids
     node_to_centroid = {}
     centroid_to_index = {}
@@ -487,54 +473,80 @@ def pwdist_pyopa(G, cdhit_clusters, threshold, dna=False, n_cpu=1):
         node_to_centroid[node] = centroid
         if centroid not in centroid_to_index:
             centroid_to_index[centroid] = node_index
-            node_index+=1
+            node_index += 1
 
     # Prepare sequences
     seqs = {}
     for node in G.nodes():
         if node_to_centroid[node] in seqs: continue
         if dna:
-            seqs[node_to_centroid[node]] = pyopa.Sequence(
-                # G.node[node]['dna'].split(";")[0])
-                max(G.node[node]["dna"].split(";"), key=len))
+            seqs[node_to_centroid[node]] = max(G.node[node]["dna"].split(";"),
+                                               key=len).upper()
         else:
-            seqs[node_to_centroid[node]] = pyopa.Sequence(
-                # G.node[node]['protein'].split(";")[0])
-                max(G.node[node]["protein"].split(";"), key=len))
+            seqs[node_to_centroid[node]] = max(
+                G.node[node]["protein"].split(";"), key=len).upper()
 
     # get pairwise id between sequences in the same cdhit clusters
     distances_bwtn_centroids = defaultdict(lambda: 100)
 
-
     all_distances = []
-    for cluster in tqdm(cdhit_clusters):
+    for cluster in cdhit_clusters:
         all_distances += Parallel(n_jobs=n_cpu)(
-                    delayed(run_pw)(seqs[node_to_centroid[n1]], seqs[node_to_centroid[n1]], pam250_env, n1, n2)
-                    for n1, n2 in itertools.combinations(cluster, 2))
-    
-    data=[]
-    row_ind=[]
-    col_ind=[]
+            delayed(run_pw)(seqs[node_to_centroid[n1]], seqs[
+                node_to_centroid[n1]], n1, n2, dna)
+            for n1, n2 in itertools.combinations(cluster, 2))
+
+    data = []
+    row_ind = []
+    col_ind = []
     for d in all_distances:
         if d[2] >= threshold:
             data.append(1)
             row_ind.append(centroid_to_index[node_to_centroid[d[0]]])
             col_ind.append(centroid_to_index[node_to_centroid[d[1]]])
 
-    distances_bwtn_centroids = csr_matrix((data,
-        (row_ind, 
-         col_ind)),
-         shape=(node_index, node_index))
+    distances_bwtn_centroids = csr_matrix((data, (row_ind, col_ind)),
+                                          shape=(node_index, node_index))
 
     return distances_bwtn_centroids, centroid_to_index
 
-def run_pw(seqA, seqB, pam250_env, n1, n2):
-    aln = pyopa.align_strings(seqA, 
-        seqB, pam250_env, is_global=True)
-    a1 = np.array(list(str(aln[0])))
-    a2 = np.array(list(str(aln[1])))
-    aln_cols = ((np.cumsum(a1!="-") * np.cumsum(a2!="-")) * 
-        np.flip(np.cumsum(np.flip(a1)!="-") * np.cumsum(np.flip(a2)!="-")))!=0
-    pwid = np.sum((a1==a2) & aln_cols)/(1.0*np.sum(aln_cols))
 
-    return((n1,n2,pwid))
+def run_pw(seqA, seqB, n1, n2, dna):
+
+    if len(seqA) > len(seqB):
+        seqA, seqB = seqB, seqA
+
+    if dna:
+        pwid = 0.0
+        for sA in [seqA, str(Seq(seqA).reverse_complement())]:
+            aln = edlib.align(sA,
+                              seqB,
+                              mode="HW",
+                              task='locations',
+                              k=10 * len(seqA),
+                              additionalEqualities=[('A', 'N'), ('C', 'N'),
+                                                    ('G', 'N'), ('T', 'N')])
+            pwid = max(pwid, 1.0 - aln['editDistance'] / float(len(seqA)))
+    else:
+        aln = edlib.align(seqA,
+                          seqB,
+                          mode="HW",
+                          task='locations',
+                          k=10 * len(seqA),
+                          additionalEqualities=[('*', 'X'), ('A', 'X'),
+                                                ('C', 'X'), ('B', 'X'),
+                                                ('E', 'X'), ('D', 'X'),
+                                                ('G', 'X'), ('F', 'X'),
+                                                ('I', 'X'), ('H', 'X'),
+                                                ('K', 'X'), ('M', 'X'),
+                                                ('L', 'X'), ('N', 'X'),
+                                                ('Q', 'X'), ('P', 'X'),
+                                                ('S', 'X'), ('R', 'X'),
+                                                ('T', 'X'), ('W', 'X'),
+                                                ('V', 'X'), ('Y', 'X'),
+                                                ('X', 'X'), ('Z', 'X'),
+                                                ('D', 'B'), ('N', 'B'),
+                                                ('E', 'Z'), ('Q', 'Z')])
+        pwid = 1.0 - aln['editDistance'] / float(len(seqA))
+
+    return ((n1, n2, pwid))

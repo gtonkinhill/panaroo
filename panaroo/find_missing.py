@@ -1,6 +1,6 @@
 import networkx as nx
 import io, sys
-from collections import defaultdict
+from collections import defaultdict, Counter
 import numpy as np
 from Bio.Seq import translate, reverse_complement, Seq
 from Bio import SeqIO
@@ -9,289 +9,196 @@ from joblib import Parallel, delayed
 import os
 import gffutils as gff
 from io import StringIO
+import edlib
 from .merge_nodes import delete_node, remove_member_from_node
-import pyopa 
+from tqdm import tqdm
 
 
-def get_all_paths(G, length=3):
-    all_paths = []
+def find_missing(G,
+                 gff_file_handles,
+                 dna_seq_file,
+                 prot_seq_file,
+                 gene_data_file,
+                 merge_id_thresh,
+                 search_radius,
+                 prop_match,
+                 pairwise_id_thresh,
+                 n_cpu,
+                 remove_by_consensus=False):
+
+    # Iterate over each genome file checking to see if any missing accessory genes
+    #  can be found.
+
+    # generate mapping between internal nodes and gff ids
+    id_to_gff = {}
+    with open(gene_data_file, 'r') as infile:
+        next(infile)
+        for line in infile:
+            line = line.split(",")
+            if line[2] in id_to_gff:
+                raise NameError("Duplicate internal ids!")
+            id_to_gff[line[2]] = line[3]
+
+    # identify nodes that have been merged at the protein level
+    merged_nodes = {}
     for node in G.nodes():
-        neighs = [v for u, v in nx.bfs_edges(G, source=node, depth_limit=length)]
-        for neigh in neighs:
-            for p in nx.all_simple_paths(G, source=node, target=neigh, cutoff=2):
-                if len(p)==length:
-                    all_paths.append(p)
-    return(all_paths)
+        if (len(G.node[node]['centroid'].split(";")) >
+                1) or ("mergedDNA" in G.node[node]):
+            merged_nodes[node] = max(G.node[node]["dna"].split(";"), key=len)
 
-
-def find_missing(G, gff_file_handles, dna_seq_file, prot_seq_file, temp_dir,
-                 n_cpu, remove_by_consensus=False):
-
-    # find all the cycles shorter than cycle_threshold
-    print("defining basis...")
-    complete_basis = set()
-    all_paths = get_all_paths(G, 3)
-
-    for path in all_paths:
-        mid_size = G.node[path[1]]['size']
-        if (G.node[path[0]]['size'] > mid_size) or (
-            G.node[path[2]]['size'] > mid_size):
-            complete_basis.add(
-                        (min(path[0], path[2]), path[1], max(path[0],
-                                                             path[2])))
-        
-    # For each cycle check if it looks like somethings missing
-    print("identify missing nodes...")
-    print("len(complete_basis):", len(complete_basis))
-    search_count = 0
-    search_lists = defaultdict(list)
-    # seen_pairs = set()
-    for b in complete_basis:
-        # identify which genomes are missing the smallest supported node
-        surrounding_members = set(G.node[b[0]]['members']) & set(
-            G.node[b[2]]['members'])
-        for member in surrounding_members:
-            if member not in G.node[b[1]]['members']:
-                # if (member, b[1]) in seen_pairs: continue
-                search_lists[member].append(b)
-                # seen_pairs.add((member, b[1]))
-                search_count += 1
-
-    print("num searches", search_count)
-    print("search for missing nodes...")
-    # find position of each search by genome to save reading in the same gff3
-    # more than once
-    n_found = 0
-
-    print("setting up sample searches")
-    neighbour_dict = {}
-    search_seq_dict = {}
-    missing_dict = {}
-    for member in search_lists:
-        neighbour_id_list = []
-        search_sequence_list = []
-        missing = []
-
-        for b in search_lists[member]:
-            neighbour_ids = []
-            for n in [0, 2]:
-                for id in G.node[b[n]]['seqIDs']:
-                    if id.split("_")[0] == member:
-                        neighbour_ids.append(id)
-            neighbour_id_list.append(neighbour_ids)
-            search_sequence_list.append(
-                G.node[b[1]]["dna"].split(";")[0])
-            missing.append(b)
-
-        neighbour_dict[member] = neighbour_id_list
-        search_seq_dict[member] = search_sequence_list
-        missing_dict[member] = missing
-
-    hit_list_init = Parallel(n_jobs=n_cpu)(delayed(search_seq_gff)(
-        member, gff_file_handles[int(member)], neighbour_dict[member],
-        search_seq_dict[member], temp_dir, 0.2)
-                                      for member in search_lists)
-
-    # only take the best hit for each node/member pair
-    hit_list = []
-    for member, init_hits in hit_list_init:
-        node_mems = defaultdict(list)
-        hits = []
-        searches = []
-        for b, hit in zip(search_lists[member], init_hits):
-            node_mems[b[1]].append([hit, b])
-        for b1 in node_mems:
-            best_hit = max(node_mems[b1], key = lambda x: len(x[0]))
-            hits.append(best_hit[0])
-            searches.append(best_hit[1])
-        search_lists[member] = searches
-        hit_list.append([member, hits])
-
-
-    print("translating found hits...")
-    trans_list = []
-    for member, hits in hit_list:
-        trans_list.append(
-            Parallel(n_jobs=n_cpu)(
-                delayed(translate_to_match)(
-                    hit, G.node[b[1]]["protein"].split(";")[0])
-                for b, hit in zip(search_lists[member], hits)))
-
-    additions_by_node = defaultdict(list)
-    for mem_hits, trans in zip(hit_list, trans_list):
-        member = mem_hits[0]
-        hits = mem_hits[1]
-        for b, hit, hit_protein in zip(search_lists[member], hits,
-                                        trans):
-            if hit == "": continue
-            additions_by_node[b[1]].append((member, hit, hit_protein))
-
-    bad_nodes = []
-
-    # Check if there's more than one path between nodes i.e we found the same bit of DNA twice
-    path_mem_pairs = defaultdict(set)
-    for path in complete_basis:
-        for mem in G.node[path[1]]['members']:
-            path_mem_pairs[(path[0],path[2],mem)].add(path[1])
-        for mem, hit, hit_protein in additions_by_node[path[1]]:
-            path_mem_pairs[(path[0],path[2],mem)].add(path[1])
-    
-    for pmp in path_mem_pairs:
-        if len(path_mem_pairs[pmp]) > 1:
-            # we have two options for a pair for the same member -> delete one
-            node_max = -1
-            best_node = -1
-            for node in path_mem_pairs[pmp]:
-                if node in G.nodes():
-                    if G.node[node]['size']>node_max:
-                        best_node = node
-                        node_max = G.node[node]['size']
-            # remove member from nodes that arent the best
-            for node in path_mem_pairs[pmp]:
-                if node==best_node: continue
-                G = remove_member_from_node(G, node, pmp[2])
-                additions_by_node[node] = [hit for hit in additions_by_node[node] if hit[0]!=pmp[2]]
-    # clean up graph by removing empty nodes
+    # iterate through nodes to identify accessory genes for searching
+    # these are nodes missing a member with at least one neighbour that has that member
+    n_searches = 0
+    search_list = defaultdict(lambda: defaultdict(set))
+    conflicts = defaultdict(set)
     for node in G.nodes():
-        if G.node[node]['size']<1:
-            bad_nodes.append(node)
-    for node in bad_nodes:
-        delete_node(G, node)
-        del additions_by_node[node]
+        for neigh in G.neighbors(node):
+            # seen_mems = set()
+            for sid in G.node[neigh]['seqIDs']:
+                member = sid.split("_")[0]
+                # if member in seen_mems: continue
+                # seen_mems.add(member)
+                conflicts[int(member)].add((neigh, id_to_gff[sid]))
+                if member not in G.node[node]['members']:
+                    if len(max(G.node[node]["dna"].split(";"), key=len)) <= 0:
+                        print(G.node[node]["dna"])
+                        raise NameError("Problem!")
+                    search_list[int(member)][node].add(
+                        (max(G.node[node]["dna"].split(";"),
+                             key=len), id_to_gff[sid]))
+                    n_searches += 1
 
-    # if requested remove nodes that have more refound than in original
-    # that is the consensus appears to be it wasn't a good gene most of the
-    # time
+    print("Number of searches to perform: ", n_searches)
+    print("Searching...")
+
+    all_hits, all_node_locs, max_seq_lengths = zip(*Parallel(n_jobs=n_cpu)(
+        delayed(search_gff)(search_list[member],
+                            conflicts[member],
+                            gff_handle,
+                            merged_nodes=merged_nodes,
+                            search_radius=10000,
+                            prop_match=0.2,
+                            pairwise_id_thresh=0.95,
+                            merge_id_thresh=merge_id_thresh)
+        for member, gff_handle in tqdm(enumerate(gff_file_handles))))
+    # ,search_radius, prop_match, pairwise_id_thresh, n_cpu)
+
+    print("translating hits...")
+
+    hits_trans_dict = {}
+    for member, hits in enumerate(all_hits):
+        hits_trans_dict[member] = Parallel(n_jobs=n_cpu)(
+            delayed(translate_to_match)(hit[1], G.node[
+                hit[0]]["protein"].split(";")[0]) for hit in hits)
+
+    bad_nodes = set()
     if remove_by_consensus:
-        for node in additions_by_node:
-            if len(additions_by_node[node])>G.node[node]['size']:
-                bad_nodes.append(node)
-    for node in bad_nodes:
-        if node in G.nodes():
+        print("removing by consensus...")
+        node_hit_counter = Counter()
+        for hits in all_hits:
+            for node, dna_hit in hits:
+                if dna_hit == "": continue
+                node_hit_counter[node] += 1
+        for node in G:
+            if node_hit_counter[node] > G.node[node]['size']:
+                bad_nodes.add(node)
+        for node in bad_nodes:
             delete_node(G, node)
 
-    # search nodes at the ends with degree 1
-    neighbour_dict = defaultdict(list)
-    search_seq_dict = defaultdict(list)
-    end_search_lists = defaultdict(list)
-    for node in G.nodes():
-        if G.degree[node]==1:
-            neigh = list(G.neighbors(node))[0]
-            for member in G.node[neigh]['members']:
-                if member not in G.node[node]['members']:
-                    for id in G.node[neigh]['seqIDs']:
-                        if id.split("_")[0] == member:
-                            hitid = id
-                    neighbour_dict[member].append([hitid])
-                    search_seq_dict[member].append(G.node[node]["dna"].split(";")[0])
-                    end_search_lists[member].append(node)
-    
-    end_mems = neighbour_dict.keys()
-    end_hit_list = Parallel(n_jobs=n_cpu)(delayed(search_seq_gff)(
-        member, gff_file_handles[int(member)], neighbour_dict[member],
-        search_seq_dict[member], temp_dir, 0.2)
-                                        for member in end_mems)
-        
-    for member, hits in end_hit_list:
-        trans = Parallel(n_jobs=n_cpu)(
-                delayed(translate_to_match)(
-                    hit, G.node[node]["protein"].split(";")[0])
-                    for node, hit in zip(end_search_lists[member], hits))
-        for node, hit, trans_hit in zip(end_search_lists[member], hits, trans):
-            if hit=="": continue
-            additions_by_node[node].append((member, hit, trans_hit))
-    
-    print("update output...")
+    # remove nodes that conflict (overlap)
+    nodes_by_size = sorted([(G.node[node]['size'], node)
+                            for node in G.nodes()],
+                           reverse=True)
+    nodes_by_size = [n[1] for n in nodes_by_size]
+    member = 0
+    bad_node_mem_pairs = []
+
+    for node_locs, max_seq_length in zip(all_node_locs, max_seq_lengths):
+        seq_coverage = defaultdict(lambda: np.zeros(max_seq_length + 2,
+                                                    dtype=bool))
+
+        for node in nodes_by_size:
+            if node in bad_nodes: continue
+            if node not in node_locs: continue
+            contig_id = node_locs[node][0]
+            loc = node_locs[node][1]
+
+            if np.sum(seq_coverage[contig_id][loc[0]:loc[1]]) >= (
+                    0.5 * (loc[1] - loc[0])):
+                if str(member) in G.node[node]['members']:
+                    G.node[node]['members'].remove(str(member))
+                    G.node[node]['size'] -= 1
+                bad_node_mem_pairs.append((node, member))
+            else:
+                seq_coverage[contig_id][loc[0]:loc[1]] = True
+        member += 1
+
+    for size, node in [(G.node[node]['size'], node) for node in G.nodes()]:
+        if size <= 0:
+            bad_nodes.add(node)
+            delete_node(G, node)
+
+    print("Updating output...")
+
+    n_found = 0
     with open(dna_seq_file, 'a') as dna_out:
         with open(prot_seq_file, 'a') as prot_out:
-            for node in additions_by_node:
-                if node in bad_nodes: continue
-                for member, hit, hit_protein in additions_by_node[node]:
-                    G.node[node]['members'] += [member]
+            for member, hits in enumerate(all_hits):
+                i = -1
+                for node, dna_hit in hits:
+                    i += 1
+                    if dna_hit == "": continue
+                    if node in bad_nodes: continue
+                    if (node, member) in bad_node_mem_pairs: continue
+                    hit_protein = hits_trans_dict[member][i]
+                    G.node[node]['members'] += [str(member)]
                     G.node[node]['size'] += 1
                     G.node[node]['dna'] = ";".join(
-                        set(G.node[node]['dna'].split(";") + [hit]))
+                        set(G.node[node]['dna'].split(";") + [dna_hit]))
                     dna_out.write(">" + str(member) + "_refound_" +
-                                    str(n_found) + "\n" + hit + "\n")
+                                  str(n_found) + "\n" + dna_hit + "\n")
                     G.node[node]['protein'] = ";".join(
                         set(G.node[node]['protein'].split(";") +
                             [hit_protein]))
                     prot_out.write(">" + str(member) + "_refound_" +
-                                    str(n_found) + "\n" + hit_protein + "\n")
+                                   str(n_found) + "\n" + hit_protein + "\n")
                     G.node[node]['seqIDs'] += [
                         str(member) + "_refound_" + str(n_found)
                     ]
                     n_found += 1
 
-    # add edges
-    for mem_hits in hit_list:
-        member = mem_hits[0]
-        hits = mem_hits[1]
-        for b, hit in zip(search_lists[member], hits):
-            if hit == "": continue
-            # remove member from old edge
-            is_triplet = True
-            for n in b:
-                if not G.has_node(n):
-                    is_triplet=False
-                elif member not in G.node[n]['members']:
-                    is_triplet=False
-            if not is_triplet: continue
-            for edge in [(b[0],b[1]), (b[1], b[2]), (b[0],b[2])]:
-                if not G.has_edge(edge[0], edge[1]):
-                    is_triplet=False
-            if not is_triplet: continue
-            if member not in G[b[0]][b[1]]['members']:
-                if member not in G[b[1]][b[2]]['members']:
-                    if member in G[b[0]][b[2]]['members']:
-                        G[b[0]][b[2]]['members'].remove(member)
-                        G[b[0]][b[2]]['weight'] -= 1
-                        if G[b[0]][b[2]]['weight']==0:
-                            G.remove_edge(b[0],b[2])
-                        for edge in [(b[0],b[1]), (b[1], b[2])]:
-                            G[edge[0]][edge[1]]['members'].append(member)
-                            G[edge[0]][edge[1]]['weight'] += 1
+    print("Number of refound genes: ", n_found)
 
-    return G
+    return (G)
 
 
-def search_seq_gff(member,
-                   gff_handle,
-                   neighbour_id_list,
-                   search_sequence_list,
-                #    missing,
-                   temp_dir,
-                   prop_match=0.2,
-                   pairwise_id_thresh=0.95,
-                   n_cpu=1):
-
-    # get matrix needed for alingment.We use a protein modified to be suitable for DNA 
-    # are dealing with high identities it does okay on DNA
-    env = pyopa.AlignmentEnvironment()
-    env.gap_ext = np.array(-4)
-    env.gap_open = np.array(-12)
-    m = np.full((26,26), -3.0)
-    np.fill_diagonal(m , 5.0)
-    env.float64_matrix = m
-    env.float64_matrix = env.float64_matrix.astype("float64")
-    env.create_scaled_matrices()
+def search_gff(node_search_dict,
+               conflicts,
+               gff_handle,
+               merged_nodes,
+               search_radius=10000,
+               prop_match=0.2,
+               pairwise_id_thresh=0.95,
+               merge_id_thresh=0.7,
+               n_cpu=1):
 
     # reset file handle to the beginning
     gff_handle.seek(0)
     split = gff_handle.read().split("##FASTA\n")
+    node_locs = {}
 
     if len(split) != 2:
         raise NameError("File does not appear to be in GFF3 format!")
 
-    contig_records = defaultdict(dict)
-    contig_names = []
+    # load fasta
+    contigs = {}
+    max_seq_len = 0
     with StringIO(split[1]) as temp_fasta:
         for record in SeqIO.parse(temp_fasta, 'fasta'):
-            if record.id in contig_records:
-                raise NameError("Duplicate contig names!")
-            contig_records[record.id]['seq'] = str(record.seq)
-            contig_names.append(record.id)
+            contigs[record.id] = np.array(list(str(record.seq)))
+            max_seq_len = max(max_seq_len, len(contigs[record.id]))
 
+    # load gff annotation
     parsed_gff = gff.create_db("\n".join(
         [l for l in split[0].splitlines() if '##sequence-region' not in l]),
                                dbfn=":memory:",
@@ -299,155 +206,149 @@ def search_seq_gff(member,
                                keep_order=True,
                                from_string=True)
 
-    for entry in parsed_gff.all_features(featuretype=()):
-        if "CDS" not in entry.featuretype: continue
-        if entry.seqid not in contig_records:
-            raise NameError("Mismatch in GFF file!")
-        if 'annotations' not in contig_records[entry.seqid]:
-            contig_records[entry.seqid]['annotations'] = [entry]
+    # mask regions that already have genes and convert back to string
+    seen = set()
+    for node, geneid in conflicts:
+        gene = parsed_gff[geneid]
+        start = min(gene.start, gene.end)
+        end = max(gene.start, gene.end)
+
+        if node in merged_nodes:
+            db_seq = contigs[gene[0]][max(0, (start -
+                                              search_radius)):(end +
+                                                               search_radius)]
+            db_seq = "".join(list(db_seq))
+
+            hit, loc = search_dna(db_seq,
+                                  merged_nodes[node],
+                                  prop_match=(end - start) /
+                                  float(len(merged_nodes[node])),
+                                  pairwise_id_thresh=merge_id_thresh)
+
+            # update location
+            loc[0] = loc[0] + max(0, (start - search_radius))
+            loc[1] = loc[1] + max(0, (start - search_radius))
+            node_locs[node] = [gene[0], loc]
         else:
-            contig_records[entry.seqid]['annotations'].append(entry)
+            node_locs[node] = [gene[0], [start - 1, end]]
 
-    # TODO: for now skip entries with no annotationas we skip them reading in
-    # the GFF3. May want to adjust this in the future
-    for record in contig_records:
-        if 'annotations' not in contig_records[record]:
-            contig_names.remove(record)
+    for node, geneid in conflicts:
+        gene = parsed_gff[geneid]
+        start = min(gene.start, gene.end)
+        end = max(gene.start, gene.end)
+        contigs[gene[0]][(start - 1):end] = "X"
 
+        if (gene[0], start - 1, end) in seen:
+            raise NameError("Duplicate entry!!!")
+        seen.add((gene[0], start - 1, end))
+
+    for sid in contigs:
+        contigs[sid] = "".join(list(contigs[sid]))
+
+    # search for matches
     hits = []
-    for neighbour_ids, seq in zip(neighbour_id_list, search_sequence_list,
-                                       ):
-        found_dna = ""
-        
-        # printmore=False
-        # for tid in neighbour_ids:
-        #     if tid in ["0_5_127","1_1_639","2_1_562","3_0_182","2_1_561","1_1_640","1_1_641","2_1_559","2_1_560","0_5_128","3_0_181"]:
-        #         printmore=True
+    for node in node_search_dict:
+        best_hit = ""
+        best_loc = None
+        for search in node_search_dict[node]:
+            gene = parsed_gff[search[1]]
+            start = min(gene.start, gene.end)
+            end = max(gene.start, gene.end)
+            db_seq = contigs[gene[0]][max(0, (start -
+                                              search_radius)):(end +
+                                                               search_radius)]
 
-        gene_locations = [(int(tid.split("_")[1]), int(tid.split("_")[2]))
-                          for tid in neighbour_ids]
-        # print(neighbour_ids)
-        contigA = contig_names[gene_locations[0][0]]
-        if len(gene_locations)>1:
-            contigB = contig_names[gene_locations[1][0]]
-        gene_num_A = gene_locations[0][1]
-        if len(gene_locations)>1:
-            gene_num_B = gene_locations[1][1]
+            hit, loc = search_dna(db_seq, search[0], prop_match,
+                                  pairwise_id_thresh)
+            # update location
+            loc[0] = loc[0] + max(0, (start - search_radius))
+            loc[1] = loc[1] + max(0, (start - search_radius))
 
-        metaA = contig_records[contigA]['annotations'][gene_num_A]
-        if len(gene_locations)>1:
-            metaB = contig_records[contigB]['annotations'][gene_num_B]
+            if len(hit) > len(best_hit):
+                best_hit = hit
+                best_loc = [gene[0], loc]
 
-        # if printmore:
-        #     print(neighbour_ids)
-        #     print(contigA, contigB)
-        #     print(gene_num_A, gene_num_B)
-        #     print(prop_match)
-        #     print(pairwise_id_thresh)
+        hits.append((node, best_hit))
+        if (best_loc is not None) and (best_hit != ""):
+            node_locs[node] = best_loc
 
-        # determine search area in contigs
-        found_dna = ""
-        if (len(gene_locations)>1) and ((contigA == contigB) and (abs(gene_num_A - gene_num_B) <= 2)):
-            # the flanking genes are on the same contig, search inbetween
-            l_bound = min(metaA.end, metaB.end, metaA.start, metaB.start)
-            r_bound = max(metaA.start, metaB.start, metaA.end, metaB.end)
-            search_sequence = contig_records[contigA]['seq'][l_bound:r_bound]
-            found_dna = search_dna(seq, search_sequence, prop_match,
-                                   pairwise_id_thresh, env)#temp_dir, n_cpu)#
-        else:
-            # if it looks like the genes are near the terminal ends search here
-            max_search_length = 10 * len(seq)
-            if gene_num_A < 20:
-                # we're at the start of contigA
-                search_sequence = contig_records[contigA]['seq'][:min(
-                    metaA.start, metaA.end)]
-                if len(search_sequence) < max_search_length:
-                    found_dna = search_dna(seq, search_sequence, prop_match,
-                                           pairwise_id_thresh, env)#temp_dir, n_cpu)#
-            if (found_dna == "") and (len(
-                    contig_records[contigA]['annotations']) - gene_num_A < 20):
-                # we're at the  end of contigA
-                search_sequence = contig_records[contigA]['seq'][max(
-                    metaA.start, metaA.end):]
-                if len(search_sequence) < max_search_length:
-                    found_dna = search_dna(seq, search_sequence, prop_match,
-                                           pairwise_id_thresh, env)#temp_dir, n_cpu)#
-            if len(gene_locations)>1:
-                if (found_dna == "") and (gene_num_B < 20):
-                    # we're at the start of contigB
-                    search_sequence = contig_records[contigB]['seq'][:min(
-                        metaB.start, metaB.end)]
-                    if len(search_sequence) < max_search_length:
-                        found_dna = search_dna(seq, search_sequence, prop_match,
-                                            pairwise_id_thresh, env)#temp_dir, n_cpu)#
-                if (found_dna == "") and (len(
-                        contig_records[contigB]['annotations']) - gene_num_B < 20):
-                    # we're at the  end of contigB
-                    search_sequence = contig_records[contigB]['seq'][max(
-                        metaB.start, metaB.end):]
-                    if len(search_sequence) < max_search_length:
-                        found_dna = search_dna(seq, search_sequence, prop_match,
-                                            pairwise_id_thresh, env)#temp_dir, n_cpu)#
-
-        # add results
-        hits.append(found_dna)
-
-        # if printmore:
-        #     print(search_sequence)
-        #     print(seq)
-        #     print(found_dna)
-
-    # print(hits)
-
-    return (member, hits)
+    return [hits, node_locs, max_seq_len]
 
 
-def search_dna(seq, search_sequence, prop_match, pairwise_id_thresh, env):#temp_dir, n_cpu):
-
-    # found_dna = align_dna_cdhit(query=search_sequence,
-    #                             target=seq,
-    #                             id=pairwise_id_thresh,
-    #                             temp_dir=temp_dir,
-    #                             n_cpu=n_cpu,
-    #                             use_local=True,
-    #                             mask=True,
-    #                             aS=prop_match)
-
-    # # if nothing found and lots of Ns try searching without masking Ns
-    # if found_dna=="":
-    #     found_dna = align_dna_cdhit(query=search_sequence,
-    #                             target=seq,
-    #                             id=pairwise_id_thresh,
-    #                             temp_dir=temp_dir,
-    #                             n_cpu=n_cpu,
-    #                             use_local=True,
-    #                             mask=False,
-    #                             aS=prop_match)
-    gap = np.array("-")
+def search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh):
     found_dna = ""
+    start = None
+    end = None
+    max_hit = 0
+    loc = [0, 0]
 
-    for sq in [search_sequence, str(Seq(search_sequence).reverse_complement())]:
-        query = pyopa.Sequence(sq)
-        target = pyopa.Sequence(seq)
+    # found=False
+    # if search_sequence=="GTGGCCGCGACCAGTCCCCGCAGCGCGTCGGGGATGAAGCTTTCCGTGGTGTTCAGGAAGTTCCGCAACGGGACCATACGGCAACCGTATGGCTCACCTGCGGCCAAAAGCTATGGCGACCTACTCGTCATCCTTGGCGTGGTCGGCAACGCCCGGATTCGGATCGCGTGA":
+    #     print(">>>>>>>>>>>>>")
+    #     print(db_seq)
+    #     found=True
 
-        aln = pyopa.align_strings(query, 
-            target, env, is_global=False)
-        
-        a1 = np.array(list(str(aln[0])))
-        a2 = np.array(list(str(aln[1])))
+    for i, db in enumerate([db_seq, str(Seq(db_seq).reverse_complement())]):
 
-        if len(a1)<1: continue
+        aln = edlib.align(search_sequence,
+                          db,
+                          mode="HW",
+                          task='locations',
+                          k=10 * len(search_sequence),
+                          additionalEqualities=[('A', 'N'), ('C', 'N'),
+                                                ('G', 'N'), ('T', 'N')])
 
-        aln_cols = ((np.cumsum(a1!=gap) * np.cumsum(a2!=gap)) * 
-            np.flip(np.cumsum(np.flip(a1)!=gap) * np.cumsum(np.flip(a2)!=gap)))!=0
-        Ns = (a1=="N") | (a2=="N")
-        pwid = np.sum(((a1==a2) | Ns) & aln_cols)/(1.0*np.sum(aln_cols))
+        if aln['editDistance'] == -1:
+            start = -1
+        else:
+            start = aln['locations'][0][0]
+            end = aln['locations'][0][1] + 1
 
-        if (pwid>=pairwise_id_thresh) and (len(a1)/(1.0*len(seq)) >= prop_match):
-            keep = (a1!=gap) & (a1!="_")
-            found_dna="".join(list(a1[keep]))
+        # if found:
+        #     print(aln)
+        #     print(start, end)
 
-    return found_dna
+        # skip if nothing was found
+        if start == -1: continue
+
+        # skip if alignment is too short
+        n_X = db[start:end].count("X")
+        aln_length = float(end - start - n_X)
+        if (aln_length / len(search_sequence)) <= prop_match: continue
+
+        # determine an approximate percentage identity
+        if (start == 0) or (end == len(db_seq)):
+            pid = 1.0 - max(0.0,
+                            (aln['editDistance'] - n_X -
+                             (len(search_sequence) - aln_length))) / aln_length
+        else:
+            pid = 1.0 - (aln['editDistance'] - n_X) / (1.0 *
+                                                       len(search_sequence))
+
+        # skip if identity below threshold
+        if pid <= pairwise_id_thresh: continue
+
+        # if found:
+        #     print("aln_length:", aln_length)
+        #     print("pid:", pid)
+
+        if max_hit < (pid * aln_length):
+            found_dna = db[start:end]
+            max_hit = (pid * aln_length)
+            if i == 0:
+                loc = [start, end]
+            else:
+                loc = [
+                    len(db_seq) - aln['locations'][0][0] - 1,
+                    len(db_seq) - aln['locations'][0][1]
+                ]
+            loc = [min(loc), max(loc)]
+
+    # if found:
+    #     print(found_dna)
+    #     print("<<<<<<<<<<<<<<<<<<")
+
+    return found_dna.replace('X', 'N'), loc
 
 
 def translate_to_match(hit, target_prot):
