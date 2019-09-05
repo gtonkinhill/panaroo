@@ -45,7 +45,7 @@ def create_mapping(g, ref_g_id):
         #m = e.search(gene_ids)
         #if m:
         #    gene_dict[g.nodes[n]['name']] =  m.group()
-        if gene_ids != []:
+        if len(gene_ids) != 0:
             gene_dict[g.nodes[n]['name']] = gene_ids[0][1]
     mapping = pd.DataFrame.from_dict( gene_dict, orient = 'index')
     mapping.columns = ["gene_id"]
@@ -171,6 +171,14 @@ def layout(graph, ref_g_id, cut_edges_out, ignore_high_var, add_reference_edges)
         for e in cut_edges:
             f.write("%s (interacts with) %s\t1\n" %(e[0], e[1]))
             f.write("%s (interacts with) %s\t1\n" %(e[1], e[0]))
+    #DEBUG to compress the graph 
+    #for n in g.nodes:
+    #    gene_ids = [(i.split("_")[0], i) for i in  g.nodes[n]['geneIDs'].split(";")]
+    #    gene_ids = list(filter(lambda x: ref_g_id == x[0],gene_ids))
+    #    if len(gene_ids) == 1:
+    #        g.nodes[n]['geneIDs'] = ""
+    #    else:
+    #        g.nodes[n]['geneIDs'] = gene_ids[0][1]
 
 
 if __name__ == "__main__":
