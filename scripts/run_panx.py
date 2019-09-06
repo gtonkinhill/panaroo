@@ -90,7 +90,7 @@ def post_process_fmt(new_prefixes, panx_dir, out_dir):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="""Runs PanX on GFF3 files and reformats output matrix.""")
+    parser = argparse.ArgumentParser(description="""Runs PanX on GBK files and reformats output matrix.""")
     parser.add_argument("-o",
                          "--out_dir",
                          dest="output_dir",
