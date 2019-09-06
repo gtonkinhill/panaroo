@@ -68,7 +68,7 @@ def get_options():
         dest="search_radius",
         help=("the distance in nucleotides surronding the " +
               "neighbour of an accessory gene in which to search for it"),
-        default=1000,
+        default=10000,
         type=int)
     refind.add_argument(
         "--refind_prop_match",
