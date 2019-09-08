@@ -30,7 +30,7 @@ def run_pirate(input_files, out_dir, ncpus=1, verbose=False):
     if verbose:
         print("running cmd: ", cmd)
 
-    # subprocess.run(cmd, shell=True, check=True)
+    subprocess.run(cmd, shell=True, check=True)
 
     return
 
@@ -81,7 +81,6 @@ def post_process_fmt(input_files, pirate_dir, out_dir):
             line = next(infile)
             line = line.strip().split("\t")
             outfile.write("\t".join([line[0]] + line[22:]) + "\n")
-            # print([line[0]] + line[22:])
             
             for line in infile:
                 line = line.strip().split("\t")
