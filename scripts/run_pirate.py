@@ -2,7 +2,10 @@ import argparse
 import subprocess
 import sys, os
 from shutil import copyfile
-
+import gffutils as gff
+from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 
 def run_pirate(input_files, out_dir, ncpus=1, verbose=False):
 
@@ -13,20 +16,21 @@ def run_pirate(input_files, out_dir, ncpus=1, verbose=False):
 
     # collect input files
     for f in input_files:
-        base = os.path.basename(gff_file_name)
+        base = os.path.basename(f)
+        base = base.replace("-", "_")
         copyfile(f, input_file_dir + base)
-        
 
     # run panX
     cmd = ("PIRATE" +
         " -i " + input_file_dir +
+        " -o " + input_file_dir +
         " -t " + str(ncpus)
         )
 
     if verbose:
         print("running cmd: ", cmd)
 
-    subprocess.run(cmd, shell=True, check=True)
+    # subprocess.run(cmd, shell=True, check=True)
 
     return
 
@@ -65,21 +69,26 @@ def post_process_fmt(input_files, pirate_dir, out_dir):
         count_to_id = {}
         for entry in parsed_gff.all_features(featuretype=()):
             if "CDS" not in entry.featuretype: continue
-            count_to_id[i] = entry.id
+            count_to_id[gene_count] = entry.id
+            gene_count += 1
 
-        file_id_maps[os.path.splitext(os.path.basename(f))[0]] = count_to_id
+        file_id_maps[os.path.splitext(os.path.basename(f))[0].replace("-", "_")] = count_to_id
 
         gff_file.close()
 
-    with open(pirate_dir + "PIRATE.gene_families.ordered.tsv", 'r') as infile
+    with open(pirate_dir + "PIRATE.gene_families.ordered.tsv", 'r') as infile:
         with open(out_dir + "pirate_gene_presence_absence.csv", 'w') as outfile:
             line = next(infile)
-            line = line.strip().split()
+            line = line.strip().split("\t")
             outfile.write("\t".join([line[0]] + line[22:]) + "\n")
+            # print([line[0]] + line[22:])
             
             for line in infile:
-                line = line.strip().split()
-                for i in range(1, len(line)):
+                line = line.strip().split("\t")
+                for i in range(22, len(line)):
+                    if line[i]=="": continue
+                    # currently take the first as we do in panaroo for this format. May want to redo.
+                    line[i] = line[i].split(";")[0]
                     sample = "_".join(line[i].split("_")[:-1])
                     gene_num = int(line[i].split("_")[-1])
                     line[i] = file_id_maps[sample][gene_num]
@@ -122,7 +131,7 @@ def main():
         ncpus=args.n_cpu, verbose=False)
 
     post_process_fmt(args.input_files, 
-        args.output_dir + "panx_run/", args.output_dir)
+        args.output_dir + "pirate_run/", args.output_dir)
 
     return
 
