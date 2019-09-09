@@ -122,6 +122,7 @@ def collapse_families(G,
 
                 for cluster in clusters:
                     # check if there are any to collapse
+
                     if len(cluster) <= 1: continue
 
                     # check for conflicts

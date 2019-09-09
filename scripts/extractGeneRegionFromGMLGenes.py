@@ -32,7 +32,7 @@ def clean_gff_string(
 
 
 def get_gene_coordinates(
-        gff_file, contig, genes, gene1
+        gff_file, contig, genes, gene1, l
 ):  #Takes a GFF file, splits into CDS and FASTA and identifies the coordinates of the 2 genes
     gff = open(gff_file).read()  #Import the GFF file
     split = gff.split("##FASTA")
@@ -60,10 +60,10 @@ def get_gene_coordinates(
 
     firstPosition = min(
         geneCoordinates
-    ) - 1001  #The first position to be extracted from the contig
+    ) - l+1  #The first position to be extracted from the contig
     endPosition = max(
         geneCoordinates
-    ) + 1000  #The end position to be extracted from the contig
+    ) + l  #The end position to be extracted from the contig
     if firstPosition < 0:
         firstPosition = 0
     if endPosition > len(sequences[int(contig)].seq):
@@ -80,6 +80,50 @@ def get_gene_coordinates(
     return extractSequence
 
 
+def get_gene_coordinates_single(
+        gff_file, contig, gene, l
+):  #Takes a GFF file, splits into CDS and FASTA and identifies the coordinates of the 2 genes
+    gff = open(gff_file).read()  #Import the GFF file
+    split = gff.split("##FASTA")
+
+    geneCoordinates = []  #Will be filled with the coordinates of the 2 genes
+
+    with StringIO(split[1]
+                  ) as temp_fasta:  #Import the sequences from the GFF as fasta
+        sequences = list(SeqIO.parse(temp_fasta, "fasta"))
+
+    parsed_gff = gffutils.create_db(clean_gff_string(split[0]),
+                                    dbfn=":memory:",
+                                    force=True,
+                                    keep_order=True,
+                                    from_string=True)
+
+    for geneSample in parsed_gff.all_features(
+            featuretype=()):  #Iterate through the genes
+        if geneSample.id == gene:  #Check if the gene is one of the genes of interest
+            geneCoordinates.append(geneSample.start)
+            geneCoordinates.append(geneSample.stop)
+
+    firstPosition = min(
+        geneCoordinates
+    ) - l+1  #The first position to be extracted from the contig
+    endPosition = max(
+        geneCoordinates
+    ) + l  #The end position to be extracted from the contig
+    if firstPosition < 0:
+        firstPosition = 0
+    if endPosition > len(sequences[int(contig)].seq):
+        endPosition = len(sequences[int(contig)].seq)
+
+    
+    extractSequence = sequences[int(contig)].seq[
+        firstPosition:
+        endPosition]  #Assign to the sequence in the region of interest
+
+
+    return extractSequence
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-n", help=".gml output file from panaroo")
@@ -92,6 +136,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-l",
+        type=int,
         help=
         "The length of the region on either side of the genes of interest that will be extracted, default = 1000 nucleotides",
         default="1000")
@@ -165,8 +210,21 @@ if __name__ == "__main__":
                     str(
                         get_gene_coordinates(
                             gffFiles[sample], contigNames[sample][0],
-                            geneNames[sample], gene1Names[sample])) + "\n")
+                            geneNames[sample], gene1Names[sample], args.l)) + "\n")
             else:
+                outFile.write(">" + sample + "_a\n")
+                outFile.write(
+                    str(
+                        get_gene_coordinates_single(
+                            gffFiles[sample], contigNames[sample][0],
+                            geneNames[sample][0], args.l)) + "\n")
+                outFile.write(">" + sample + "_b\n")
+                outFile.write(
+                    str(
+                        get_gene_coordinates_single(
+                            gffFiles[sample], contigNames[sample][1],
+                            geneNames[sample][1], args.l)) + "\n")
+              
                 print("The genes in sample " + str(sample) +
                       " are on different contigs")
         else:
