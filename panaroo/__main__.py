@@ -206,14 +206,14 @@ def main():
         print("generating initial network...")
 
     # generate network from clusters and adjacency information
-    G = generate_network(cluster_file=cd_hit_out + ".clstr",
+    G, centroid_contexts = generate_network(cluster_file=cd_hit_out + ".clstr",
                          data_file=args.output_dir + "gene_data.csv",
                          prot_seq_file=args.output_dir +
                          "combined_protein_CDS.fasta",
                          all_dna=args.all_seq_in_graph)
 
     # merge paralogs
-    G = collapse_paralogs(G)
+    G = collapse_paralogs(G, centroid_contexts)
 
     # write out pre-filter graph in GML format
     for node in G.nodes():

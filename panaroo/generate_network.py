@@ -3,7 +3,7 @@ from collections import Counter, defaultdict
 import networkx as nx
 from panaroo.merge_nodes import merge_nodes
 from panaroo.clean_network import collapse_paralogs
-
+import numpy as np
 
 def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
 
@@ -43,6 +43,12 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                     'annotation': line[6],
                     'description': line[7],
                 }
+    
+    # create a dictionary of indexes for paralog context
+    centroid_index = {}
+    for i, centroid in enumerate(cluster_centroids.values()):
+        centroid_index[centroid] = i
+    n_centroids = len(centroid_index.keys())
 
     # load headers which contain adjacency information
     seq_ids = []
@@ -51,14 +57,28 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
 
     # build graph using adjacency information and optionally split paralogs
     G = nx.Graph()
+    centroid_context = defaultdict(list)
     n_nodes = len(cluster_members)
     temp_nodes = []
+    current_context = None
     prev = None
 
     for i, id in enumerate(seq_ids):
         current_cluster = seq_to_cluster[id]
-        genome_id = id.split("_")[0]
-        if id.split("_")[-1] == "0":
+        loc = id.split("_")
+        genome_id = loc[0]
+        if loc[-1] == "0":
+
+            if current_context is not None:
+                for para, index in current_paralogs:
+                    context_array = np.zeros(n_centroids)
+                    for t in current_context:
+                        context_array[centroid_index[t[0]]] = abs(index-t[1])
+                    centroid_context[para[0]].append([para[1], para[2], 
+                        para[3], context_array])
+            current_paralogs = []
+            current_context = [(cluster_centroids[current_cluster], int(loc[-1]))]
+            
             # we're at the start of a contig
             if prev is not None: G.node[prev]['hasEnd'] = True
             prev = current_cluster
@@ -77,6 +97,8 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                     n_nodes += 1
                     prev = n_nodes
                     temp_nodes.append(prev)
+                    current_paralogs.append([[cluster_centroids[current_cluster], 
+                        prev, genome_id, loc[1]], int(loc[2])])
                 # add non paralog node
                 G.add_node(
                     prev,
@@ -96,12 +118,15 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                         ['dna_sequence'])],
                     paralog=(current_cluster in paralogs))
         else:
+            current_context.append((cluster_centroids[current_cluster], int(loc[-1])))
             is_paralog = current_cluster in paralogs
             if is_paralog:
                 # create a new paralog
                 n_nodes += 1
                 neighbour = n_nodes
                 temp_nodes.append(neighbour)
+                current_paralogs.append([[cluster_centroids[current_cluster], 
+                    neighbour, genome_id, loc[1]], int(loc[2])])
                 G.add_node(
                     neighbour,
                     size=1,
@@ -167,4 +192,4 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                                    members=[genome_id])
                 prev = current_cluster
 
-    return G
+    return G, centroid_context

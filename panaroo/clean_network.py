@@ -3,7 +3,7 @@ from panaroo.cdhit import *
 from panaroo.merge_nodes import merge_nodes
 from collections import defaultdict
 from panaroo.cdhit import is_valid
-from itertools import chain
+from itertools import chain, combinations
 import numpy as np
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import connected_components
@@ -253,88 +253,158 @@ def collapse_families(G,
     return G
 
 
-def collapse_paralogs(G, quiet=False):
 
+def collapse_paralogs(G, centroid_contexts, quiet=False):
+    
+    # contexts [centroid] = [[node, member, contig, context], ...]
     node_count = max(list(G.nodes())) + 10
 
-    was_merged = True
-    while was_merged:
-        was_merged = False
-        search_space = set(G.nodes())
-        while len(search_space) > 0:
-            # look for nodes to merge
-            temp_node_list = list(search_space)
-            removed_nodes = set()
-            for node in temp_node_list:
-                if node in removed_nodes: continue
+    print(len(centroid_contexts))
 
-                neigbour_centroids = defaultdict(list)
-                # find neighbours centroids
-                for neigh in [
-                        v
-                        for u, v in nx.bfs_edges(G, source=node, depth_limit=3)
-                ]:
-                    neigbour_centroids[G.node[neigh]['centroid']].append(neigh)
+    # first sort by context length, context dist to ensure ties
+    #  are broken the same way
+    for centroid in centroid_contexts:
+        centroid_contexts[centroid] = sorted(centroid_contexts[centroid], 
+            key=lambda x: (len(x[3]), np.mean(x[3])), reverse=True)
 
-                for centroid in neigbour_centroids:
-                    # check if there are any to collapse
-                    if (len(neigbour_centroids[centroid]) > 1):
-                        # check for conflicts
-                        genomes = []
-                        for n in neigbour_centroids[centroid]:
-                            genomes += G.node[n]['members']
-                        if len(genomes) == len(set(genomes)):
-                            # no conflicts in merge
-                            was_merged = True
-                            node_count += 1
-                            # merge neighbours with this centroid
-                            for neigh in neigbour_centroids[centroid]:
-                                removed_nodes.add(neigh)
-                                if neigh in search_space:
-                                    search_space.remove(neigh)
-                            temp_c = neigbour_centroids[centroid].copy()
-                            G = merge_nodes(G, temp_c.pop(), temp_c.pop(),
-                                            node_count)
-                            while (len(temp_c) > 0):
-                                G = merge_nodes(G, node_count, temp_c.pop(),
-                                                node_count + 1)
-                                node_count += 1
-                            search_space.add(node_count)
-                        else:
-                            # possible conflict (try splitting by neighbours)
-                            neigh_neighbours = defaultdict(list)
-                            for n in neigbour_centroids[centroid]:
-                                neighs = tuple(sorted(G.neighbors(n)))
-                                if len(neighs) > 0:
-                                    neigh_neighbours[neighs].append(n)
+    for centroid in centroid_contexts:
+        # calculate distance
+        # d = 1 - 1/(abs(contextA-contextB))
+        member_paralogs = defaultdict(list)
+        for para in centroid_contexts[centroid]:
+            member_paralogs[para[1]].append(para)
 
-                            for nn in neigh_neighbours:
-                                if len(neigh_neighbours[nn]) < 2: continue
-                                genomes = []
-                                for tn in neigh_neighbours[nn]:
-                                    genomes += G.node[tn]['members']
-                                if len(genomes) > len(set(genomes)): continue
-                                # we've found subsets that share the same neighbours so merge
-                                was_merged = True
-                                node_count += 1
-                                # merge neighbours with this centroid
-                                for neigh in neigh_neighbours[nn]:
-                                    removed_nodes.add(neigh)
-                                    if neigh in search_space:
-                                        search_space.remove(neigh)
-                                temp_c = neigh_neighbours[nn].copy()
-                                G = merge_nodes(G, temp_c.pop(), temp_c.pop(),
-                                                node_count)
-                                while (len(temp_c) > 0):
-                                    G = merge_nodes(G, node_count,
-                                                    temp_c.pop(),
-                                                    node_count + 1)
-                                    node_count += 1
-                                search_space.add(node_count)
+        ref_paralogs = max(member_paralogs.items(), key=lambda x: len(x[1]))[1]
 
-                search_space.remove(node)
+        # for each paralog find its closest reference paralog
+        cluster_dict = defaultdict(set)
+        cluster_mems = defaultdict(set)
+        for c, ref in enumerate(ref_paralogs):
+            cluster_dict[c].add(ref[0])
+            cluster_mems[c].add(ref[1])
 
-    return G
+        for para in centroid_contexts[centroid]:
+            d_max = np.inf
+            best_cluster = None
+
+            if para[1]==ref_paralogs[0][1]:
+                # this is the reference so skip
+                continue
+            
+            for c, ref in enumerate(ref_paralogs):
+                if para[1] in cluster_mems[c]:
+                    #dont match paralogs of the same isolate
+                    continue
+                keep = (ref[3]!=0) & (para[3]!=0)
+                d = np.sum(1-1/(1+np.abs(ref[3][keep] - para[3][keep])))
+                if d<d_max:
+                    d_max = d
+                    best_cluster = c
+            
+            # print(best_cluster, d_max, para[:3])
+            cluster_dict[best_cluster].add(para[0])
+            cluster_mems[best_cluster].add(para[1])
+        
+        # print(cluster_dict)
+        # merge
+        for cluster in cluster_dict:
+            if len(cluster_dict[cluster])<2: continue
+            temp_c = cluster_dict[cluster].copy()
+            node_count += 1
+            G = merge_nodes(G, temp_c.pop(), temp_c.pop(),
+                            node_count)
+            while (len(temp_c) > 0):
+                G = merge_nodes(G, node_count, temp_c.pop(),
+                                node_count + 1)
+                node_count += 1
+
+    return(G)
+
+
+# def collapse_paralogs(G, dummy, quiet=False):
+
+#     # Zip up paralogs resolving conflict by neighbourhood information
+#     depths = [1,2,3]
+#     node_count = max(list(G.nodes())) + 10
+
+#     was_merged = True
+#     while was_merged:
+#         was_merged = False
+#         for d in depths:
+#             search_space = set(G.nodes())
+#             while len(search_space) > 0:
+#                 # look for nodes to merge
+#                 temp_node_list = list(search_space)
+#                 removed_nodes = set()
+#                 for node in temp_node_list:
+#                     if node in removed_nodes: continue
+
+#                     neigbour_centroids = defaultdict(list)
+#                     # find neighbours centroids
+#                     for neigh in [
+#                             v
+#                             for u, v in nx.bfs_edges(G, source=node, depth_limit=d)
+#                     ]:
+#                         neigbour_centroids[G.node[neigh]['centroid']].append(neigh)
+
+#                     for centroid in neigbour_centroids:
+#                         # check if there are any to collapse
+#                         if (len(neigbour_centroids[centroid]) > 1):
+#                             # check for conflicts
+#                             genomes = []
+#                             for n in neigbour_centroids[centroid]:
+#                                 genomes += G.node[n]['members']
+#                             if len(genomes) == len(set(genomes)):
+#                                 # no conflicts in merge
+#                                 was_merged = True
+#                                 node_count += 1
+#                                 # merge neighbours with this centroid
+#                                 for neigh in neigbour_centroids[centroid]:
+#                                     removed_nodes.add(neigh)
+#                                     if neigh in search_space:
+#                                         search_space.remove(neigh)
+#                                 temp_c = neigbour_centroids[centroid].copy()
+#                                 G = merge_nodes(G, temp_c.pop(), temp_c.pop(),
+#                                                 node_count)
+#                                 while (len(temp_c) > 0):
+#                                     G = merge_nodes(G, node_count, temp_c.pop(),
+#                                                     node_count + 1)
+#                                     node_count += 1
+#                                 search_space.add(node_count)
+#                             else:
+#                                 # possible conflict (try splitting by neighbours)
+#                                 neigh_neighbours = defaultdict(list)
+#                                 for n in neigbour_centroids[centroid]:
+#                                     neighs = tuple(sorted(G.neighbors(n)))
+#                                     if len(neighs) > 0:
+#                                         neigh_neighbours[neighs].append(n)
+
+#                                 for nn in neigh_neighbours:
+#                                     if len(neigh_neighbours[nn]) < 2: continue
+#                                     genomes = []
+#                                     for tn in neigh_neighbours[nn]:
+#                                         genomes += G.node[tn]['members']
+#                                     if len(genomes) > len(set(genomes)): continue
+#                                     # we've found subsets that share the same neighbours so merge
+#                                     was_merged = True
+#                                     node_count += 1
+#                                     # merge neighbours with this centroid
+#                                     for neigh in neigh_neighbours[nn]:
+#                                         removed_nodes.add(neigh)
+#                                         if neigh in search_space:
+#                                             search_space.remove(neigh)
+#                                     temp_c = neigh_neighbours[nn].copy()
+#                                     G = merge_nodes(G, temp_c.pop(), temp_c.pop(),
+#                                                     node_count)
+#                                     while (len(temp_c) > 0):
+#                                         G = merge_nodes(G, node_count,
+#                                                         temp_c.pop(),
+#                                                         node_count + 1)
+#                                         node_count += 1
+#                                     search_space.add(node_count)
+#                     search_space.remove(node)
+
+#     return G
 
 
 def merge_paralogs(G):
