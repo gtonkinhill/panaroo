@@ -274,7 +274,7 @@ def collapse_paralogs(G, centroid_contexts, quiet=False):
         for para in centroid_contexts[centroid]:
             member_paralogs[para[1]].append(para)
 
-        ref_paralogs = max(member_paralogs.items(), key=lambda x: len(x[1]))[1]
+        ref_paralogs = max(member_paralogs.items(), key=lambda x: (len(x[1]), np.sum([p[3] for p in x[1]])))[1]
 
         # for each paralog find its closest reference paralog
         cluster_dict = defaultdict(set)
@@ -290,22 +290,35 @@ def collapse_paralogs(G, centroid_contexts, quiet=False):
             if para[1]==ref_paralogs[0][1]:
                 # this is the reference so skip
                 continue
-            
+
+            # first attempt by shortest path
             for c, ref in enumerate(ref_paralogs):
                 if para[1] in cluster_mems[c]:
                     #dont match paralogs of the same isolate
                     continue
-                keep = (ref[3]!=0) & (para[3]!=0)
-                d = np.sum(1-1/(1+np.abs(ref[3][keep] - para[3][keep])))
+                try:
+                    d = nx.shortest_path_length(G, ref[0], para[0])
+                except nx.NetworkXNoPath:
+                    continue
                 if d<d_max:
                     d_max = d
                     best_cluster = c
+
+            # if this fails use context
+            if d_max==np.inf:
+                for c, ref in enumerate(ref_paralogs):
+                    if para[1] in cluster_mems[c]:
+                        #dont match paralogs of the same isolate
+                        continue
+                    keep = (ref[3]!=0) & (para[3]!=0)
+                    d = np.sum(1-1/(1+np.abs(ref[3][keep] - para[3][keep])))
+                    if d<d_max:
+                        d_max = d
+                        best_cluster = c
             
-            # print(best_cluster, d_max, para[:3])
             cluster_dict[best_cluster].add(para[0])
             cluster_mems[best_cluster].add(para[1])
         
-        # print(cluster_dict)
         # merge
         for cluster in cluster_dict:
             if len(cluster_dict[cluster])<2: continue
