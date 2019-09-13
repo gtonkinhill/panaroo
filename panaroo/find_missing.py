@@ -293,22 +293,28 @@ def search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh, refind):
     #         print(db_seq)
     #         found=True
 
+    added_E_len = int(len(search_sequence)/2)
+
     for i, db in enumerate([db_seq, str(Seq(db_seq).reverse_complement())]):
+
+        # add some Ns at the start and end to deal with fragments at the end of contigs
+        db = "E"*added_E_len + db + "E"*added_E_len
 
         aln = edlib.align(search_sequence,
                         db,
                         mode="HW",
                         task='locations',
-                        #   k=10 * len(search_sequence))
                         k=10 * len(search_sequence),
                         additionalEqualities=[('A', 'N'), ('C', 'N'),
-                                                ('G', 'N'), ('T', 'N')])
+                                                ('G', 'N'), ('T', 'N'),
+                                                ('A', 'E'), ('C', 'E'),
+                                                ('G', 'E'), ('T', 'E'),])
 
         if aln['editDistance'] == -1:
             start = -1
         else:
             # take hit that is closest to the centre of the neighbouring gene
-            centre = len(db_seq)/2.0
+            centre = len(db)/2.0
             tloc = min(aln['locations'], key=lambda x: min(centre-x[0], 
                 centre-x[1]))
             start = tloc[0]
@@ -323,13 +329,15 @@ def search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh, refind):
 
         possible_dbs = [db]
         if db.find("NNNNNNNNNNNNNNNNNNNN")!=-1:
-            possible_dbs += [re.sub("^[ACGT]{0,}NNNNNNNNNNNNNNNNNNNN", repl, db_seq, 1),
-                re.sub("NNNNNNNNNNNNNNNNNNNN[ACGT]{0,}$", repl, db_seq, 1)]
+            possible_dbs += [re.sub("^[ACGT]{0,}NNNNNNNNNNNNNNNNNNNN", repl, db, 1),
+                re.sub("NNNNNNNNNNNNNNNNNNNN[ACGT]{0,}$", repl, db, 1)]
 
         for posdb in possible_dbs:
             # skip if alignment is too short
             n_X = posdb[start:end].count("X")
-            aln_length = float(end - start - n_X)
+            n_E = posdb[start:end].count("E")
+
+            aln_length = float(end - start - n_X - n_E)
             if (aln_length / len(search_sequence)) <= prop_match: continue
             if (posdb[start:end].count("A") +
                 posdb[start:end].count("C") +
@@ -343,7 +351,7 @@ def search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh, refind):
                                 (len(search_sequence) - aln_length))) / aln_length
             else:
                 pid = 1.0 - (aln['editDistance'] - n_X) / (1.0 *
-                                                        len(search_sequence))
+                                                        aln_length)
 
             # skip if identity below threshold
             if pid <= pairwise_id_thresh: continue
@@ -359,17 +367,17 @@ def search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh, refind):
                     loc = [start, end]
                 else:
                     loc = [
-                        len(posdb) - aln['locations'][0][0] - 1,
-                        len(posdb) - aln['locations'][0][1]
+                        len(posdb) - tloc[0] - 1,
+                        len(posdb) - tloc[1]
                     ]
-                loc = [min(loc), max(loc)]
+                loc = [max(0, min(loc)-added_E_len), min(max(loc)-added_E_len, len(db_seq))]
 
     # if found:
     #     print(found_dna)
     #     print(loc)
     #     print("<<<<<<<<<<<<<<<<<<")
 
-    return found_dna.replace('X', 'N'), loc
+    return found_dna.replace('X', 'N').replace('E','N'), loc
 
 
 def translate_to_match(hit, target_prot):
