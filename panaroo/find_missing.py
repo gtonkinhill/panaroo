@@ -12,7 +12,7 @@ from io import StringIO
 import edlib
 from .merge_nodes import delete_node, remove_member_from_node
 from tqdm import tqdm
-
+import re
 
 def find_missing(G,
                  gff_file_handles,
@@ -66,6 +66,7 @@ def find_missing(G,
                     search_list[int(member)][node].add(
                         (max(G.node[node]["dna"].split(";"),
                              key=len), id_to_gff[sid]))
+
                     n_searches += 1
 
     print("Number of searches to perform: ", n_searches)
@@ -76,12 +77,11 @@ def find_missing(G,
                             conflicts[member],
                             gff_handle,
                             merged_nodes=merged_nodes,
-                            search_radius=10000,
-                            prop_match=0.2,
-                            pairwise_id_thresh=0.95,
+                            search_radius=search_radius,
+                            prop_match=prop_match,
+                            pairwise_id_thresh=pairwise_id_thresh,
                             merge_id_thresh=merge_id_thresh)
         for member, gff_handle in tqdm(enumerate(gff_file_handles))))
-    # ,search_radius, prop_match, pairwise_id_thresh, n_cpu)
 
     print("translating hits...")
 
@@ -124,7 +124,7 @@ def find_missing(G,
             loc = node_locs[node][1]
 
             if np.sum(seq_coverage[contig_id][loc[0]:loc[1]]) >= (
-                    0.5 * (loc[1] - loc[0])):
+                    0.5 * (max(G.node[node]['lengths']))):
                 if str(member) in G.node[node]['members']:
                     G.node[node]['members'].remove(str(member))
                     G.node[node]['size'] -= 1
@@ -223,7 +223,8 @@ def search_gff(node_search_dict,
                                   merged_nodes[node],
                                   prop_match=(end - start) /
                                   float(len(merged_nodes[node])),
-                                  pairwise_id_thresh=merge_id_thresh)
+                                  pairwise_id_thresh=merge_id_thresh,
+                                  refind=False)
 
             # update location
             loc[0] = loc[0] + max(0, (start - search_radius))
@@ -236,7 +237,7 @@ def search_gff(node_search_dict,
         gene = parsed_gff[geneid]
         start = min(gene.start, gene.end)
         end = max(gene.start, gene.end)
-        contigs[gene[0]][(start - 1):end] = "X"
+        # contigs[gene[0]][(start - 1):end] = "X"
 
         if (gene[0], start - 1, end) in seen:
             raise NameError("Duplicate entry!!!")
@@ -259,7 +260,8 @@ def search_gff(node_search_dict,
                                                                search_radius)]
 
             hit, loc = search_dna(db_seq, search[0], prop_match,
-                                  pairwise_id_thresh)
+                                  pairwise_id_thresh, 
+                                  refind=True)
             # update location
             loc[0] = loc[0] + max(0, (start - search_radius))
             loc[1] = loc[1] + max(0, (start - search_radius))
@@ -274,8 +276,10 @@ def search_gff(node_search_dict,
 
     return [hits, node_locs, max_seq_len]
 
+def repl(m):
+    return('X' * len(m.group()))
 
-def search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh):
+def search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh, refind):
     found_dna = ""
     start = None
     end = None
@@ -283,26 +287,38 @@ def search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh):
     loc = [0, 0]
 
     # found=False
-    # if search_sequence=="GTGGCCGCGACCAGTCCCCGCAGCGCGTCGGGGATGAAGCTTTCCGTGGTGTTCAGGAAGTTCCGCAACGGGACCATACGGCAACCGTATGGCTCACCTGCGGCCAAAAGCTATGGCGACCTACTCGTCATCCTTGGCGTGGTCGGCAACGCCCGGATTCGGATCGCGTGA":
-    #     print(">>>>>>>>>>>>>")
-    #     print(db_seq)
-    #     found=True
+    # if search_sequence=="":
+    #     if refind:
+    #         print(">>>>>>>>>>>>>")
+    #         print(db_seq)
+    #         found=True
+
+    added_E_len = int(len(search_sequence)/2)
 
     for i, db in enumerate([db_seq, str(Seq(db_seq).reverse_complement())]):
 
+        # add some Ns at the start and end to deal with fragments at the end of contigs
+        db = "E"*added_E_len + db + "E"*added_E_len
+
         aln = edlib.align(search_sequence,
-                          db,
-                          mode="HW",
-                          task='locations',
-                          k=10 * len(search_sequence),
-                          additionalEqualities=[('A', 'N'), ('C', 'N'),
-                                                ('G', 'N'), ('T', 'N')])
+                        db,
+                        mode="HW",
+                        task='locations',
+                        k=10 * len(search_sequence),
+                        additionalEqualities=[('A', 'N'), ('C', 'N'),
+                                                ('G', 'N'), ('T', 'N'),
+                                                ('A', 'E'), ('C', 'E'),
+                                                ('G', 'E'), ('T', 'E'),])
 
         if aln['editDistance'] == -1:
             start = -1
         else:
-            start = aln['locations'][0][0]
-            end = aln['locations'][0][1] + 1
+            # take hit that is closest to the centre of the neighbouring gene
+            centre = len(db)/2.0
+            tloc = min(aln['locations'], key=lambda x: min(centre-x[0], 
+                centre-x[1]))
+            start = tloc[0]
+            end = tloc[1] + 1
 
         # if found:
         #     print(aln)
@@ -311,44 +327,57 @@ def search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh):
         # skip if nothing was found
         if start == -1: continue
 
-        # skip if alignment is too short
-        n_X = db[start:end].count("X")
-        aln_length = float(end - start - n_X)
-        if (aln_length / len(search_sequence)) <= prop_match: continue
+        possible_dbs = [db]
+        if db.find("NNNNNNNNNNNNNNNNNNNN")!=-1:
+            possible_dbs += [re.sub("^[ACGT]{0,}NNNNNNNNNNNNNNNNNNNN", repl, db, 1),
+                re.sub("NNNNNNNNNNNNNNNNNNNN[ACGT]{0,}$", repl, db, 1)]
 
-        # determine an approximate percentage identity
-        if (start == 0) or (end == len(db_seq)):
-            pid = 1.0 - max(0.0,
-                            (aln['editDistance'] - n_X -
-                             (len(search_sequence) - aln_length))) / aln_length
-        else:
-            pid = 1.0 - (aln['editDistance'] - n_X) / (1.0 *
-                                                       len(search_sequence))
+        for posdb in possible_dbs:
+            # skip if alignment is too short
+            n_X = posdb[start:end].count("X")
+            n_E = posdb[start:end].count("E")
 
-        # skip if identity below threshold
-        if pid <= pairwise_id_thresh: continue
+            aln_length = float(end - start - n_X - n_E)
+            if (aln_length / len(search_sequence)) <= prop_match: continue
+            if (posdb[start:end].count("A") +
+                posdb[start:end].count("C") +
+                posdb[start:end].count("G") +
+                posdb[start:end].count("T"))/ len(search_sequence) <= prop_match: continue
 
-        # if found:
-        #     print("aln_length:", aln_length)
-        #     print("pid:", pid)
-
-        if max_hit < (pid * aln_length):
-            found_dna = db[start:end]
-            max_hit = (pid * aln_length)
-            if i == 0:
-                loc = [start, end]
+            # determine an approximate percentage identity
+            if (start == 0) or (end == len(posdb)):
+                pid = 1.0 - max(0.0,
+                                (aln['editDistance'] - n_X -
+                                (len(search_sequence) - aln_length))) / aln_length
             else:
-                loc = [
-                    len(db_seq) - aln['locations'][0][0] - 1,
-                    len(db_seq) - aln['locations'][0][1]
-                ]
-            loc = [min(loc), max(loc)]
+                pid = 1.0 - (aln['editDistance'] - n_X) / (1.0 *
+                                                        aln_length)
+
+            # skip if identity below threshold
+            if pid <= pairwise_id_thresh: continue
+
+            # if found:
+            #     print("aln_length:", aln_length)
+            #     print("pid:", pid)
+
+            if max_hit < (pid * aln_length):
+                found_dna = posdb[start:end]
+                max_hit = (pid * aln_length)
+                if i == 0:
+                    loc = [start, end]
+                else:
+                    loc = [
+                        len(posdb) - tloc[0] - 1,
+                        len(posdb) - tloc[1]
+                    ]
+                loc = [max(0, min(loc)-added_E_len), min(max(loc)-added_E_len, len(db_seq))]
 
     # if found:
     #     print(found_dna)
+    #     print(loc)
     #     print("<<<<<<<<<<<<<<<<<<")
 
-    return found_dna.replace('X', 'N'), loc
+    return found_dna.replace('X', 'N').replace('E','N'), loc
 
 
 def translate_to_match(hit, target_prot):
