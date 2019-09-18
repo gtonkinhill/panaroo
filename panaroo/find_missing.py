@@ -284,6 +284,7 @@ def search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh, refind):
     start = None
     end = None
     max_hit = 0
+    rev=False
     loc = [0, 0]
 
     # found=False
@@ -345,13 +346,8 @@ def search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh, refind):
                 posdb[start:end].count("T"))/ len(search_sequence) <= prop_match: continue
 
             # determine an approximate percentage identity
-            if (start == 0) or (end == len(posdb)):
-                pid = 1.0 - max(0.0,
-                                (aln['editDistance'] - n_X -
-                                (len(search_sequence) - aln_length))) / aln_length
-            else:
-                pid = 1.0 - (aln['editDistance'] - n_X) / (1.0 *
-                                                        aln_length)
+            pid = 1.0 - (aln['editDistance'] - n_X) / (1.0 *
+                                                    aln_length)
 
             # skip if identity below threshold
             if pid <= pairwise_id_thresh: continue
@@ -365,19 +361,24 @@ def search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh, refind):
                 max_hit = (pid * aln_length)
                 if i == 0:
                     loc = [start, end]
+                    rev = False
                 else:
                     loc = [
                         len(posdb) - tloc[0] - 1,
                         len(posdb) - tloc[1]
                     ]
+                    rev = True
                 loc = [max(0, min(loc)-added_E_len), min(max(loc)-added_E_len, len(db_seq))]
 
     # if found:
     #     print(found_dna)
     #     print(loc)
     #     print("<<<<<<<<<<<<<<<<<<")
+    seq = found_dna.replace('X', 'N').replace('E','N')
+    if rev:
+        seq = str(Seq(seq).reverse_complement())
 
-    return found_dna.replace('X', 'N').replace('E','N'), loc
+    return seq, loc
 
 
 def translate_to_match(hit, target_prot):
