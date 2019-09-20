@@ -307,6 +307,7 @@ def main():
     # write out roary like gene_presence_absence.csv
     G = generate_roary_gene_presence_absence(G,
                                              mems_to_isolates=mems_to_isolates,
+                                             gene_data_file=args.output_dir + "gene_data.csv",
                                              output_dir=args.output_dir)
 
     # add helpful attributes and write out graph in GML format

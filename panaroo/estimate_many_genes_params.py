@@ -18,8 +18,27 @@ from scipy.stats.distributions import chi2
 @jit(nopython=True)
 def log1mexp(a):
     if a < np.log(0.5):
-        return (np.log1p(-np.exp(a)))
-    return (np.log(-np.expm1(a)))
+        return (np.log1p(-np.exp(-a)))
+    return (np.log(-np.expm1(-a)))
+
+@jit(nopython=True)
+def log_subtract(x, y):
+  if x <= y:
+    raise RuntimeError("error!! computing the log of a negative number")
+  if y == -np.inf:
+    return (x)
+  return (x + np.log1p(-np.exp(y-x)))
+
+
+# @jit(nopython=True)
+# def log1mexp(a):
+#     if a < 0:
+#         raise RuntimeError("a<0!")
+#     if a <= np.log(2):
+#         np.log(-np.expm1(-a))
+#     else:
+#         la = np.log1p(-np.exp(-a))
+#     return(la)
 
 
 def load_pa(presence_absence_file):
@@ -56,9 +75,9 @@ def trans_llk_prob(xl, xn, t, a, v):
     if (xl == 0) and (xn == 0):
         p = np.logaddexp(v_l - av_l, (a_l - av_l) - (a + v) * t)
     elif (xl == 0) and (xn == 1):
-        p = (a_l - av_l) + log1mexp(-(a + v) * t)
+        p = (a_l - av_l) + log1mexp((a + v) * t)
     elif (xl == 1) and (xn == 0):
-        p = (v_l - av_l) + log1mexp(-(a + v) * t)
+        p = (v_l - av_l) + log1mexp((a + v) * t)
     else:
         p = np.logaddexp((a_l - av_l), (v_l - av_l) - (a + v) * t)
     return (p)
@@ -89,6 +108,7 @@ def calc_llk_gene_numpy(in_tree, nleaves, l0, l1, a, v):
         in_tree[in_tree.shape[0] - 1][2] + np.log(v) - np.log(a + v))
 
     return (llk)
+
 
 
 def calc_llk_fmg(params, tree_array, nleaves, presence_absence, isolates,
@@ -125,12 +145,12 @@ def calc_llk_fmg(params, tree_array, nleaves, presence_absence, isolates,
     if verbose: print("L_1: ", L_1)
 
     # calculate llk of conserved genes
-    if verbose: print("Calculating null")
-    l0 = np.full(nleaves, -math.inf)
-    l1 = np.zeros(nleaves)
-    L_conserved = calc_llk_gene_numpy(tree_array, nleaves, l0, l1, a, v)
+    # if verbose: print("Calculating null")
+    # l0 = np.full(nleaves, -math.inf)
+    # l1 = np.zeros(nleaves)
+    # L_conserved = calc_llk_gene_numpy(tree_array, nleaves, l0, l1, a, v)
 
-    if verbose: print("L_null: ", L_null)
+    # if verbose: print("L_conserved: ", L_conserved)
 
     if verbose: print("Calculating llk")
     llk = 0
@@ -139,7 +159,13 @@ def calc_llk_fmg(params, tree_array, nleaves, presence_absence, isolates,
         l1 = presence_absence[g][1]
         llk += calc_llk_gene_numpy(
             tree_array, nleaves, l0, l1, a,
-            v) - np.log(1 - np.exp(L_null) - np.exp(L_1) - np.exp(L_conserved))
+            v) - np.log(1 - np.exp(L_null) - np.exp(L_1))
+        # print(L_null, L_1)
+        # print(1 - np.exp(L_null) - np.exp(L_1))
+        # print("llka: ", calc_llk_gene_numpy(
+        #     tree_array, nleaves, l0, l1, a,
+        #     v))
+        # print("llkb: ", llk)
 
     if verbose: print("llk: ", llk)
 
@@ -147,13 +173,13 @@ def calc_llk_fmg(params, tree_array, nleaves, presence_absence, isolates,
 
 
 @jit(nopython=True)
-def fmg_trans_llk_prob(xl, xn, t, v):
+def img_trans_llk_prob(xl, xn, t, v):
     if (xl == 0) and (xn == 0):
         p = 0
     elif (xl == 0) and (xn == 1):
         p = -math.inf
     elif (xl == 1) and (xn == 0):
-        p = log1mexp(-v * t)
+        p = log1mexp(v * t)
     else:
         p = -v * t
     return (p)
@@ -199,12 +225,35 @@ def img_llk_all_nodes(in_tree, nleaves, l0, l1, u, v):
                 for xm in [0, 1]:
                     in_tree[i][2 + xl] = np.logaddexp(
                         in_tree[i][2 + xl],
-                        (fmg_trans_llk_prob(xl, xn, in_tree[i][4], v) +
+                        (img_trans_llk_prob(xl, xn, in_tree[i][4], v) +
                          in_tree[int(in_tree[i][0])][2 + xn] +
-                         fmg_trans_llk_prob(xl, xm, in_tree[i][5], v) +
+                         img_trans_llk_prob(xl, xm, in_tree[i][5], v) +
                          in_tree[int(in_tree[i][1])][2 + xm]))
 
     return (in_tree)
+
+
+    # # set lead nodes
+    # in_tree[0:nleaves, 2] = l0
+    # in_tree[0:nleaves, 3] = l1
+
+    # for i in np.arange(nleaves, in_tree.shape[0]):
+    #     in_tree[i][2] = -math.inf
+    #     in_tree[i][3] = -math.inf
+    #     for xl in [0, 1]:
+    #         for xn in [0, 1]:
+    #             for xm in [0, 1]:
+    #                 in_tree[i][2 + xl] = np.logaddexp(
+    #                     in_tree[i][2 + xl],
+    #                     (trans_llk_prob(xl, xn, in_tree[i][4], a, v) +
+    #                      in_tree[int(in_tree[i][0])][2 + xn] +
+    #                      trans_llk_prob(xl, xm, in_tree[i][5], a, v) +
+    #                      in_tree[int(in_tree[i][1])][2 + xm]))
+
+    # llk = np.logaddexp(
+    #     in_tree[in_tree.shape[0] - 1][3] + np.log(a) - np.log(a + v),
+    #     in_tree[in_tree.shape[0] - 1][2] + np.log(v) - np.log(a + v))
+
 
 
 # @jit
@@ -232,7 +281,7 @@ def calc_llk_img(params, tree_array, nleaves, origin_nodes, origin_nodes_n1,
         if i == (tree_array.shape[0] - 1):
             gn_l = u_l - v_l
         else:
-            gn_l = u_l - v_l + log1mexp(-v * tree_array[i][6])
+            gn_l = u_l - v_l + log1mexp(v * tree_array[i][6])
         N_null = np.logaddexp(N_null, tree_array[i][3] + gn_l)
         N_tot = np.logaddexp(N_tot, gn_l)
 
@@ -250,7 +299,7 @@ def calc_llk_img(params, tree_array, nleaves, origin_nodes, origin_nodes_n1,
             if j == (tree_array.shape[0] - 1):
                 gn_l = u_l - v_l
             else:
-                gn_l = u_l - v_l + log1mexp(-v * tree_array[j][6])
+                gn_l = u_l - v_l + log1mexp(v * tree_array[j][6])
             N_1 = np.logaddexp(N_1, tree_array[j][3] + gn_l)
         l0[i] = 0
         l1[i] = -math.inf
@@ -258,8 +307,8 @@ def calc_llk_img(params, tree_array, nleaves, origin_nodes, origin_nodes_n1,
     if verbose: print("N_1: ", N_1)
 
     # calculate N_total
-    for i in np.arange(0, nleaves):
-        gn_l = u_l - v_l + log1mexp(-v * tree_array[i][6])
+    for i in np.arange(0, tree_array.shape[0]):
+        gn_l = u_l - v_l + log1mexp(v * tree_array[i][6])
         N_tot = np.logaddexp(N_tot, gn_l)
 
     if verbose: print("N_tot: ", N_tot)
@@ -270,14 +319,19 @@ def calc_llk_img(params, tree_array, nleaves, origin_nodes, origin_nodes_n1,
         l0 = presence_absence[g][0]
         l1 = presence_absence[g][1]
         tree_array = img_llk_all_nodes(tree_array, nleaves, l0, l1, u, v)
+        # print(origin_nodes[g])
         for i in origin_nodes[g]:
             if i == (tree_array.shape[0] - 1):
+                # print("here")
                 gn_l = u_l - v_l
             else:
-                gn_l = u_l - v_l + log1mexp(-v * tree_array[i][6])
+                gn_l = u_l - v_l + log1mexp(v * tree_array[i][6])
+            print(gn_l, tree_array[i][3], tree_array[i][6])
+            print(tree_array[i][3] + gn_l)
             N_exp = np.logaddexp(N_exp, tree_array[i][3] + gn_l)
 
-        llk += N_exp - np.log(np.exp(N_tot) - np.exp(N_exp) - np.exp(N_1))
+        # llk += N_exp - np.log(np.exp(N_tot) - np.exp(N_null) - np.exp(N_1))
+        llk += N_exp - log_subtract(log_subtract(N_tot, N_null), N_1)
 
     if verbose: print("N_exp: ", N_exp)
     if verbose: print("llk: ", llk)
@@ -424,7 +478,7 @@ def optimise_model(model,
                                               origin_nodes, origin_nodes_n1,
                                               boot_pa, isolates, False))
 
-    return ((boot_result.x[0], boot_result.x[0], np.mean(boot_gene_count)))
+    return ((boot_result.x[0], boot_result.x[1], np.mean(boot_gene_count)))
 
 
 def main():
@@ -447,7 +501,7 @@ def main():
         if iso not in leaf_taxa:
             raise RuntimeError("Mismatch between tree and p/a matrix!")
 
-    # gather gene prescence abscence for convinience in llk calculation
+    # gather gene prescence abscence for convenience in llk calculation
     presence_absence_llk = {}
     for gene in presence_absence:
         presence_absence_llk[gene] = [
@@ -499,19 +553,30 @@ def main():
 
     if (args.model == 'IMG') or (args.model == 'both'):
 
-        # get origin indices
-        if args.verbose: print("Obtaining origin nodes...")
-        origin_indices = get_origin_nodes(tree, node_index, presence_absence)
-        if args.verbose: print("Obtaining origin nodes n1...")
-        origin_indices_n1 = get_origin_nodes(tree,
-                                             node_index,
-                                             presence_absence,
-                                             n1=True)
+        # # get origin indices
+        # if args.verbose: print("Obtaining origin nodes...")
+        # origin_indices = get_origin_nodes(tree, node_index, presence_absence)
+        # if args.verbose: print("Obtaining origin nodes n1...")
+        # origin_indices_n1 = get_origin_nodes(tree,
+        #                                      node_index,
+        #                                      presence_absence,
+        #                                      n1=True)
 
-        u_bounds = (1e-3, 1e3)
-        v_bounds = (1e-3, 1e3)
+        import pickle
+        # with open("origin_indices.pkl", 'wb') as picklefile:
+        #     pickle.dump(origin_indices, picklefile)
+        # with open("origin_indices_n1.pkl", 'wb') as picklefile:
+        #     pickle.dump(origin_indices_n1, picklefile)
+
+        with open("origin_indices.pkl", 'rb') as picklefile:
+            origin_indices = pickle.load(picklefile)
+        with open("origin_indices_n1.pkl", 'rb') as picklefile:
+            origin_indices_n1 = pickle.load(picklefile)
+
+        u_bounds = (1e-6, 1e4)
+        v_bounds = (1e-6, 1e4)
         bounds = [u_bounds, v_bounds]
-        x0 = [1, 1]
+        x0 = [1889.42, 10]
 
         result = optimize.minimize(
             calc_llk_img,
@@ -554,7 +619,7 @@ def main():
         a_bounds = (1e-3, 1e3)
         v_bounds = (1e-3, 1e3)
         bounds = [a_bounds, v_bounds]
-        x0 = [1, 1]
+        x0 = [10, 10]
 
         result = optimize.minimize(calc_llk_fmg,
                                    bounds=bounds,

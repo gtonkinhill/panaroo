@@ -14,7 +14,15 @@ from tqdm import tqdm
 from panaroo.generate_alignments import *
 
 
-def generate_roary_gene_presence_absence(G, mems_to_isolates, output_dir):
+def generate_roary_gene_presence_absence(G, mems_to_isolates, gene_data_file, output_dir):
+
+    # get original annotaiton IDs
+    orig_ids = {}
+    with open(gene_data_file, 'r') as infile:
+        next(infile)
+        for line in infile:
+            line=line.split(",")
+            orig_ids[line[2]] = line[3]
 
     # arange isolates
     isolates = []
@@ -77,8 +85,17 @@ def generate_roary_gene_presence_absence(G, mems_to_isolates, output_dir):
                 for seq in G.node[node]['seqIDs']:
                     sample_id = mems_to_index["_".join(seq.split("_")[:-2])]
                     if pres_abs[sample_id]=="": #ensures we only take the first one
-                        pres_abs[sample_id] = seq
+                        if seq in orig_ids:
+                            pres_abs[sample_id] = orig_ids[seq]
+                        else:
+                            pres_abs[sample_id] = seq
                         entry_size += 1
+                    else:
+                        #this is similar to PIRATE output
+                        if seq in orig_ids:
+                            pres_abs[sample_id] += ";" + orig_ids[seq] 
+                        else:
+                            pres_abs[sample_id] += ";" + seq 
                 entry += pres_abs
                 entry_list.append(entry)
                 pres_abs_list.append(pres_abs)
