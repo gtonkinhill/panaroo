@@ -304,12 +304,20 @@ def search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh, refind):
         aln = edlib.align(search_sequence,
                         db,
                         mode="HW",
-                        task='locations',
+                        task='path',
                         k=10 * len(search_sequence),
                         additionalEqualities=[('A', 'N'), ('C', 'N'),
                                                 ('G', 'N'), ('T', 'N'),
                                                 ('A', 'E'), ('C', 'E'),
                                                 ('G', 'E'), ('T', 'E'),])
+
+        # remove trailing inserts
+        cig = re.split(r'(\d+)', aln['cigar'])[1:]
+        if cig[-1]=="I":
+            aln['editDistance'] -= int(cig[-2])
+        if cig[1]=="I":
+            aln['editDistance'] -= int(cig[0])
+            
 
         if aln['editDistance'] == -1:
             start = -1
@@ -330,8 +338,8 @@ def search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh, refind):
 
         possible_dbs = [db]
         if db.find("NNNNNNNNNNNNNNNNNNNN")!=-1:
-            possible_dbs += [re.sub("^[ACGT]{0,}NNNNNNNNNNNNNNNNNNNN", repl, db, 1),
-                re.sub("NNNNNNNNNNNNNNNNNNNN[ACGT]{0,}$", repl, db, 1)]
+            possible_dbs += [re.sub("^[ACGTEX]{0,}NNNNNNNNNNNNNNNNNNNN", repl, db, 1),
+                re.sub("NNNNNNNNNNNNNNNNNNNN[ACGTEX]{0,}$", repl, db, 1)]
 
         for posdb in possible_dbs:
             # skip if alignment is too short
