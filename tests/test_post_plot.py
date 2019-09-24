@@ -8,27 +8,28 @@ import tempfile
 
 def test_post_plot(datafolder):
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        # run panaroo
-        sys.argv = ["", "-i", 
-            datafolder + "aa1.gff", 
-            datafolder + "aa2.gff", 
-            "-o", tmpdir]
-        main()
+    with tempfile.TemporaryDirectory() as tmpoutdir:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # run panaroo
+            sys.argv = ["", "-i", 
+                datafolder + "aa1.gff", 
+                datafolder + "aa2.gff", 
+                "-o", tmpdir]
+            main()
 
-        # generate plots
-        sys.argv = ["", "-i", 
-            tmpdir + "/gene_presence_absence.csv", 
-            "-o", datafolder,
-            "--graph_type", "all"]
-        main_plots()
+            # generate plots
+            sys.argv = ["", "-i", 
+                tmpdir + "/gene_presence_absence.csv", 
+                "-o", tmpoutdir,
+                "--graph_type", "all"]
+            main_plots()
 
-    # check output
-    assert os.path.isfile(datafolder + "jack1.png")
-    assert os.path.isfile(datafolder + "jack2.png")
-    assert os.path.isfile(datafolder + "ICE.png")
-    assert os.path.isfile(datafolder + "chao2.png")
-    assert os.path.isfile(datafolder + "acc.png")
+        # check output
+        assert os.path.isfile(tmpoutdir + "/jack1.png")
+        assert os.path.isfile(tmpoutdir + "/jack2.png")
+        assert os.path.isfile(tmpoutdir + "/ICE.png")
+        assert os.path.isfile(tmpoutdir + "/chao2.png")
+        assert os.path.isfile(tmpoutdir + "/acc.png")
 
     return
 
