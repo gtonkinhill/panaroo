@@ -8,10 +8,14 @@ python:
 before_install:
   - sudo apt-get update
   - sudo apt-get install cd-hit
+  - sudo apt-get install mafft
+  - wget https://github.com/marbl/Mash/releases/download/v2.2/mash-Linux64-v2.2.tar
+  - tar -xvf mash-Linux64-v2.2.tar
+  - sudo cp ./mash-Linux64-v2.2/mash /usr/bin/mash
   - python --version
   - pip install -U pip
   - pip install -U pytest
-  - wget https://github.com/gtonkinhill/panaroo_test_data/releases/download/v0.0.1/travis_test_data.zip
+  - wget https://github.com/gtonkinhill/panaroo_test_data/releases/download/v0.0.2/travis_test_data.zip
   - unzip travis_test_data.zip
 
 # command to install dependencies
@@ -20,4 +24,4 @@ install:
 
 # command to run tests
 script:
-  - pytest -q --datafolder="${TRAVIS_BUILD_DIR}/travis_test_data/"
+  - pytest -W ignore -q --datafolder="${TRAVIS_BUILD_DIR}/travis_test_data/"
