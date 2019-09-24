@@ -14,15 +14,7 @@ from tqdm import tqdm
 from panaroo.generate_alignments import *
 
 
-def generate_roary_gene_presence_absence(G, mems_to_isolates, gene_data_file, output_dir):
-
-    # get original annotaiton IDs
-    orig_ids = {}
-    with open(gene_data_file, 'r') as infile:
-        next(infile)
-        for line in infile:
-            line=line.split(",")
-            orig_ids[line[2]] = line[3]
+def generate_roary_gene_presence_absence(G, mems_to_isolates, orig_ids, output_dir):
 
     # arange isolates
     isolates = []

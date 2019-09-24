@@ -1,1 +1,1 @@
-# Pan-genome Association Study
+# Pangenome Association Study

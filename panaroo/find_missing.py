@@ -126,8 +126,9 @@ def find_missing(G,
             if np.sum(seq_coverage[contig_id][loc[0]:loc[1]]) >= (
                     0.5 * (max(G.node[node]['lengths']))):
                 if str(member) in G.node[node]['members']:
-                    G.node[node]['members'].remove(str(member))
-                    G.node[node]['size'] -= 1
+                    remove_member_from_node(G, node, member)
+                    # G.node[node]['members'].remove(str(member))
+                    # G.node[node]['size'] -= 1
                 bad_node_mem_pairs.append((node, member))
             else:
                 seq_coverage[contig_id][loc[0]:loc[1]] = True

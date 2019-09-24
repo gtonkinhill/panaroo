@@ -2,15 +2,18 @@
 
 ```
 usage: panaroo [-h] -i INPUT_FILES [INPUT_FILES ...] -o OUTPUT_DIR [-c ID]
-                [-f FAMILY_THRESHOLD] [--len_dif_percent LEN_DIF_PERCENT]
-                [--merge_paralogs] [--mode {strict,moderate,relaxed}]
-                [--min_trailing_support MIN_TRAILING_SUPPORT]
-                [--trailing_recursive TRAILING_RECURSIVE]
-                [--edge_support_diff EDGE_SUPPORT_DIFF]
-                [--remove_by_consensus]
-                [--min_edge_support_sv MIN_EDGE_SUPPORT_SV] [-a ALN]
-                [--aligner ALR] [--core_threshold CORE] [-t N_CPU] [--verbose]
-                [--version]
+               [-f FAMILY_THRESHOLD] [--len_dif_percent LEN_DIF_PERCENT]
+               [--merge_paralogs] [--search_radius SEARCH_RADIUS]
+               [--refind_prop_match REFIND_PROP_MATCH]
+               [--mode {strict,moderate,relaxed}]
+               [--min_trailing_support MIN_TRAILING_SUPPORT]
+               [--trailing_recursive TRAILING_RECURSIVE]
+               [--edge_support_threshold EDGE_SUPPORT_THRESHOLD]
+               [--remove_by_consensus {True,False}]
+               [--high_var_flag CYCLE_THRESHOLD_MIN]
+               [--min_edge_support_sv MIN_EDGE_SUPPORT_SV]
+               [--all_seq_in_graph] [-a ALN] [--aligner ALR]
+               [--core_threshold CORE] [-t N_CPU] [--verbose] [--version]
 
 panaroo: an updated pipeline for pan-genome investigation
 
@@ -37,6 +40,14 @@ Matching:
                         length difference cutoff (default=0.95)
   --merge_paralogs      don't split paralogs
 
+Refind:
+  --search_radius SEARCH_RADIUS
+                        the distance in nucleotides surronding the neighbour
+                        of an accessory gene in which to search for it
+  --refind_prop_match REFIND_PROP_MATCH
+                        the proportion of an accessory gene that must be found
+                        in order to consider it a match
+
 Graph correction:
   --mode {strict,moderate,relaxed}
                         the stringency mode at which to run panaroo. One of
@@ -47,15 +58,22 @@ Graph correction:
   --trailing_recursive TRAILING_RECURSIVE
                         number of times to perform recursive triming of low
                         support nodes near the end of contigs
-  --edge_support_diff EDGE_SUPPORT_DIFF
-                        maximum fraction difference between an edge's support
-                        and those of the nodes it connects
-  --remove_by_consensus
+  --edge_support_threshold EDGE_SUPPORT_THRESHOLD
+                        minimum support required to keep and edge that has
+                        been flagged as a possible mis-assembly
+  --remove_by_consensus {True,False}
                         if a gene is called in the same region with similar
-                        sequence a minority of the time, remove it
+                        sequence a minority of the time, remove it. One of
+                        'True' or 'False'
+  --high_var_flag CYCLE_THRESHOLD_MIN
+                        minimum number of nested cycles to call a highly
+                        variable gene region (default = 5).
   --min_edge_support_sv MIN_EDGE_SUPPORT_SV
                         minimum edge support required to call structural
                         variants in the presence/absence sv file
+  --all_seq_in_graph    Retains all DNA sequence for each gene cluster in the
+                        graph output. Off by default as it uses a large amount
+                        of space.
 
 Gene alignment:
   -a ALN, --alignment ALN

@@ -36,7 +36,9 @@ def merge_nodes(G,
                            G.node[nodeB]['description'].split(";"))),
                    lengths=G.node[nodeA]['lengths'] + G.node[nodeB]['lengths'],
                    paralog=(G.node[nodeA]['paralog']
-                            or G.node[nodeB]['paralog']))
+                            or G.node[nodeB]['paralog']),
+                   mergedDNA=(G.node[nodeA]['mergedDNA']
+                              or G.node[nodeB]['mergedDNA']))
     else:
         # take node with most support as the 'consensus'
         if G.node[nodeA]['size'] < G.node[nodeB]['size']:
@@ -97,6 +99,7 @@ def delete_node(G, node):
     for mem in G.node[node]['members']:
         mem_edges = list(
             set([e[1] for e in G.edges(node) if mem in G.edges[e]['members']]))
+        if len(mem_edges)<2: continue
         for n1, n2 in itertools.combinations(mem_edges, 2):
             if G.has_edge(n1, n2):
                 G[n1][n2]['members'] += [mem]
@@ -112,13 +115,20 @@ def delete_node(G, node):
 
 def remove_member_from_node(G, node, member):
 
-    # if its the last member delete the node
+    # add in replacement edges if required
+    mem_edges = list(
+            set([e[1] for e in G.edges(node) if member in G.edges[e]['members']]))
+    if len(mem_edges)>1:
+        for n1, n2 in itertools.combinations(mem_edges, 2):
+            if G.has_edge(n1, n2):
+                G[n1][n2]['members'] += [member]
+                G[n1][n2]['weight'] += 1
+            else:
+                G.add_edge(n1, n2, weight=1, members=[member])
+
+    # remove member from node
     while member in G.node[node]['members']:
-        # TODO: remove relevent sequence and annotations
-        rm_index = G.node[node]['members'].index(member)
-        del G.node[node]['members'][rm_index]
-        G.node[node]['size'] -= 1
-        del G.node[node]['seqIDs'][rm_index]
-        del G.node[node]['lengths'][rm_index]
+        G.node[node]['members'].remove(str(member))
+    G.node[node]['size'] -= 1
 
     return G

@@ -187,11 +187,11 @@ def get_options():
                                      prog='panaroo_merge_graphs')
 
     io_opts = parser.add_argument_group('Input/output')
-    io_opts.add_argument("-g",
-                         "--graphs",
-                         dest="graphs",
+    io_opts.add_argument("-d",
+                         "--directories",
+                         dest="directories",
                          required=True,
-                         help="Location of Panroo output folders",
+                         help="Location of seperate Panaroo output directories",
                          nargs='+')
 
     io_opts.add_argument("-o",
@@ -220,7 +220,6 @@ def get_options():
                           help="length difference cutoff (default=0.95)",
                           default=0.95,
                           type=float)
-
 
     parser.add_argument(
         "--min_edge_support_sv",
@@ -254,13 +253,15 @@ def main():
 
     # make sure trailing forward slash is present
     args.output_dir = os.path.join(args.output_dir, "")
+    args.directories = [os.path.join(d, "") for d in args.directories]
 
     # Create temporary directory
     temp_dir = os.path.join(tempfile.mkdtemp(dir=args.output_dir), "")
 
     # Load graphs
     print("Loading graphs...")
-    graphs = load_graphs(args.graphs, n_cpu=args.n_cpu)
+    graphs = load_graphs([d + "final_graph.gml" for d in args.directories], 
+        n_cpu=args.n_cpu)
 
     # cluster centroids
     print("Clustering centroids...")
@@ -295,9 +296,18 @@ def main():
     n_samples = len(mems_to_isolates)
     args.min_edge_support_sv = max(2, math.ceil(0.01*n_samples))
 
+    # get original annotaiton IDs
+    orig_ids = {}
+    for i, d in enumerate(args.directories):
+        with open(d + "gene_data.csv", 'r') as infile:
+            next(infile)
+            for line in infile:
+                line=line.split(",")
+                orig_ids[str(i) + "_" + line[2]] = line[3]
 
     G = generate_roary_gene_presence_absence(G,
             mems_to_isolates=mems_to_isolates,
+            orig_ids=orig_ids,
             output_dir=args.output_dir)
 
     # add helpful attributes and write out graph in GML format

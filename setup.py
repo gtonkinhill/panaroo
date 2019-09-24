@@ -54,7 +54,9 @@ setup(
     entry_points={
         'console_scripts': [
             'panaroo = panaroo.__main__:main',
-            'run_prokka = panaroo.run_prokka:main'
+            'run_prokka = panaroo.run_prokka:main',
+            'panaroo-qc = panaroo.generate_qc_plots:main',
+            'panaroo-merge = panaroo.merge_graphs:main',
         ],
     },
 )
