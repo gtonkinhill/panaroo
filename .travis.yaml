@@ -1,0 +1,23 @@
+dist: xenial
+language: python
+
+python:
+  - "3.6"      # current default Python on Travis CI
+  - "3.7"
+
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install cd-hit
+  - python --version
+  - pip install -U pip
+  - pip install -U pytest
+  - wget https://github.com/gtonkinhill/panaroo_test_data/releases/download/v0.0.1/travis_test_data.zip
+  - unzip travis_test_data.zip
+
+# command to install dependencies
+install:
+  - pip install .
+
+# command to run tests
+script:
+  - pytest -q --datafolder="${TRAVIS_BUILD_DIR}/travis_test_data/"
