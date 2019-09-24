@@ -8,6 +8,8 @@ python:
 before_install:
   - sudo apt-get update
   - sudo apt-get install cd-hit
+  - sudo cp /usr/bin/cdhit /usr/bin/cd-hit
+  - sudo cp /usr/bin/cdhit-est /usr/bin/cd-hit-est
   - sudo apt-get install mafft
   - wget https://github.com/marbl/Mash/releases/download/v2.2/mash-Linux64-v2.2.tar
   - tar -xvf mash-Linux64-v2.2.tar
