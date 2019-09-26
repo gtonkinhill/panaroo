@@ -43,7 +43,7 @@ def find_missing(G,
     merged_nodes = {}
     for node in G.nodes():
         if (len(G.node[node]['centroid'].split(";")) >
-                1) or ("mergedDNA" in G.node[node]):
+                1) or (G.node[node]['mergedDNA']):
             merged_nodes[node] = max(G.node[node]["dna"].split(";"), key=len)
 
     # iterate through nodes to identify accessory genes for searching
@@ -285,7 +285,6 @@ def search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh, refind):
     start = None
     end = None
     max_hit = 0
-    rev=False
     loc = [0, 0]
 
     # found=False
@@ -370,13 +369,11 @@ def search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh, refind):
                 max_hit = (pid * aln_length)
                 if i == 0:
                     loc = [start, end]
-                    rev = False
                 else:
                     loc = [
-                        len(posdb) - tloc[0] - 1,
-                        len(posdb) - tloc[1]
+                        len(posdb) - tloc[1] - 1,
+                        len(posdb) - tloc[0]
                     ]
-                    rev = True
                 loc = [max(0, min(loc)-added_E_len), min(max(loc)-added_E_len, len(db_seq))]
 
     # if found:
@@ -384,8 +381,6 @@ def search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh, refind):
     #     print(loc)
     #     print("<<<<<<<<<<<<<<<<<<")
     seq = found_dna.replace('X', 'N').replace('E','N')
-    if rev:
-        seq = str(Seq(seq).reverse_complement())
 
     return seq, loc
 

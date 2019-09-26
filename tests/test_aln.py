@@ -1,26 +1,48 @@
-# test if identical GFF3 files give the correct fasta alignment output
-from panaroo.__main__ import main
+# simple test to see if the refind alignment is returning the correct sequence forward/reverse
+from panaroo.find_missing import search_dna
 import sys
-import glob
-from Bio import SeqIO
-
+from Bio.Seq import translate, reverse_complement, Seq
 
 def test_aln(datafolder):
 
-    # run panaroo
-    sys.argv = ["", "-i", 
-        datafolder + "aln.gff", 
-        datafolder + "aln.gff", 
-        "-o", datafolder,
-        "-a", "pan"]
-    main()
+    # set up search
+    db_seq = ("CAGATCACCGGGTGCCCGGCCGCGCGCACCGCCTCCACCAGCGGCGGCAGGCGCTCGCCG" +
+        "ACCTTCTGCGCGCCCATCCGCGCGATCAGCGTCAGGCGCCCCGGCTCGCGGCGCGGGTCG" +
+        "AGGCGCTCGCAGAGCGCCAGCAACTGGTCGCGGCCGATCTCCGGACCGACCTTGCAGGCC" +
+        "ACCGGGTTGAGCACCTCGGCCAGCAGCGCCACATGGGCGCCGTCGACCTGGCGGGTGCGC" +
+        "TCGCCGATCCACGGCCAGTGGGTCGAACCGAGATAGACCCGGCGCTGCTCGTCCTCGCGC" +
+        "AGCATCGACAGCTCGTAGTCGAGCAGCAGCATCTCGTGGCTGGTCCAGACCGGCGAGGCA" +
+        "TTCGCCTCCTGCCCGGACGCGGCGTCCCAGCCCAGGTGGCGCATGATGTTGCGCGCCGCC" +
+        "GCGTAGCCCTTGAGGATCCGCTGCGGATCGGCCCGGCGCTGCTCGGCATGGGCCTCGCGG" +
+        "CCGTTGACCATGTCGCCGCGATAGACCGGCAGGGTCTGCTC")
 
-    # check alignments
-    fasta_files = glob.glob(datafolder + "aligned_gene_sequences/*.fas")
+    search_sequence = "CCGGCCGCGCGCACCGCCTCCACCAGCGGCGGCAG"
+    prop_match = 0.5
+    pairwise_id_thresh = 0.99
 
-    assert len(fasta_files)==9
+    # Test forward
 
-    for f in fasta_files:
-        assert len(list(SeqIO.parse(f, "fasta")))==2
+    seq, loc = search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh, False)
+
+    assert(search_sequence==seq)
+    assert(search_sequence==db_seq[loc[0]:loc[1]])
+
+    # Test reverse
+
+    search_sequence_rev = str(Seq(search_sequence).reverse_complement())
+
+    seq, loc = search_dna(db_seq, search_sequence_rev, prop_match, pairwise_id_thresh, False)
+
+    assert(search_sequence_rev==seq)
+    assert(search_sequence==db_seq[loc[0]:loc[1]])
+
+    # Test at ends
+
+    search_sequence = "TTTTCAGATCACCGGGTGC"
+
+    seq, loc = search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh, False)
+
+    assert("NNNNCAGATCACCGGGTGC"==seq)
+    assert("CAGATCACCGGGTGC"==db_seq[loc[0]:loc[1]])
 
     return

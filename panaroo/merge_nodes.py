@@ -40,6 +40,7 @@ def merge_nodes(G,
                    mergedDNA=(G.node[nodeA]['mergedDNA']
                               or G.node[nodeB]['mergedDNA']))
     else:
+        print("HEREREREERE!!!")
         # take node with most support as the 'consensus'
         if G.node[nodeA]['size'] < G.node[nodeB]['size']:
             nodeB, nodeA = nodeA, nodeB
