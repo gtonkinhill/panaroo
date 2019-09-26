@@ -1,4 +1,7 @@
 # panaroo
+
+[![Travis-CI Build Status](https://travis-ci.com/gtonkinhill/panaroo.svg?token=sFfw198f325BoK14Aor2&branch=master)](https://travis-ci.com/gtonkinhill/panaroo)
+
 An updated pipeline for pan-genome investigation
 
 <p align="center">
@@ -6,9 +9,13 @@ An updated pipeline for pan-genome investigation
 </p>
 
 ## Installation
+
+Prior to python installation [cd-hit](http://weizhongli-lab.org/cd-hit/) is the only external dependency that is required.
+
 ```
 python setup.py install
 ```
+
 Then run `panaroo` or `run_prokka`.
 
 If cloning the repository, instead use `python panaroo-runner.py` or `python prokka-runner.py`.
@@ -32,6 +39,7 @@ Optional:
 * clustal
 
 ## Basic usage
+
 To regenerate gene annotations from sequence assemblies using a consistent training model:
 
 ```

@@ -28,8 +28,7 @@ def load_graphs(graph_files, n_cpu=1):
             print("Missing:", graph_file)
             raise RuntimeError("Missing graph file!")
 
-    graphs = Parallel(n_jobs=n_cpu)(delayed(nx.read_gml)(graph_file)
-                                    for graph_file in tqdm(graph_files))
+    graphs = [nx.read_gml(graph_file) for graph_file in tqdm(graph_files)]
 
     return graphs
 
