@@ -487,8 +487,6 @@ def pwdist_edlib(G, cdhit_clusters, threshold, dna=False, n_cpu=1):
                 G.node[node]["protein"].split(";"), key=len).upper()
 
     # get pairwise id between sequences in the same cdhit clusters
-    distances_bwtn_centroids = defaultdict(lambda: 100)
-
     all_distances = []
     for cluster in cdhit_clusters:
         all_distances += Parallel(n_jobs=n_cpu)(

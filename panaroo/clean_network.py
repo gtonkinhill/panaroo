@@ -259,13 +259,11 @@ def collapse_paralogs(G, centroid_contexts, quiet=False):
     # contexts [centroid] = [[node, member, contig, context], ...]
     node_count = max(list(G.nodes())) + 10
 
-    print(len(centroid_contexts))
-
     # first sort by context length, context dist to ensure ties
     #  are broken the same way
     for centroid in centroid_contexts:
         centroid_contexts[centroid] = sorted(centroid_contexts[centroid], 
-            key=lambda x: (len(x[3]), np.mean(x[3])), reverse=True)
+            key=lambda x: np.mean(x[3]), reverse=True)
 
     for centroid in centroid_contexts:
         # calculate distance
@@ -274,8 +272,7 @@ def collapse_paralogs(G, centroid_contexts, quiet=False):
         for para in centroid_contexts[centroid]:
             member_paralogs[para[1]].append(para)
 
-        ref_paralogs = max(member_paralogs.items(), key=lambda x: (len(x[1]), np.sum([p[3] for p in x[1]])))[1]
-
+        ref_paralogs = max(member_paralogs.items(), key=lambda x: len(x[1]))[1]
         # for each paralog find its closest reference paralog
         cluster_dict = defaultdict(set)
         cluster_mems = defaultdict(set)
