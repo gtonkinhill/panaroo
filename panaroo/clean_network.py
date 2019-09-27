@@ -254,7 +254,7 @@ def collapse_families(G,
 
 
 
-def collapse_paralogs(G, centroid_contexts, max_context=100, quiet=False):
+def collapse_paralogs(G, centroid_contexts, max_context=500, quiet=False):
     
     # contexts [centroid] = [[node, member, contig, context], ...]
     node_count = max(list(G.nodes())) + 10
