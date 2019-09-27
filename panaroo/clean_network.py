@@ -254,7 +254,7 @@ def collapse_families(G,
 
 
 
-def collapse_paralogs(G, centroid_contexts, quiet=False):
+def collapse_paralogs(G, centroid_contexts, max_context=100, quiet=False):
     
     # contexts [centroid] = [[node, member, contig, context], ...]
     node_count = max(list(G.nodes())) + 10
@@ -262,8 +262,7 @@ def collapse_paralogs(G, centroid_contexts, quiet=False):
     # first sort by context length, context dist to ensure ties
     #  are broken the same way
     for centroid in centroid_contexts:
-        centroid_contexts[centroid] = sorted(centroid_contexts[centroid], 
-            key=lambda x: np.mean(x[3]), reverse=True)
+        centroid_contexts[centroid] = sorted(centroid_contexts[centroid])
 
     for centroid in centroid_contexts:
         # calculate distance
@@ -282,6 +281,7 @@ def collapse_paralogs(G, centroid_contexts, quiet=False):
 
         for para in centroid_contexts[centroid]:
             d_max = np.inf
+            s_max = -np.inf
             best_cluster = None
 
             if para[1]==ref_paralogs[0][1]:
@@ -307,10 +307,16 @@ def collapse_paralogs(G, centroid_contexts, quiet=False):
                     if para[1] in cluster_mems[c]:
                         #dont match paralogs of the same isolate
                         continue
-                    keep = (ref[3]!=0) & (para[3]!=0)
-                    d = np.sum(1-1/(1+np.abs(ref[3][keep] - para[3][keep])))
-                    if d<d_max:
-                        d_max = d
+                    nodes_ref = {G.node[key]['centroid'].split(";")[0]: val for 
+                        (key,val) in nx.single_source_shortest_path_length(G, ref[0], max_context).items()}
+                    nodes_para = {G.node[key]['centroid'].split(";")[0]: val for 
+                        (key,val) in nx.single_source_shortest_path_length(G, para[0], max_context).items()}
+                                        s = 0
+                    for nr in nodes_ref:
+                        if nr in nodes_para:
+                            s += 1/np.abs(nodes_ref[nr] - nodes_para[nr])
+                    if s>s_max:
+                        s_max = s
                         best_cluster = c
             
             cluster_dict[best_cluster].add(para[0])

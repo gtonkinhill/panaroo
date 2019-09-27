@@ -61,7 +61,6 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
     centroid_context = defaultdict(list)
     n_nodes = len(cluster_members)
     temp_nodes = []
-    current_context = None
     prev = None
 
     for i, id in enumerate(seq_ids):
@@ -69,18 +68,6 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
         loc = id.split("_")
         genome_id = loc[0]
         if loc[-1] == "0":
-
-            if current_context is not None:
-                for para, index in current_paralogs:
-                    context_array = lil_matrix((1, n_centroids), dtype=np.int8)
-                    for t in current_context:
-                        context_array[0,centroid_index[t[0]]] = abs(index-t[1])
-                    context_array = csc_matrix(context_array)
-                    centroid_context[para[0]].append([para[1], para[2], 
-                        para[3], context_array])
-            current_paralogs = []
-            current_context = [(cluster_centroids[current_cluster], int(loc[-1]))]
-            
             # we're at the start of a contig
             if prev is not None: G.node[prev]['hasEnd'] = True
             prev = current_cluster
@@ -99,8 +86,7 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                     n_nodes += 1
                     prev = n_nodes
                     temp_nodes.append(prev)
-                    current_paralogs.append([[cluster_centroids[current_cluster], 
-                        prev, genome_id, loc[1]], int(loc[2])])
+                    centroid_context[cluster_centroids[current_cluster]].append([prev, genome_id])
                 # add non paralog node
                 G.add_node(
                     prev,
@@ -121,15 +107,13 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                     paralog=(current_cluster in paralogs),
                     mergedDNA=False)
         else:
-            current_context.append((cluster_centroids[current_cluster], int(loc[-1])))
             is_paralog = current_cluster in paralogs
             if is_paralog:
                 # create a new paralog
                 n_nodes += 1
                 neighbour = n_nodes
                 temp_nodes.append(neighbour)
-                current_paralogs.append([[cluster_centroids[current_cluster], 
-                    neighbour, genome_id, loc[1]], int(loc[2])])
+                centroid_context[cluster_centroids[current_cluster]].append([neighbour, genome_id])
                 G.add_node(
                     neighbour,
                     size=1,
