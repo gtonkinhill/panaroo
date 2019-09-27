@@ -311,10 +311,10 @@ def collapse_paralogs(G, centroid_contexts, max_context=100, quiet=False):
                         (key,val) in nx.single_source_shortest_path_length(G, ref[0], max_context).items()}
                     nodes_para = {G.node[key]['centroid'].split(";")[0]: val for 
                         (key,val) in nx.single_source_shortest_path_length(G, para[0], max_context).items()}
-                                        s = 0
+                    s = 0
                     for nr in nodes_ref:
                         if nr in nodes_para:
-                            s += 1/np.abs(nodes_ref[nr] - nodes_para[nr])
+                            s += 1/(1+np.abs(nodes_ref[nr] - nodes_para[nr]))
                     if s>s_max:
                         s_max = s
                         best_cluster = c
