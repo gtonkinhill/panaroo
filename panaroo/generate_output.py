@@ -98,7 +98,7 @@ def generate_roary_gene_presence_absence(G, mems_to_isolates, orig_ids, output_d
         entry_sizes = sorted(entry_sizes, reverse=True)
         for s, i in entry_sizes:
             csv_outfile.write(",".join([str(e) for e in entry_list[i]]) + "\n")
-            Rtab_outfile.write(entry[0] + "\t")
+            Rtab_outfile.write(entry_list[i][0] + "\t")
             Rtab_outfile.write("\t".join(
                 (["0" if e == "" else "1" for e in pres_abs_list[i]])) + "\n")
 
