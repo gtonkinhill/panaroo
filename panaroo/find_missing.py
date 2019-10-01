@@ -43,7 +43,7 @@ def find_missing(G,
     merged_nodes = {}
     for node in G.nodes():
         if (len(G.node[node]['centroid'].split(";")) >
-                1) or ("mergedDNA" in G.node[node]):
+                1) or (G.node[node]['mergedDNA']):
             merged_nodes[node] = max(G.node[node]["dna"].split(";"), key=len)
 
     # iterate through nodes to identify accessory genes for searching
@@ -126,8 +126,9 @@ def find_missing(G,
             if np.sum(seq_coverage[contig_id][loc[0]:loc[1]]) >= (
                     0.5 * (max(G.node[node]['lengths']))):
                 if str(member) in G.node[node]['members']:
-                    G.node[node]['members'].remove(str(member))
-                    G.node[node]['size'] -= 1
+                    remove_member_from_node(G, node, member)
+                    # G.node[node]['members'].remove(str(member))
+                    # G.node[node]['size'] -= 1
                 bad_node_mem_pairs.append((node, member))
             else:
                 seq_coverage[contig_id][loc[0]:loc[1]] = True
@@ -303,12 +304,20 @@ def search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh, refind):
         aln = edlib.align(search_sequence,
                         db,
                         mode="HW",
-                        task='locations',
+                        task='path',
                         k=10 * len(search_sequence),
                         additionalEqualities=[('A', 'N'), ('C', 'N'),
                                                 ('G', 'N'), ('T', 'N'),
                                                 ('A', 'E'), ('C', 'E'),
                                                 ('G', 'E'), ('T', 'E'),])
+
+        # remove trailing inserts
+        cig = re.split(r'(\d+)', aln['cigar'])[1:]
+        if cig[-1]=="I":
+            aln['editDistance'] -= int(cig[-2])
+        if cig[1]=="I":
+            aln['editDistance'] -= int(cig[0])
+            
 
         if aln['editDistance'] == -1:
             start = -1
@@ -329,8 +338,8 @@ def search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh, refind):
 
         possible_dbs = [db]
         if db.find("NNNNNNNNNNNNNNNNNNNN")!=-1:
-            possible_dbs += [re.sub("^[ACGT]{0,}NNNNNNNNNNNNNNNNNNNN", repl, db, 1),
-                re.sub("NNNNNNNNNNNNNNNNNNNN[ACGT]{0,}$", repl, db, 1)]
+            possible_dbs += [re.sub("^[ACGTEX]{0,}NNNNNNNNNNNNNNNNNNNN", repl, db, 1),
+                re.sub("NNNNNNNNNNNNNNNNNNNN[ACGTEX]{0,}$", repl, db, 1)]
 
         for posdb in possible_dbs:
             # skip if alignment is too short
@@ -345,13 +354,8 @@ def search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh, refind):
                 posdb[start:end].count("T"))/ len(search_sequence) <= prop_match: continue
 
             # determine an approximate percentage identity
-            if (start == 0) or (end == len(posdb)):
-                pid = 1.0 - max(0.0,
-                                (aln['editDistance'] - n_X -
-                                (len(search_sequence) - aln_length))) / aln_length
-            else:
-                pid = 1.0 - (aln['editDistance'] - n_X) / (1.0 *
-                                                        aln_length)
+            pid = 1.0 - (aln['editDistance'] - n_X) / (1.0 *
+                                                    aln_length)
 
             # skip if identity below threshold
             if pid <= pairwise_id_thresh: continue
@@ -367,8 +371,8 @@ def search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh, refind):
                     loc = [start, end]
                 else:
                     loc = [
-                        len(posdb) - tloc[0] - 1,
-                        len(posdb) - tloc[1]
+                        len(posdb) - tloc[1] - 1,
+                        len(posdb) - tloc[0]
                     ]
                 loc = [max(0, min(loc)-added_E_len), min(max(loc)-added_E_len, len(db_seq))]
 
@@ -376,8 +380,9 @@ def search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh, refind):
     #     print(found_dna)
     #     print(loc)
     #     print("<<<<<<<<<<<<<<<<<<")
+    seq = found_dna.replace('X', 'N').replace('E','N')
 
-    return found_dna.replace('X', 'N').replace('E','N'), loc
+    return seq, loc
 
 
 def translate_to_match(hit, target_prot):

@@ -90,7 +90,8 @@ def simulate_img_with_mutation(in_tree,
                                loss_rate,
                                mutation_rate,
                                ngenes=100,
-                               min_ncore=10):
+                               min_ncore=10,
+                               max_ncore=99999999):
     # simulate accessory p/a using infintely many genes model
     n_additions = 0
     for node in in_tree.preorder_node_iter():
@@ -123,6 +124,8 @@ def simulate_img_with_mutation(in_tree,
     ncore = ngenes - n_additions
     if ncore < min_ncore:
         ncore = min_ncore
+    if ncore>max_ncore:
+        ncore=max_ncore
 
     core_genes = list(range(n_additions, n_additions + ncore))
     for node in in_tree.preorder_node_iter():
@@ -153,19 +156,22 @@ def simulate_img_with_mutation(in_tree,
 
 
 def simulate_pangenome(ngenes, nisolates, effective_pop_size, gain_rate,
-                       loss_rate, mutation_rate):
+                       loss_rate, mutation_rate, max_core):
 
     # simulate a phylogeny using the coalscent
     sim_tree = treesim.pure_kingman_tree(taxon_namespace=TaxonNamespace(
         [str(i) for i in range(1, 1 + nisolates)]),
                                          pop_size=effective_pop_size)
 
+    basic_tree = copy.deepcopy(sim_tree)
+
     # simulate gene p/a and mutation
     sim_tree = simulate_img_with_mutation(sim_tree,
                                           gain_rate=gain_rate,
                                           loss_rate=loss_rate,
                                           mutation_rate=mutation_rate,
-                                          ngenes=ngenes)
+                                          ngenes=ngenes,
+                                          max_ncore=max_core)
 
     # get genes and mutations for each isolate
     gene_mutations = []
@@ -173,11 +179,11 @@ def simulate_pangenome(ngenes, nisolates, effective_pop_size, gain_rate,
         gene_mutations.append([[g, leaf.gene_mutations[g]]
                                for g in leaf.acc_genes])
 
-    return (gene_mutations)
+    return (gene_mutations, basic_tree)
 
 
 def add_diversity(gfffile, nisolates, effective_pop_size, gain_rate, loss_rate,
-                  mutation_rate, n_sim_genes, prefix):
+                  mutation_rate, n_sim_genes, prefix, max_core):
 
     with open(gfffile, 'r') as infile:
         lines = infile.read()
@@ -230,12 +236,18 @@ def add_diversity(gfffile, nisolates, effective_pop_size, gain_rate, loss_rate,
     gene_locations = sample(gene_locations, n_sim_genes)
 
     # simulate presence/absence matrix and gene mutations (only swap codons)
-    pan_sim = simulate_pangenome(ngenes=len(gene_locations),
+    pan_sim, sim_tree = simulate_pangenome(ngenes=len(gene_locations),
                                  nisolates=nisolates,
                                  effective_pop_size=effective_pop_size,
                                  gain_rate=gain_rate,
                                  loss_rate=loss_rate,
-                                 mutation_rate=mutation_rate)
+                                 mutation_rate=mutation_rate,
+                                 max_core=max_core)
+
+    # write out tree
+    sim_tree.write(
+        path=prefix + "_sim_tree.nwk",
+        schema="newick")
 
     #Modify each gene
     for i, pan in enumerate(pan_sim):
@@ -387,6 +399,16 @@ def main():
         help=('max number of genes that may be ' +
               'affected by the simulation. The rest' + ' will be left as is.'))
 
+    parser.add_argument(
+        '--max_core',
+        dest='max_core',
+        type=int,
+        default=99999999    ,
+        help=('max number of core genes' +
+            'default=n_sim-accessory'))
+
+    
+
     parser.add_argument('-o',
                         '--out',
                         dest='output_dir',
@@ -414,7 +436,8 @@ def main():
                   loss_rate=args.loss_rate,
                   mutation_rate=args.mutation_rate,
                   n_sim_genes=args.n_sim_genes,
-                  prefix=prefix)
+                  prefix=prefix,
+                  max_core=args.max_core)
 
     return
 

@@ -1,4 +1,4 @@
-import os
+import os, sys
 import tempfile
 from Bio import SeqIO
 import shutil
@@ -18,7 +18,7 @@ from .find_missing import find_missing
 from .__init__ import __version__
 
 
-def get_options():
+def get_options(args):
     import argparse
 
     description = 'panaroo: an updated pipeline for pan-genome investigation'
@@ -144,6 +144,7 @@ def get_options():
         help=("Output alignments of core genes or all genes. Options are" +
               " 'core' and 'pan'. Default: 'None'"),
         type=str,
+        choices=['core', 'pan'],
         default=None)
     core.add_argument(
         "--aligner",
@@ -151,6 +152,7 @@ def get_options():
         help=
         "Specify an aligner. Options:'prank', 'clustal', and default: 'mafft'",
         type=str,
+        choices=['prank', 'clustal', 'mafft'],
         default="mafft")
     core.add_argument("--core_threshold",
                       dest="core",
@@ -174,13 +176,13 @@ def get_options():
                         action='version',
                         version='%(prog)s ' + __version__)
 
-    args = parser.parse_args()
+    args = parser.parse_args(args)
     args = set_default_args(args)
     return (args)
 
 
 def main():
-    args = get_options()
+    args = get_options(sys.argv[1:])
     # Check cd-hit is installed
     check_cdhit_version()
     # make sure trailing forward slash is present
@@ -305,8 +307,17 @@ def main():
         mems_to_isolates[str(i)] = iso
 
     # write out roary like gene_presence_absence.csv
+    # get original annotaiton IDs
+    orig_ids = {}
+    with open(args.output_dir + "gene_data.csv", 'r') as infile:
+        next(infile)
+        for line in infile:
+            line=line.split(",")
+            orig_ids[line[2]] = line[3]
+
     G = generate_roary_gene_presence_absence(G,
                                              mems_to_isolates=mems_to_isolates,
+                                             orig_ids=orig_ids,
                                              output_dir=args.output_dir)
 
     # add helpful attributes and write out graph in GML format

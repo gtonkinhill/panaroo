@@ -1,1 +1,1 @@
-# Estimating the pan-genome size
+# Estimating the Pangenome Size

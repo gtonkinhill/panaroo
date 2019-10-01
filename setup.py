@@ -38,7 +38,7 @@ setup(
     url="https://github.com/gtonkinhill/panaroo",
     install_requires=[
         'networkx>=2.0', 'gffutils', 'BioPython', 'joblib', 'tqdm', 'edlib',
-        'scipy', 'numpy'
+        'scipy', 'numpy', 'matplotlib', 'sklearn', 'plotly'
     ],
     python_requires='>=3.6.0',
     packages=['panaroo'],
@@ -54,7 +54,10 @@ setup(
     entry_points={
         'console_scripts': [
             'panaroo = panaroo.__main__:main',
-            'run_prokka = panaroo.run_prokka:main'
+            'run_prokka = panaroo.run_prokka:main',
+            'panaroo-qc = panaroo.generate_qc_plots:main',
+            'panaroo-merge = panaroo.merge_graphs:main',
+            'panaroo-plot-abundance = panaroo.generate_abundance_plots:main'
         ],
     },
 )

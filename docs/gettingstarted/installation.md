@@ -29,6 +29,7 @@ Required:
 * numpy
 * networkx
 * gffutils
+* edlib
 * joblib
 * tdqm
 * cd-hit

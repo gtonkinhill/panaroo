@@ -14,7 +14,7 @@ from tqdm import tqdm
 from panaroo.generate_alignments import *
 
 
-def generate_roary_gene_presence_absence(G, mems_to_isolates, output_dir):
+def generate_roary_gene_presence_absence(G, mems_to_isolates, orig_ids, output_dir):
 
     # arange isolates
     isolates = []
@@ -77,8 +77,17 @@ def generate_roary_gene_presence_absence(G, mems_to_isolates, output_dir):
                 for seq in G.node[node]['seqIDs']:
                     sample_id = mems_to_index["_".join(seq.split("_")[:-2])]
                     if pres_abs[sample_id]=="": #ensures we only take the first one
-                        pres_abs[sample_id] = seq
+                        if seq in orig_ids:
+                            pres_abs[sample_id] = orig_ids[seq]
+                        else:
+                            pres_abs[sample_id] = seq
                         entry_size += 1
+                    else:
+                        #this is similar to PIRATE output
+                        if seq in orig_ids:
+                            pres_abs[sample_id] += ";" + orig_ids[seq] 
+                        else:
+                            pres_abs[sample_id] += ";" + seq 
                 entry += pres_abs
                 entry_list.append(entry)
                 pres_abs_list.append(pres_abs)
@@ -89,7 +98,7 @@ def generate_roary_gene_presence_absence(G, mems_to_isolates, output_dir):
         entry_sizes = sorted(entry_sizes, reverse=True)
         for s, i in entry_sizes:
             csv_outfile.write(",".join([str(e) for e in entry_list[i]]) + "\n")
-            Rtab_outfile.write(entry[0] + "\t")
+            Rtab_outfile.write(entry_list[i][0] + "\t")
             Rtab_outfile.write("\t".join(
                 (["0" if e == "" else "1" for e in pres_abs_list[i]])) + "\n")
 

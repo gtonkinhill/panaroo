@@ -1,7 +1,6 @@
 import numpy as np
 
 import matplotlib
-matplotlib.use("TkAgg")
 from matplotlib import pyplot as plt
 
 import os
@@ -11,13 +10,11 @@ from .__init__ import __version__
 
 
 def read_presence_absence(filename):
-    print("Here1")
     # load matrix into binary array
     matrix_txt = np.loadtxt(filename, dtype=str, delimiter=",", comments=None)
     sample_names = matrix_txt[0, 15:]
     gene_names = matrix_txt[0, 1:]
     pa_matrix = matrix_txt[1:, 15:] != ""
-    print("Here2")
     return (pa_matrix, gene_names, sample_names)
 
 

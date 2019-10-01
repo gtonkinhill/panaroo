@@ -1,14 +1,12 @@
 import matplotlib
-matplotlib.use("TkAgg")
 from matplotlib import pyplot as plt
 import subprocess
 import tempfile
-import os
+import os, sys
 from joblib import Parallel, delayed
 import numpy as np
 from sklearn import manifold
 from collections import Counter
-import plotly.plotly as py
 import plotly.graph_objs as go
 import plotly.offline as offline
 from plotly import tools
@@ -344,7 +342,7 @@ def generate_qc_plot(method, input_files, outdir, n_cpu, ref_db=None):
     return
 
 
-def get_options():
+def get_options(args):
     import argparse
 
     description = 'Generate quality control plots prior to a Panaroo run'
@@ -376,7 +374,7 @@ def get_options():
                         default=1)
     parser.add_argument("--graph_type",
                         dest="graph_type",
-                        help="the type of graph to generate",
+                        help="the type of graph to generate (default='all')",
                         choices={'all', 'mds', 'ngenes', 'ncontigs', 'contam'},
                         default="all")
     parser.add_argument(
@@ -387,12 +385,12 @@ def get_options():
                         action='version',
                         version='%(prog)s ' + __version__)
 
-    args = parser.parse_args()
+    args = parser.parse_args(args)
     return (args)
 
 
 def main():
-    args = get_options()
+    args = get_options(sys.argv[1:])
 
     # make sure trailing forward slash is present
     args.output_dir = os.path.join(args.output_dir, "")
