@@ -30,7 +30,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 setup(
     name="panaroo",
     version=find_version("panaroo/__init__.py"),
-    author="Gerry Tonkin-Hill, Neil MacAlistair and Chris Ruis",
+    author="Gerry Tonkin-Hill, Neil MacAlistair, Chris Ruis and Aaron Weimann",
     author_email="g.tonkinhill@gmail.com",
     description="A pan-genome analysis pipeline",
     long_description=long_description,
@@ -58,6 +58,7 @@ setup(
             'panaroo-qc = panaroo.generate_qc_plots:main',
             'panaroo-merge = panaroo.merge_graphs:main',
             'panaroo-plot-abundance = panaroo.generate_abundance_plots:main'
+            'panaroo-spydrpick = panaroo.spydrpick:main'
         ],
     },
 )
