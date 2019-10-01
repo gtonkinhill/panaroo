@@ -17,19 +17,14 @@ def add_to_queue(g, s, nodes, visited, sink, mapping, ref_g_id, max_dist):
     for i in nodes:
         if i in visited:
             continue
-        #if "101_0_" not in g.nodes[i]['attr_dict']['geneIDs']: #DCC 1/2
-        #if "1419_0_" not in g.nodes[i]['attr_dict']['geneIDs']: # K3
-        #if "5_0_" not in g.nodes[i]['attr_dict']['geneIDs']: #tb relatives
-        if "%s_0_" % ref_g_id not in g.nodes[i]['geneIDs'] and i not in visited:
+        if ref_g_id not in g.nodes[i]['genomeIDs'].split(";") and i not in visited:
             add.append(i)
         else:
-            #print(g.nodes[s]['attr_dict']['name'],g.nodes[i]['attr_dict']['name'] )
+            print(g.nodes[i]['geneIDs'], g.nodes[s]['geneIDs'])
             dist = get_dist(mapping.loc[g.nodes[s]['name'], "gene_id"],
                             mapping.loc[g.nodes[i]['name'], "gene_id"],
                             max_dist)
-            #if sink["sink"] is not None:
             if dist > 100:
-                #print("distance is", dist)
                 sink["sink"] = i
         visited.add(i)
     return add
@@ -42,20 +37,14 @@ def create_mapping(g, ref_g_id):
         gene_ids = [(i.split("_")[0], i)
                     for i in g.nodes[n]['geneIDs'].split(";")]
         gene_ids = list(filter(lambda x: ref_g_id == x[0], gene_ids))
-        #g.nodes[n]['attr_dict']['name'], g.nodes[n]['attr_dict']['id']) for n in list(g)])
-        #e = re.compile("1419_0_[0-9]*") #DCC1/2
-        #e = re.compile("101_0_[0-9]*")
-        #e = re.compile("5_0_[0-9]*")
-        #e = re.compile("%s_0_[0-9]*" % ref_g_id)
-        #m = e.search(gene_ids)
-        #if m:
-        #    gene_dict[g.nodes[n]['name']] =  m.group()
         if len(gene_ids) != 0:
             gene_dict[g.nodes[n]['name']] = gene_ids[0][1]
+        elif len(gene_ids) > 1:
+            sys.exit("a problem occurred with node")
     mapping = pd.DataFrame.from_dict(gene_dict, orient='index')
     mapping.columns = ["gene_id"]
     #we dont want to include refound genes in this step TODO also consider in add reference edges step
-    mapping = mapping.loc[~mapping.loc[:, "gene_id"].str.contains("refound"), ]
+    #mapping = mapping.loc[~mapping.loc[:, "gene_id"].str.contains("refound"), ]
     return mapping
 
 
@@ -76,8 +65,7 @@ def add_ref_edges(g, mapping):
 
 def remove_var_edges(g):
     for n in g:
-        if g.nodes[n]["highVar"] == 1 and "%s_0_" % ref_g_id not in g.nodes[n][
-                'geneIDs']:
+        if g.nodes[n]["highVar"] == 1 and ref_g_id not in g.nodes[n]['genomeIDs'].split(";") :
             var_nodes.append(n)
     var_nodes = []
     g.remove_nodes_from(var_nodes)
@@ -89,8 +77,9 @@ def layout(graph, ref_g_id, cut_edges_out, ignore_high_var,
     g = nx.read_gml(graph)
     #look up table for name vs node id
     mapping = create_mapping(g, ref_g_id)
+    print(mapping)
     gene_order = [
-        int(mapping.loc[n, "gene_id"].split("_")[2]) for n in mapping.index
+        int(mapping.loc[n, "gene_id"].split("_") [2]) for n in mapping.index
     ]
     max_dist = max(gene_order)
     if ignore_high_var:
@@ -143,8 +132,8 @@ def layout(graph, ref_g_id, cut_edges_out, ignore_high_var,
             #the induced graph could contain reference edges which need to be removed
             remove = []
             for e in s_t_graph.edges:
-                if "%s_0_" % ref_g_id in g.nodes[e[0]]['geneIDs'] \
-                and "%s_0_" % ref_g_id in g.nodes[e[1]]['geneIDs']:
+                if ref_g_id in g.nodes[e[0]]['genomeIDs'].split(";") \
+                and ref_g_id in g.nodes[e[1]]['genomeIDs'].split(";"):
                     n1 = mapping.loc[g.nodes[e[0]]["name"]][0]
                     n2 = mapping.loc[g.nodes[e[1]]["name"]][0]
                     if abs(int(n1.split("_")[2]) -
