@@ -140,19 +140,24 @@ def run_cog_soft(outdir, genomeids, verbose=True):
             outfile.write(genomeids[i] + "," + genomeids[np.argmin(hit_counts[i,:])] + "\n")
 
     # now identify lineage specific expansions
+    cur_dir = os.getcwd()
+    os.chdir(outdir)
+
     cmd = "COGlse" 
-    cmd += " -d=" + outdir + "BLASTconv"
-    cmd += " -j=" + outdir + "GenThree.job.csv"
-    cmd += " -p=" + outdir + "genome_to_protein.csv"
-    cmd += " -o=" + outdir + "GenThree.lse.csv"
-    
-    if not os.path.exists(outdir + "data"):
-        os.mkdir(outdir + "data")
-    if not os.path.exists(outdir + "data/tmp"):
-        os.mkdir(outdir + "data/tmp")
+    cmd += " -d=" + "BLASTconv"
+    cmd += " -j=" + "GenThree.job.csv"
+    cmd += " -p=" + "genome_to_protein.csv"
+    cmd += " -o=" + "GenThree.lse.csv"
+
+    if not os.path.exists("data"):
+        os.mkdir("data")
+    if not os.path.exists("data/tmp"):
+        os.mkdir("data/tmp")
     if verbose:
         print("running cmd: ", cmd)
     subprocess.run(cmd, shell=True, check=True)
+
+    os.chdir(cur_dir)
 
     # Making clusters from symmetrical best hits
     cmd = "COGtriangles"
