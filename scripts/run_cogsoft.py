@@ -144,7 +144,7 @@ def run_cog_soft(outdir, genomeids, verbose=True):
     cmd += " -d=" + outdir + "BLASTconv"
     cmd += " -j=" + outdir + "GenThree.job.csv"
     cmd += " -p=" + outdir + "genome_to_protein.csv"
-    cmd += " -o=GenThree.lse.csv"
+    cmd += " -o=" + outdir + "GenThree.lse.csv"
     
     if not os.path.exists(outdir + "data"):
         os.mkdir(outdir + "data")
