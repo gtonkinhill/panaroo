@@ -38,7 +38,7 @@ setup(
     url="https://github.com/gtonkinhill/panaroo",
     install_requires=[
         'networkx>=2.0', 'gffutils', 'BioPython', 'joblib', 'tqdm', 'edlib',
-        'scipy', 'numpy', 'matplotlib', 'sklearn', 'plotly'
+        'scipy', 'numpy', 'matplotlib', 'sklearn', 'plotly', 'dendropy'
     ],
     python_requires='>=3.6.0',
     packages=['panaroo'],
