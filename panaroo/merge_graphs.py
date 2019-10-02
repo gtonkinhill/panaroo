@@ -134,7 +134,7 @@ def simple_merge_graphs(graphs, clusters):
                 for m in make_list(graphs[prev[0]].node[prev[1]]['members'])
             ]
             lengths += make_list(graphs[prev[0]].node[prev[1]]['lengths'])
-            centroid += ";".join([
+            centroid += ";" + ";".join([
                 str(prev[0]) + "_" + str(m)
                 for m in make_list(graphs[prev[0]].node[prev[1]]['centroid'].split(";"))
             ])

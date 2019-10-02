@@ -57,7 +57,7 @@ setup(
             'run_prokka = panaroo.run_prokka:main',
             'panaroo-qc = panaroo.generate_qc_plots:main',
             'panaroo-merge = panaroo.merge_graphs:main',
-            'panaroo-plot-abundance = panaroo.generate_abundance_plots:main'
+            'panaroo-plot-abundance = panaroo.generate_abundance_plots:main',
             'panaroo-spydrpick = panaroo.spydrpick:main'
         ],
     },
