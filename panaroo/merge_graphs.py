@@ -118,12 +118,12 @@ def simple_merge_graphs(graphs, clusters):
         size = 0
         members = []
         lengths = []
-        centroid = ""
+        centroid = []
         seqIDs = []
-        protein = ""
-        dna = ""
-        annotation = ""
-        description = ""
+        protein = []
+        dna = []
+        annotation = []
+        description = []
         paralog = False
         hasEnd = False
 
@@ -134,31 +134,33 @@ def simple_merge_graphs(graphs, clusters):
                 for m in make_list(graphs[prev[0]].node[prev[1]]['members'])
             ]
             lengths += make_list(graphs[prev[0]].node[prev[1]]['lengths'])
-            centroid += ";" + ";".join([
+            centroid +=  [
                 str(prev[0]) + "_" + str(m)
                 for m in make_list(graphs[prev[0]].node[prev[1]]['centroid'].split(";"))
-            ])
+            ]
             seqIDs += [
                 str(prev[0]) + "_" + d
                 for d in make_list(graphs[prev[0]].node[prev[1]]['seqIDs'])
             ]
-            protein += ";" + graphs[prev[0]].node[prev[1]]['protein']
-            dna += ";" + graphs[prev[0]].node[prev[1]]['dna']
-            annotation += ";" + graphs[prev[0]].node[prev[1]]['annotation']
-            description += ";" + graphs[prev[0]].node[prev[1]]['description']
+            protein += make_list(graphs[prev[0]].node[prev[1]]['protein'])
+            dna += make_list(graphs[prev[0]].node[prev[1]]['dna'])
+            annotation += make_list(graphs[prev[0]].node[prev[1]]['annotation'])
+            description += make_list(graphs[prev[0]].node[prev[1]]['description'])
             paralog = (paralog or graphs[prev[0]].node[prev[1]]['paralog'])
             hasEnd = (paralog or graphs[prev[0]].node[prev[1]]['hasEnd'])
 
         merged_G.node[node]['size'] = size                
         merged_G.node[node]['members'] = members
         merged_G.node[node]['lengths'] = lengths
-        merged_G.node[node]['centroid'] = centroid
+        merged_G.node[node]['centroid'] = ";".join(centroid)
         merged_G.node[node]['seqIDs'] = seqIDs
         merged_G.node[node]['hasEnd'] = hasEnd
-        merged_G.node[node]['protein'] = protein
-        merged_G.node[node]['annotation'] = annotation
-        merged_G.node[node]['description'] = description
+        merged_G.node[node]['dna'] = ";".join(dna)
+        merged_G.node[node]['protein'] = ";".join(protein)
+        merged_G.node[node]['annotation'] = ";".join(annotation)
+        merged_G.node[node]['description'] = ";".join(description)
         merged_G.node[node]['paralog'] = paralog
+        
 
     # fix up edge attributes
     for edge in merged_G.edges():
@@ -274,6 +276,8 @@ def main():
     print("Performing inital merge...")
     G = simple_merge_graphs(graphs, clusters)
 
+    print("Number of nodes in merged graph: ", G.number_of_nodes())
+
     # collapse gene families/paralogs at successively lower thresholds
     print("Collapsing families...")
     for thresh in [0.99, args.family_threshold]:
@@ -283,6 +287,8 @@ def main():
                               correct_mistranslations=False,
                               n_cpu=args.n_cpu,
                               quiet=(not args.verbose))
+
+    print("Number of nodes in merged graph: ", G.number_of_nodes())
 
     # Generate output
     print("Generating output...")

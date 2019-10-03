@@ -29,7 +29,7 @@ def trim_low_support_trailing_ends(G, min_support=3, max_recursive=2):
 
     return G
 
-
+# @profile
 def collapse_families(G,
                       outdir,
                       family_threshold=0.7,
@@ -116,6 +116,7 @@ def collapse_families(G,
                     csgraph=distances_bwtn_centroids[index][:, index],
                     directed=False,
                     return_labels=True)
+                # labels = labels[index]
                 clusters = [
                     list(neigh_array[labels == i]) for i in np.unique(labels)
                 ]
