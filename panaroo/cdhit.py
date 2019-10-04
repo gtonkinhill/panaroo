@@ -478,14 +478,6 @@ def pwdist_edlib(G, cdhit_clusters, threshold, dna=False, n_cpu=1):
             centroid_to_index[centroids[0]] = node_index
             node_index += 1
 
-    # for node in G.nodes():
-    #     centroid = G.node[node]["centroid"].split(";")[0]
-    #     node_to_centroid[node] = centroid
-    #     if centroid not in centroid_to_index:
-    #         centroid_to_index[centroid] = node_index
-    #         node_index += 1
-
-
     # Prepare sequences
     seqs = {}
     for node in G.nodes():

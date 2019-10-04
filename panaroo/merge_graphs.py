@@ -12,7 +12,7 @@ import math
 from .isvalid import *
 from .__init__ import __version__
 from .cdhit import run_cdhit
-from .clean_network import collapse_families
+from .clean_network import collapse_families, collapse_paralogs
 from .generate_output import *
 
 def make_list(inp):
@@ -89,7 +89,14 @@ def simple_merge_graphs(graphs, clusters):
     mapping = defaultdict(dict)
     nnodes = 0
     reverse_mapping = defaultdict(list)
-    for cluster in clusters:
+    # centroid_contexts = defaultdict(list)
+
+    # centroid_context[cluster_centroids[current_cluster]].append([prev, genome_id])
+
+    merge_centroids = {}
+    centroid_context = defaultdict(list)
+    for c, cluster in enumerate(clusters):
+        c = str(c)
         nnodes += 1
         graph_clust_count = Counter()
         for n in cluster:
@@ -100,10 +107,13 @@ def simple_merge_graphs(graphs, clusters):
         conflicting_nodes = [n for n in cluster if graph_clust_count[n[0]] > 1]
         for n in non_conflicting_nodes:
             mapping[n[0]][n[1]] = nnodes
+            merge_centroids[nnodes] = c
             reverse_mapping[nnodes].append((n[0], nnodes))
         for n in conflicting_nodes:
             nnodes += 1
             mapping[n[0]][n[1]] = nnodes
+            merge_centroids[nnodes] = c
+            centroid_context[c].append([nnodes, n[0]])
             reverse_mapping[nnodes].append((n[0], nnodes))
 
     # rename
@@ -126,6 +136,7 @@ def simple_merge_graphs(graphs, clusters):
         description = []
         paralog = False
         hasEnd = False
+        mergedDNA = False
 
         for prev in reverse_mapping[node]:
             size += graphs[prev[0]].node[prev[1]]['size']
@@ -148,11 +159,12 @@ def simple_merge_graphs(graphs, clusters):
             description += make_list(graphs[prev[0]].node[prev[1]]['description'])
             paralog = (paralog or graphs[prev[0]].node[prev[1]]['paralog'])
             hasEnd = (paralog or graphs[prev[0]].node[prev[1]]['hasEnd'])
+            mergedDNA = (paralog or graphs[prev[0]].node[prev[1]]['mergedDNA'])
 
         merged_G.node[node]['size'] = size                
         merged_G.node[node]['members'] = members
         merged_G.node[node]['lengths'] = lengths
-        merged_G.node[node]['centroid'] = ";".join(centroid)
+        merged_G.node[node]['prevCentroids'] = ";".join(centroid)
         merged_G.node[node]['seqIDs'] = seqIDs
         merged_G.node[node]['hasEnd'] = hasEnd
         merged_G.node[node]['dna'] = ";".join(dna)
@@ -160,6 +172,8 @@ def simple_merge_graphs(graphs, clusters):
         merged_G.node[node]['annotation'] = ";".join(annotation)
         merged_G.node[node]['description'] = ";".join(description)
         merged_G.node[node]['paralog'] = paralog
+        merged_G.node[node]['mergedDNA'] = mergedDNA
+        merged_G.node[node]['centroid'] = merge_centroids[node]
         
 
     # fix up edge attributes
@@ -177,7 +191,7 @@ def simple_merge_graphs(graphs, clusters):
                                 prev1[0]][prev1[1]][prev2[1]]['members']
                         ]
 
-    return merged_G
+    return merged_G, centroid_context
 
 
 def get_options():
@@ -274,19 +288,29 @@ def main():
 
     # perform initial merge
     print("Performing inital merge...")
-    G = simple_merge_graphs(graphs, clusters)
+    G, centroid_contexts = simple_merge_graphs(graphs, clusters)
 
     print("Number of nodes in merged graph: ", G.number_of_nodes())
 
     # collapse gene families/paralogs at successively lower thresholds
     print("Collapsing families...")
-    for thresh in [0.99, args.family_threshold]:
-        G = collapse_families(G,
-                              outdir=temp_dir,
-                              family_threshold=thresh,
-                              correct_mistranslations=False,
-                              n_cpu=args.n_cpu,
-                              quiet=(not args.verbose))
+    G = collapse_paralogs(G, centroid_contexts)
+
+    G = collapse_families(G,
+                          outdir=temp_dir,
+                          dna_error_threshold=0.99,
+                          correct_mistranslations=True,
+                          n_cpu=args.n_cpu,
+                          quiet=(not args.verbose))
+
+
+    # for thresh in [0.99, args.family_threshold]:
+    G = collapse_families(G,
+                        outdir=temp_dir,
+                        family_threshold=args.family_threshold,
+                        correct_mistranslations=False,
+                        n_cpu=args.n_cpu,
+                        quiet=(not args.verbose))
 
     print("Number of nodes in merged graph: ", G.number_of_nodes())
 
@@ -320,6 +344,8 @@ def main():
         G.node[node]['size'] = len(set(G.node[node]['members']))
         G.node[node]['genomeIDs'] = ";".join(conv_list(
             G.node[node]['members']))
+        G.node[node]['centroid'] = G.node[node]['prevCentroids']
+        del G.node[node]['prevCentroids']
         G.node[node]['geneIDs'] = ";".join(conv_list(G.node[node]['seqIDs']))
         G.node[node]['degrees'] = G.degree[node]
         sub_graphs = list(

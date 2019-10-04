@@ -39,6 +39,10 @@ def merge_nodes(G,
                             or G.node[nodeB]['paralog']),
                    mergedDNA=(G.node[nodeA]['mergedDNA']
                               or G.node[nodeB]['mergedDNA']))
+        if "prevCentroids" in G.node[nodeA]:
+            G.node[newNode]['prevCentroids'] = ";".join(
+                       set(G.node[nodeA]['prevCentroids'].split(";") +
+                           G.node[nodeB]['prevCentroids'].split(";")))
     else:
         # take node with most support as the 'consensus'
         if G.node[nodeA]['size'] < G.node[nodeB]['size']:
@@ -59,6 +63,10 @@ def merge_nodes(G,
                             or G.node[nodeB]['paralog']),
                    lengths=G.node[nodeA]['lengths'] + G.node[nodeB]['lengths'],
                    mergedDNA=True)
+        if "prevCentroids" in G.node[nodeA]:
+            G.node[newNode]['prevCentroids'] = ";".join(
+                       set(G.node[nodeA]['prevCentroids'].split(";") +
+                           G.node[nodeB]['prevCentroids'].split(";")))
 
     # Now iterate through neighbours of each node and add them to the new node
     neigboursB = list(G.neighbors(nodeB))
