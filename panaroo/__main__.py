@@ -229,13 +229,6 @@ def main():
             conv_list(G.edges[edge[0], edge[1]]['members']))
     nx.write_gml(G, args.output_dir + "pre_filt_graph.gml")
 
-    if args.verbose:
-        print("triming contig ends...")
-
-    # remove low support trailing ends
-    G = trim_low_support_trailing_ends(G,
-                                       min_support=args.min_trailing_support,
-                                       max_recursive=args.trailing_recursive)
 
     if args.verbose:
         print("collapse mistranslations...")
@@ -258,6 +251,9 @@ def main():
                           correct_mistranslations=False,
                           n_cpu=args.n_cpu,
                           quiet=(not args.verbose))
+
+    if args.verbose:
+        print("triming contig ends...")
 
     # re-trim low support trailing ends
     G = trim_low_support_trailing_ends(G,

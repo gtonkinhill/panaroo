@@ -21,7 +21,7 @@ def test_messy(datafolder):
         pa = np.genfromtxt(tmpoutdir + "/gene_presence_absence.Rtab",
             delimiter="\t", skip_header=1)
 
-        assert pa.shape == (5108, 5)
-        assert np.sum(pa[:,1:])==20421
+        assert pa.shape == (5110, 5)
+        assert np.sum(pa[:,1:])==20425
 
     return
