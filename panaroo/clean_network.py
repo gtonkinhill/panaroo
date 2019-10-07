@@ -7,7 +7,7 @@ from itertools import chain, combinations
 import numpy as np
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import connected_components
-
+from tqdm import tqdm
 
 # Genes at the end of contigs are more likely to be false positives thus
 # we can remove those with low support
@@ -264,7 +264,7 @@ def collapse_paralogs(G, centroid_contexts, max_context=100, quiet=False):
     for centroid in centroid_contexts:
         centroid_contexts[centroid] = sorted(centroid_contexts[centroid])
 
-    for centroid in centroid_contexts:
+    for centroid in tqdm(centroid_contexts):
         # calculate distance
         # d = 1 - 1/(abs(contextA-contextB))
         member_paralogs = defaultdict(list)

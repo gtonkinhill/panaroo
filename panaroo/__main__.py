@@ -215,6 +215,8 @@ def main():
                          all_dna=args.all_seq_in_graph)
 
     # merge paralogs
+    if args.verbose:
+        print("Processing paralogs...")
     G = collapse_paralogs(G, centroid_contexts)
 
     # write out pre-filter graph in GML format
