@@ -1,7 +1,7 @@
 import networkx as nx
 from panaroo.cdhit import *
 from panaroo.merge_nodes import merge_nodes
-from collections import defaultdict
+from collections import defaultdict, deque
 from panaroo.cdhit import is_valid
 from itertools import chain, combinations
 import numpy as np
@@ -252,9 +252,29 @@ def collapse_families(G,
 
     return G
 
+def mod_bfs_edges(G, source, depth_limit=None):
+    """Iterate over edges in a breadth-first search.
+    Modified version of 'generic_bfs_edges' from networkx
+    """
+    neighbors = G.neighbors
 
+    visited = {source}
+    if depth_limit is None:
+        depth_limit = len(G)
+    queue = deque([(source, depth_limit, neighbors(source))])
+    while queue:
+        parent, depth_now, children = queue[0]
+        try:
+            child = next(children)
+            if child not in visited:
+                yield parent, child, depth_now
+                visited.add(child)
+                if depth_now > 1:
+                    queue.append((child, depth_now - 1, neighbors(child)))
+        except StopIteration:
+            queue.popleft()
 
-def collapse_paralogs(G, centroid_contexts, max_context=100, quiet=False):
+def collapse_paralogs(G, centroid_contexts, max_context=5, quiet=False):
     
     # contexts [centroid] = [[node, member, contig, context], ...]
     node_count = max(list(G.nodes())) + 10
@@ -263,6 +283,19 @@ def collapse_paralogs(G, centroid_contexts, max_context=100, quiet=False):
     #  are broken the same way
     for centroid in centroid_contexts:
         centroid_contexts[centroid] = sorted(centroid_contexts[centroid])
+
+    # set up for context search
+    centroid_to_index = {}
+    ncentroids=-1
+    for node in G.nodes():
+        centroid = G.node[node]['centroid'].split(";")[0]
+        if centroid not in centroid_to_index:
+            ncentroids += 1
+            centroid_to_index[centroid] = ncentroids
+            centroid_to_index[G.node[node]['centroid']] = ncentroids
+        else:
+            centroid_to_index[G.node[node]['centroid']] = centroid_to_index[centroid]
+    ncentroids += 1
 
     for centroid in tqdm(centroid_contexts):
         # calculate distance
@@ -303,24 +336,22 @@ def collapse_paralogs(G, centroid_contexts, max_context=100, quiet=False):
 
             # if this fails use context
             if d_max==np.inf:
-                best_cluster = None
-                s_max = np.zeros(len(ref_paralogs))
-                for context in range(1, max_context+1):
-                    for c, ref in enumerate(ref_paralogs):
-                        if para[1] in cluster_mems[c]:
-                            #dont match paralogs of the same isolate
-                            continue       
-                        nodes_ref = {G.node[key]['centroid'].split(";")[0]: val for 
-                            (key,val) in nx.single_source_shortest_path_length(G, ref[0], context).items()}
-                        nodes_para = {G.node[key]['centroid'].split(";")[0]: val for 
-                            (key,val) in nx.single_source_shortest_path_length(G, para[0], context).items()}
-                        for nr in nodes_ref:
-                            if nr in nodes_para:
-                                s_max[c] += 1/(1+np.abs(nodes_ref[nr] - nodes_para[nr]))
-                    if np.sum(s_max==np.max(s_max))==1:
-                        best_cluster = np.argmax(s_max)
-                        break
-
+                best_cluster = 0
+                s_max = -np.inf
+                para_context = np.zeros(ncentroids)
+                for u, node, depth in mod_bfs_edges(G, para[0], max_context):
+                    para_context[centroid_to_index[G.node[node]['centroid']]] = depth
+                for c, ref in enumerate(ref_paralogs):
+                    if para[1] in cluster_mems[c]:
+                        #dont match paralogs of the same isolate
+                        continue
+                    ref_context = np.zeros(ncentroids)
+                    for u, node, depth in mod_bfs_edges(G, ref[0], max_context):
+                        ref_context[centroid_to_index[G.node[node]['centroid']]] = depth
+                    s = np.sum(1/(1+np.abs((para_context - ref_context)[(para_context*ref_context)!=0])))
+                    if s>s_max:
+                        s_max=s
+                        best_cluster = c
             
             cluster_dict[best_cluster].add(para[0])
             cluster_mems[best_cluster].add(para[1])
