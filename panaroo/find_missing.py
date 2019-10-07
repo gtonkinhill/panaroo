@@ -91,20 +91,6 @@ def find_missing(G,
             delayed(translate_to_match)(hit[1], G.node[
                 hit[0]]["protein"].split(";")[0]) for hit in hits)
 
-    bad_nodes = set()
-    if remove_by_consensus:
-        print("removing by consensus...")
-        node_hit_counter = Counter()
-        for hits in all_hits:
-            for node, dna_hit in hits:
-                if dna_hit == "": continue
-                node_hit_counter[node] += 1
-        for node in G:
-            if node_hit_counter[node] > G.node[node]['size']:
-                bad_nodes.add(node)
-        for node in bad_nodes:
-            delete_node(G, node)
-
     # remove nodes that conflict (overlap)
     nodes_by_size = sorted([(G.node[node]['size'], node)
                             for node in G.nodes()],
@@ -112,7 +98,7 @@ def find_missing(G,
     nodes_by_size = [n[1] for n in nodes_by_size]
     member = 0
     bad_node_mem_pairs = []
-
+    bad_nodes = set()
     for node_locs, max_seq_length in zip(all_node_locs, max_seq_lengths):
         seq_coverage = defaultdict(lambda: np.zeros(max_seq_length + 2,
                                                     dtype=bool))
@@ -138,6 +124,23 @@ def find_missing(G,
         if size <= 0:
             bad_nodes.add(node)
             delete_node(G, node)
+
+    # remove by consensus
+    if remove_by_consensus:
+        print("removing by consensus...")
+        node_hit_counter = Counter()
+        for member, hits in enumerate(all_hits):
+            for node, dna_hit in hits:
+                if dna_hit == "": continue
+                if node in bad_nodes: continue
+                if (node, member) in bad_node_mem_pairs: continue
+                node_hit_counter[node] += 1
+        for node in G:
+            if node_hit_counter[node] > G.node[node]['size']:
+                bad_nodes.add(node)
+        for node in bad_nodes:
+            if node in G.nodes():
+                delete_node(G, node)
 
     print("Updating output...")
 
