@@ -22,6 +22,6 @@ def test_messy(datafolder):
             delimiter="\t", skip_header=1)
 
         assert pa.shape == (5111, 5)
-        assert np.sum(pa[:,1:])==20431
+        assert np.sum(pa[:,1:])==20427
 
     return
