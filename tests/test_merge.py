@@ -44,7 +44,7 @@ def test_merge(datafolder):
         pa = np.genfromtxt(tmpoutdir + "/struct_presence_absence.Rtab",
             delimiter="\t", skip_header=1)
         
-        assert pa.shape == (116, 5)
-        assert np.sum(pa[:,1:])==232
+        assert pa.shape == (112, 5)
+        assert np.sum(pa[:,1:])==224
 
     return
