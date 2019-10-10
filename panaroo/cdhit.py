@@ -494,7 +494,7 @@ def pwdist_edlib(G, cdhit_clusters, threshold, dna=False, n_cpu=1):
     for cluster in cdhit_clusters:
         all_distances += Parallel(n_jobs=n_cpu)(
             delayed(run_pw)(seqs[node_to_centroid[n1]], seqs[
-                node_to_centroid[n1]], n1, n2, dna)
+                node_to_centroid[n2]], n1, n2, dna)
             for n1, n2 in itertools.combinations(cluster, 2))
 
     data = []
@@ -523,17 +523,20 @@ def run_pw(seqA, seqB, n1, n2, dna):
             aln = edlib.align(sA,
                               seqB,
                               mode="HW",
-                              task='locations',
-                              k=10 * len(seqA),
+                              task='distance',
+                              k=0.5 * len(seqA),
                               additionalEqualities=[('A', 'N'), ('C', 'N'),
                                                     ('G', 'N'), ('T', 'N')])
-            pwid = max(pwid, 1.0 - aln['editDistance'] / float(len(seqA)))
+            if aln['editDistance']==-1:
+                pqid = max(pwid, 0.0)
+            else:
+                pwid = max(pwid, 1.0 - aln['editDistance'] / float(len(seqA)))
     else:
         aln = edlib.align(seqA,
                           seqB,
                           mode="HW",
-                          task='locations',
-                          k=10 * len(seqA),
+                          task='distance',
+                          k=0.5 * len(seqA),
                           additionalEqualities=[('*', 'X'), ('A', 'X'),
                                                 ('C', 'X'), ('B', 'X'),
                                                 ('E', 'X'), ('D', 'X'),
@@ -548,6 +551,9 @@ def run_pw(seqA, seqB, n1, n2, dna):
                                                 ('X', 'X'), ('Z', 'X'),
                                                 ('D', 'B'), ('N', 'B'),
                                                 ('E', 'Z'), ('Q', 'Z')])
-        pwid = 1.0 - aln['editDistance'] / float(len(seqA))
+        if aln['editDistance']==-1:
+            pwid = 0.0
+        else:
+            pwid = 1.0 - aln['editDistance'] / float(len(seqA))
 
     return ((n1, n2, pwid))
