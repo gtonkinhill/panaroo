@@ -13,6 +13,7 @@ from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import connected_components
 from joblib import Parallel, delayed
 import math
+from tqdm import tqdm
 
 
 def check_cdhit_version(cdhit_exec='cd-hit'):
@@ -54,6 +55,7 @@ def run_cdhit(
         AS=99999999,  # alignment coverage control for the shorter sequence
         accurate=True,  # use the slower but more accurate options
         use_local=False,  #whether to use local or global sequence alignment
+        word_length=None,
         quiet=False):
 
     cmd = "cd-hit"
@@ -73,6 +75,9 @@ def run_cdhit(
 
     if accurate:
         cmd += " -g 1 -n 2"
+
+    if (word_length is not None) and (not accurate):
+        cmd += " -n " + str(word_length)
 
     if not quiet:
         print("running cmd: " + cmd)
@@ -98,6 +103,7 @@ def run_cdhit_est(
         use_local=False,  #whether to use local or global sequence alignment
         strand=1,  # default do both +/+ & +/- alignments if set to 0, only +/+
         print_aln=False,  # print alignment overlap in cluster file
+        word_length=None,
         mask=True,
         quiet=False):
 
@@ -122,6 +128,9 @@ def run_cdhit_est(
 
     if accurate:
         cmd += " -g 1 -n 6"
+
+    if (word_length is not None) and (not accurate):
+        cmd += " -n " + str(word_length)
 
     if print_aln:
         cmd += " -p 1"
@@ -364,7 +373,6 @@ def align_dna_cdhit(
 
 def iterative_cdhit(
         G,
-        nodes,
         outdir,
         dna=False,
         s=0.0,  # length difference cutoff (%), default 0.0
@@ -376,6 +384,7 @@ def iterative_cdhit(
         use_local=False,  #whether to use local or global sequence alignment
         strand=1,  # default do both +/+ & +/- alignments if set to 0, only +/+
         quiet=False,
+        word_length=None,
         thresholds=[0.99, 0.95, 0.90, 0.85, 0.8, 0.75, 0.7],
         n_cpu=1):
 
@@ -384,18 +393,22 @@ def iterative_cdhit(
     temp_input_file.close()
     temp_output_file = tempfile.NamedTemporaryFile(delete=False, dir=outdir)
     temp_output_file.close()
+    
+    centroid_to_seq = {}
+    for node in G.nodes():
+        if dna:
+            centroid_to_seq[G.node[node]["longCentroidID"][1]] = max(G.node[node]["dna"].split(";"), key=len)
+        else:
+            centroid_to_seq[G.node[node]["longCentroidID"][1]] = max(G.node[node]["protein"].split(";"), key=len)
+
 
     clusters = []
     with open(temp_input_file.name, 'w') as outfile:
-        for node in nodes:
-            clusters.append([node])
-            outfile.write(">" + str(node) + "\n")
-            if dna:
-                outfile.write(
-                    max(G.node[node]["dna"].split(";"), key=len) + "\n")
-            else:
-                outfile.write(
-                    max(G.node[node]["protein"].split(";"), key=len) + "\n")
+        for centroid in centroid_to_seq:
+            clusters.append([centroid])
+            outfile.write(">" + str(centroid) + "\n")
+            outfile.write(centroid_to_seq[centroid]+ "\n")
+
 
     for cid in thresholds:
         # run cd-hit
@@ -411,6 +424,7 @@ def iterative_cdhit(
                           use_local=use_local,
                           strand=strand,
                           quiet=quiet,
+                          word_length=word_length,
                           n_cpu=n_cpu)
         else:
             run_cdhit(input_file=temp_input_file.name,
@@ -422,6 +436,7 @@ def iterative_cdhit(
                       aS=AS,
                       accurate=accurate,
                       use_local=use_local,
+                      word_length=word_length,
                       quiet=quiet,
                       n_cpu=n_cpu)
 
@@ -434,7 +449,7 @@ def iterative_cdhit(
                     temp_clusters.append(c)
                     c = []
                 else:
-                    c.append(int(line.split(">")[1].split("...")[0]))
+                    c.append(line.split(">")[1].split("...")[0])
             temp_clusters.append(c)
         temp_clusters = temp_clusters[1:]
 
@@ -464,38 +479,29 @@ def iterative_cdhit(
 
 def pwdist_edlib(G, cdhit_clusters, threshold, dna=False, n_cpu=1):
 
-    # map nodes to centroids
-    node_to_centroid = {}
-    centroid_to_index = {}
-    node_index = 0
-    for node in G.nodes():
-        centroids = G.node[node]["centroid"].split(";")
-        node_to_centroid[node] = centroids[0]
-        for centroid in centroids[1:]:
-            if centroid not in centroid_to_index:
-                centroid_to_index[centroid] = node_index
-        if centroids[0] not in centroid_to_index:
-            centroid_to_index[centroids[0]] = node_index
-            node_index += 1
-
     # Prepare sequences
-    seqs = {}
+    centroid_to_seq = {}
     for node in G.nodes():
-        if node_to_centroid[node] in seqs: continue
         if dna:
-            seqs[node_to_centroid[node]] = max(G.node[node]["dna"].split(";"),
-                                               key=len).upper()
+            centroid_to_seq[G.node[node]["longCentroidID"][1]] = max(G.node[node]["dna"].split(";"), key=len)
         else:
-            seqs[node_to_centroid[node]] = max(
-                G.node[node]["protein"].split(";"), key=len).upper()
+            centroid_to_seq[G.node[node]["longCentroidID"][1]] = max(G.node[node]["protein"].split(";"), key=len)
+    
+    ncentroids = len(centroid_to_seq)
+
+    # centroid to index
+    centroid_to_index = {}
+    for i,centroid in enumerate(centroid_to_seq):
+        centroid_to_index[centroid] = i
 
     # get pairwise id between sequences in the same cdhit clusters
     all_distances = []
     for cluster in cdhit_clusters:
         all_distances += Parallel(n_jobs=n_cpu)(
-            delayed(run_pw)(seqs[node_to_centroid[n1]], seqs[
-                node_to_centroid[n2]], n1, n2, dna)
-            for n1, n2 in itertools.combinations(cluster, 2))
+            delayed(run_pw)(
+                centroid_to_seq[c1], centroid_to_seq[c2],
+                centroid_to_index[c1], centroid_to_index[c2], dna)
+            for c1, c2 in itertools.combinations(cluster, 2))
 
     data = []
     row_ind = []
@@ -503,11 +509,11 @@ def pwdist_edlib(G, cdhit_clusters, threshold, dna=False, n_cpu=1):
     for d in all_distances:
         if d[2] >= threshold:
             data.append(1)
-            row_ind.append(centroid_to_index[node_to_centroid[d[0]]])
-            col_ind.append(centroid_to_index[node_to_centroid[d[1]]])
+            row_ind.append(d[0])
+            col_ind.append(d[1])
 
     distances_bwtn_centroids = csr_matrix((data, (row_ind, col_ind)),
-                                          shape=(node_index, node_index))
+                                          shape=(ncentroids, ncentroids))
 
     return distances_bwtn_centroids, centroid_to_index
 

@@ -35,6 +35,7 @@ def merge_nodes(G,
                        set(G.node[nodeA]['description'].split(";") +
                            G.node[nodeB]['description'].split(";"))),
                    lengths=G.node[nodeA]['lengths'] + G.node[nodeB]['lengths'],
+                   longCentroidID=max(G.node[nodeA]['longCentroidID'], G.node[nodeB]['longCentroidID']),
                    paralog=(G.node[nodeA]['paralog']
                             or G.node[nodeB]['paralog']),
                    mergedDNA=(G.node[nodeA]['mergedDNA']
@@ -62,6 +63,7 @@ def merge_nodes(G,
                    paralog=(G.node[nodeA]['paralog']
                             or G.node[nodeB]['paralog']),
                    lengths=G.node[nodeA]['lengths'] + G.node[nodeB]['lengths'],
+                   longCentroidID=max(G.node[nodeA]['longCentroidID'], G.node[nodeB]['longCentroidID']),
                    mergedDNA=True)
         if "prevCentroids" in G.node[nodeA]:
             G.node[newNode]['prevCentroids'] = ";".join(

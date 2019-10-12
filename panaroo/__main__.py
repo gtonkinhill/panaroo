@@ -238,7 +238,7 @@ def main():
     # clean up translation errors
     G = collapse_families(G,
                           outdir=temp_dir,
-                          dna_error_threshold=0.95,
+                          dna_error_threshold=0.98,
                           correct_mistranslations=True,
                           n_cpu=args.n_cpu,
                           quiet=(not args.verbose))

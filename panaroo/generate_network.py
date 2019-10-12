@@ -104,6 +104,9 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                     ['description'],
                     lengths=[len(cluster_centroid_data[current_cluster]
                         ['dna_sequence'])],
+                    longCentroidID=(len(cluster_centroid_data[current_cluster]
+                        ['dna_sequence']),
+                        cluster_centroids[current_cluster]),
                     paralog=(current_cluster in paralogs),
                     mergedDNA=False)
         else:
@@ -131,6 +134,9 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                     ['description'],
                     lengths=[len(cluster_centroid_data[current_cluster]
                         ['dna_sequence'])],
+                    longCentroidID=(len(cluster_centroid_data[current_cluster]
+                        ['dna_sequence']),
+                        cluster_centroids[current_cluster]),
                     paralog=True,
                     mergedDNA=False)
                 # add edge between nodes
@@ -156,6 +162,9 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                         ['description'],
                         lengths=[len(cluster_centroid_data[current_cluster]
                         ['dna_sequence'])],
+                        longCentroidID=(len(cluster_centroid_data[current_cluster]
+                        ['dna_sequence']),
+                        cluster_centroids[current_cluster]),
                         paralog=is_paralog,
                         mergedDNA=False)
                     # add edge between nodes
