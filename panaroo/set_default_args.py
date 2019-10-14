@@ -8,7 +8,7 @@ def set_default_args(args):
 
     if args.mode == 'strict':
         if args.id is None:
-            args.id = 0.95
+            args.id = 0.98
         if args.family_threshold is None:
             args.family_threshold = 0.7
         if args.len_dif_percent is None:
@@ -26,7 +26,7 @@ def set_default_args(args):
 
     elif args.mode == 'moderate':
         if args.id is None:
-            args.id = 0.95
+            args.id = 0.98
         if args.family_threshold is None:
             args.family_threshold = 0.7
         if args.len_dif_percent is None:
@@ -44,7 +44,7 @@ def set_default_args(args):
 
     else:
         if args.id is None:
-            args.id = 0.95
+            args.id = 0.98
         if args.family_threshold is None:
             args.family_threshold = 0.7
         if args.len_dif_percent is None:

@@ -72,7 +72,7 @@ def collapse_families(G,
 
     
     if correct_mistranslations:
-        depths = [2, 3]
+        depths = [1, 2, 3]
         threshold = [0.99, 0.98, 0.95, 0.9]
     else:
         depths = [1, 2, 3]
@@ -145,6 +145,7 @@ def collapse_families(G,
                 ]
 
                 for cluster in clusters:
+
                     # check if there are any to collapse
                     if len(cluster) <= 1: continue
 
@@ -179,7 +180,7 @@ def collapse_families(G,
                         if correct_mistranslations:
                             # merge if the centroids don't conflict and the nodes are adjacent in the conflicting genome
                             # this corresponds to a mistranslation where one gene has been split into two in a subset of genomes
-
+                            
                             # build a mini graph of allowed pairwise merges
                             tempG = nx.Graph()
                             for nA, nB in itertools.combinations(cluster, 2):
