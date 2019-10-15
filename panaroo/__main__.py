@@ -135,6 +135,12 @@ def get_options(args):
               "output. Off by default as it uses a large amount of space."),
         action='store_true',
         default=False)
+    graph.add_argument(
+        "--no_clean_edges",
+        dest="clean_edges",
+        help=("Turn off edge filtering in the final output graph."),
+        action='store_false',
+        default=True)
 
     core = parser.add_argument_group('Gene alignment')
     core.add_argument(
@@ -241,13 +247,13 @@ def main():
                           dna_error_threshold=0.98,
                           correct_mistranslations=True,
                           n_cpu=args.n_cpu,
-                          quiet=(not args.verbose))
+                          quiet=(not args.verbose))[0]
 
     if args.verbose:
         print("collapse gene families...")
 
     # collapse gene families
-    G = collapse_families(G,
+    G, distances_bwtn_centroids, centroid_to_index = collapse_families(G,
                           outdir=temp_dir,
                           family_threshold=args.family_threshold,
                           correct_mistranslations=False,
@@ -289,8 +295,20 @@ def main():
                      n_cpu=args.n_cpu)
 
     # remove edges that are likely due to misassemblies (by consensus)
-    G = clean_misassembly_edges(
-        G, edge_support_threshold=args.edge_support_threshold)
+
+    # merge again in case refinding has resolved issues
+    G = collapse_families(G,
+                          outdir=temp_dir,
+                          family_threshold=args.family_threshold,
+                          correct_mistranslations=False,
+                          n_cpu=args.n_cpu,
+                          quiet=(not args.verbose),
+                          distances_bwtn_centroids=distances_bwtn_centroids, 
+                          centroid_to_index=centroid_to_index)[0]
+
+    if args.clean_edges:
+        G = clean_misassembly_edges(
+            G, edge_support_threshold=args.edge_support_threshold)
 
     # if requested merge paralogs
     if args.merge_paralogs:

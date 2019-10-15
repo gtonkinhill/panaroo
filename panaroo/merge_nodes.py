@@ -50,7 +50,7 @@ def merge_nodes(G,
             nodeB, nodeA = nodeA, nodeB
 
         G.add_node(newNode,
-                   size=G.node[nodeA]['size'] + G.node[nodeB]['size'],
+                   size=len(set(G.node[nodeA]['members'] + G.node[nodeB]['members'])),
                    centroid=G.node[nodeA]['centroid'],
                    members=G.node[nodeA]['members'] + G.node[nodeB]['members'],
                    seqIDs=G.node[nodeA]['seqIDs'] + G.node[nodeB]['seqIDs'],
@@ -137,8 +137,9 @@ def remove_member_from_node(G, node, member):
                 G.add_edge(n1, n2, weight=1, members=[member])
 
     # remove member from node
-    while member in G.node[node]['members']:
+    while str(member) in G.node[node]['members']:
         G.node[node]['members'].remove(str(member))
+    G.node[node]['seqIDs'] = [sid for sid in G.node[node]['seqIDs'] if sid.split("_")[0]!=str(member)]
     G.node[node]['size'] -= 1
 
     return G

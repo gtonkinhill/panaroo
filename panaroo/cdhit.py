@@ -474,6 +474,13 @@ def iterative_cdhit(
         temp_input_file.name = temp_output_file.name
         temp_output_file.name = temp_output_file.name + "t" + str(cid)
 
+    if dna:
+        with open("temp_clusters_dna.txt", 'w') as tempout:
+            tempout.write(str(clusters))
+    else:
+        with open("temp_clusters_protein.txt", 'w') as tempout:
+            tempout.write(str(clusters))
+
     return (clusters)
 
 

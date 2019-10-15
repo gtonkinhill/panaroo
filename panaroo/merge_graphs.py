@@ -301,7 +301,7 @@ def main():
                           dna_error_threshold=0.99,
                           correct_mistranslations=True,
                           n_cpu=args.n_cpu,
-                          quiet=(not args.verbose))
+                          quiet=(not args.verbose))[0]
 
 
     # for thresh in [0.99, args.family_threshold]:
@@ -310,7 +310,7 @@ def main():
                         family_threshold=args.family_threshold,
                         correct_mistranslations=False,
                         n_cpu=args.n_cpu,
-                        quiet=(not args.verbose))
+                        quiet=(not args.verbose))[0]
 
     print("Number of nodes in merged graph: ", G.number_of_nodes())
 

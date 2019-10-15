@@ -66,7 +66,9 @@ def collapse_families(G,
                       dna_error_threshold=0.99,
                       correct_mistranslations=False,
                       n_cpu=1,
-                      quiet=False):
+                      quiet=False,
+                      distances_bwtn_centroids=None, 
+                      centroid_to_index=None):
 
     node_count = max(list(G.nodes())) + 10
 
@@ -76,7 +78,7 @@ def collapse_families(G,
         threshold = [0.99, 0.98, 0.95, 0.9]
     else:
         depths = [1, 2, 3]
-        threshold = [0.99, 0.95, 0.9, 0.8, 0.7, 0.6]
+        threshold = [0.99, 0.95, 0.9, 0.8, 0.7, 0.6, 0.5]
 
     # precluster for speed
     if correct_mistranslations:
@@ -98,7 +100,7 @@ def collapse_families(G,
             for sid in G.node[node]['seqIDs']:
                 seqid_to_index[sid] = centroid_to_index[G.node[node]["longCentroidID"][1]]
 
-    else:
+    elif distances_bwtn_centroids is None:
         cdhit_clusters = iterative_cdhit(G,
                                          outdir,
                                          thresholds=threshold,
@@ -150,9 +152,10 @@ def collapse_families(G,
                     if len(cluster) <= 1: continue
 
                     # check for conflicts
-                    members = list(
-                        chain.from_iterable(
-                            [G.node[n]['members'] for n in cluster]))
+                    members = []
+                    for n in cluster:
+                        for m in set(G.node[n]['members']):
+                            members.append(m)
 
                     if (len(members) == len(set(members))):
                         # no conflicts so merge
@@ -282,7 +285,7 @@ def collapse_families(G,
                 if node in search_space:
                     search_space.remove(node)
 
-    return G
+    return G, distances_bwtn_centroids, centroid_to_index
 
 
 def collapse_paralogs(G, centroid_contexts, max_context=5, quiet=False):

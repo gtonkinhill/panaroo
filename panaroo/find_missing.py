@@ -120,9 +120,11 @@ def find_missing(G,
                 seq_coverage[contig_id][loc[0]:loc[1]] = True
         member += 1
 
-    for size, node in [(G.node[node]['size'], node) for node in G.nodes()]:
-        if size <= 0:
+    for node in G.nodes():
+        if len(set(G.node[node]['members']))<=0:
             bad_nodes.add(node)
+    for node in bad_nodes:
+        if node in G.nodes():
             delete_node(G, node)
 
     # remove by consensus
