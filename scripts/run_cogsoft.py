@@ -298,6 +298,10 @@ def main():
 
     post_process_fmt(args.output_dir, args.input_files, mapping)
 
+    # clean up BLAST/DIAMOND output as it uses too much space
+    os.rmdir(args.output_dir + "BLASTff")
+    os.rmdir(args.output_dir + "BLASTno")
+
     return
 
 if __name__ == '__main__':
