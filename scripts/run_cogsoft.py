@@ -92,6 +92,51 @@ def run_blast(outdir, ncpus, verbose=True):
 
     return
 
+def run_diamond(outdir, ncpus, verbose=True):
+
+    # format a DIAMOND data base
+    cmd = "diamond makedb"
+    cmd += " --in " + outdir + "all_proteins.fasta"
+    cmd += " --db " + outdir + "DIAMONDTable" 
+
+    if verbose:
+        print("running cmd: ", cmd)
+    subprocess.run(cmd, shell=True, check=True)
+
+    # unfiltered DIAMOND
+    cmd = "diamond blastp"
+    cmd += " --threads " + str(ncpus)
+    cmd += " --query " + outdir + "all_proteins.fasta" 
+    cmd += " --db " + outdir + "DIAMONDTable" 
+    cmd += " --outfmt 6"
+    cmd += " --max-target-seqs 1000"
+    cmd += " --masking 0"
+    cmd += " --out " + outdir + "/BLASTno/ThreeByThree.tab"
+
+    if verbose:
+        print("running cmd: ", cmd)
+    if not os.path.exists(outdir + "BLASTno"):
+        os.mkdir(outdir + "BLASTno")
+    subprocess.run(cmd, shell=True, check=True)
+
+    # filtered DIAMOND results in the ./BLASTff/ directory
+    cmd = "diamond blastp"
+    cmd += " --threads " + str(ncpus)
+    cmd += " --query " + outdir + "all_proteins.fasta" 
+    cmd += " --db " + outdir + "DIAMONDTable" 
+    cmd += " --outfmt 6"
+    cmd += " --max-target-seqs 1000"
+    cmd += " --masking 1"
+    cmd += " --out " + outdir + "BLASTff/ThreeByThree.tab "
+
+    if verbose:
+        print("running cmd: ", cmd)
+    if not os.path.exists(outdir + "BLASTff"):
+        os.mkdir(outdir + "BLASTff")
+    subprocess.run(cmd, shell=True, check=True)
+
+    return
+
 def run_cog_soft(outdir, genomeids, verbose=True):
 
     # Preparation of the "sequence Universe"
@@ -222,6 +267,15 @@ def main():
         type=str,
         nargs='+')
 
+    parser.add_argument(
+        "--aligner",
+        dest="alr",
+        help=
+        "Specify an aligner. Options:'BLAST', 'DIAMOND' (default)",
+        type=str,
+        choices=['DIAMOND', 'BLAST'],
+        default="DIAMOND")
+
     parser.add_argument("-t",
                         "--threads",
                         dest="n_cpu",
@@ -235,7 +289,10 @@ def main():
 
     mapping, genomeids = prepare_gffs(args.input_files, args.output_dir)
 
-    run_blast(args.output_dir, args.n_cpu)
+    if args.alr=="BLAST":
+        run_blast(args.output_dir, args.n_cpu)
+    else:
+        run_diamond(args.output_dir, args.n_cpu)
 
     run_cog_soft(args.output_dir, genomeids)
 

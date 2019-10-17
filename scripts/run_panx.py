@@ -53,7 +53,7 @@ def run_panx(input_files, out_dir, ncpus=1, verbose=False):
         new_prefixes.append(clean_gbk(f, input_file_dir))
 
     # run panX
-    cmd = ("panX.py" +
+    cmd = ("~/software/pan-genome-analysis/panX.py" +
         " -fn " + input_file_dir +
         " -sl panx_run " +
         " -t " + str(ncpus)
