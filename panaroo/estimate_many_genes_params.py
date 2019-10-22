@@ -30,17 +30,6 @@ def log_subtract(x, y):
   return (x + np.log1p(-np.exp(y-x)))
 
 
-# @jit(nopython=True)
-# def log1mexp(a):
-#     if a < 0:
-#         raise RuntimeError("a<0!")
-#     if a <= np.log(2):
-#         np.log(-np.expm1(-a))
-#     else:
-#         la = np.log1p(-np.exp(-a))
-#     return(la)
-
-
 def load_pa(presence_absence_file):
 
     with open(presence_absence_file, 'r') as infile:
@@ -172,232 +161,18 @@ def calc_llk_fmg(params, tree_array, nleaves, presence_absence, isolates,
     return -llk
 
 
-@jit(nopython=True)
-def img_trans_llk_prob(xl, xn, t, v):
-    if (xl == 0) and (xn == 0):
-        p = 0
-    elif (xl == 0) and (xn == 1):
-        p = -math.inf
-    elif (xl == 1) and (xn == 0):
-        p = log1mexp(v * t)
-    else:
-        p = -v * t
-    return (p)
-
-
-def get_origin_nodes(in_tree, node_index, presence_absence, n1=False):
-    origin_indices = defaultdict(list)
-
-    if n1:
-        for leaf in in_tree.leaf_node_iter():
-            mrca = in_tree.mrca(taxon_labels=[leaf.taxon.label])
-            origin_nodes = list(mrca.ancestor_iter(inclusive=True))
-            for node in origin_nodes:
-                origin_indices[node_index[leaf.label]].append(
-                    node_index[node.label])
-    else:
-        for gene in presence_absence:
-            taxon_labels = [
-                tax for tax in presence_absence[gene]
-                if presence_absence[gene][tax] == 1
-            ]
-            mrca = in_tree.mrca(taxon_labels=taxon_labels)
-            origin_nodes = list(mrca.ancestor_iter(inclusive=True))
-
-            for node in origin_nodes:
-                origin_indices[gene].append(node_index[node.label])
-
-    return origin_indices
-
-
-@jit(nopython=True)
-def img_llk_all_nodes(in_tree, nleaves, l0, l1, u, v):
-
-    # set lead nodes
-    in_tree[0:nleaves, 2] = l0
-    in_tree[0:nleaves, 3] = l1
-
-    for i in np.arange(nleaves, in_tree.shape[0]):
-        in_tree[i][2] = -math.inf
-        in_tree[i][3] = -math.inf
-        for xl in [0, 1]:
-            for xn in [0, 1]:
-                for xm in [0, 1]:
-                    in_tree[i][2 + xl] = np.logaddexp(
-                        in_tree[i][2 + xl],
-                        (img_trans_llk_prob(xl, xn, in_tree[i][4], v) +
-                         in_tree[int(in_tree[i][0])][2 + xn] +
-                         img_trans_llk_prob(xl, xm, in_tree[i][5], v) +
-                         in_tree[int(in_tree[i][1])][2 + xm]))
-
-    return (in_tree)
-
-
-    # # set lead nodes
-    # in_tree[0:nleaves, 2] = l0
-    # in_tree[0:nleaves, 3] = l1
-
-    # for i in np.arange(nleaves, in_tree.shape[0]):
-    #     in_tree[i][2] = -math.inf
-    #     in_tree[i][3] = -math.inf
-    #     for xl in [0, 1]:
-    #         for xn in [0, 1]:
-    #             for xm in [0, 1]:
-    #                 in_tree[i][2 + xl] = np.logaddexp(
-    #                     in_tree[i][2 + xl],
-    #                     (trans_llk_prob(xl, xn, in_tree[i][4], a, v) +
-    #                      in_tree[int(in_tree[i][0])][2 + xn] +
-    #                      trans_llk_prob(xl, xm, in_tree[i][5], a, v) +
-    #                      in_tree[int(in_tree[i][1])][2 + xm]))
-
-    # llk = np.logaddexp(
-    #     in_tree[in_tree.shape[0] - 1][3] + np.log(a) - np.log(a + v),
-    #     in_tree[in_tree.shape[0] - 1][2] + np.log(v) - np.log(a + v))
-
-
-
-# @jit
-def calc_llk_img(params, tree_array, nleaves, origin_nodes, origin_nodes_n1,
-                 presence_absence, isolates, verbose):
-
-    u = params[0]
-    v = params[1]
-
-    if verbose: print("u:", u, " v:", v)
-
-    if (u < 0) or (v < 0):
-        return (-math.inf)
-
-    u_l = np.log(u)
-    v_l = np.log(v)
-
-    # calculate expected N_null
-    l0 = np.zeros(nleaves)
-    l1 = np.full(nleaves, -math.inf)
-    tree_array = img_llk_all_nodes(tree_array, nleaves, l0, l1, u, v)
-    N_null = -math.inf
-    N_tot = -math.inf
-    for i in np.arange(nleaves, tree_array.shape[0]):
-        if i == (tree_array.shape[0] - 1):
-            gn_l = u_l - v_l
-        else:
-            gn_l = u_l - v_l + log1mexp(v * tree_array[i][6])
-        N_null = np.logaddexp(N_null, tree_array[i][3] + gn_l)
-        N_tot = np.logaddexp(N_tot, gn_l)
-
-    if verbose: print("N_null: ", N_null)
-
-    # calculate N_1
-    N_1 = -math.inf
-    l0 = np.zeros(nleaves)
-    l1 = np.full(nleaves, -math.inf)
-    for i in range(nleaves):
-        l0[i] = -math.inf
-        l1[i] = 0
-        tree_array = img_llk_all_nodes(tree_array, nleaves, l0, l1, u, v)
-        for j in origin_nodes_n1[i]:
-            if j == (tree_array.shape[0] - 1):
-                gn_l = u_l - v_l
-            else:
-                gn_l = u_l - v_l + log1mexp(v * tree_array[j][6])
-            N_1 = np.logaddexp(N_1, tree_array[j][3] + gn_l)
-        l0[i] = 0
-        l1[i] = -math.inf
-
-    if verbose: print("N_1: ", N_1)
-
-    # calculate N_total
-    for i in np.arange(0, tree_array.shape[0]):
-        gn_l = u_l - v_l + log1mexp(v * tree_array[i][6])
-        N_tot = np.logaddexp(N_tot, gn_l)
-
-    if verbose: print("N_tot: ", N_tot)
-
-    llk = 0
-    for g in presence_absence:
-        N_exp = -math.inf
-        l0 = presence_absence[g][0]
-        l1 = presence_absence[g][1]
-        tree_array = img_llk_all_nodes(tree_array, nleaves, l0, l1, u, v)
-        # print(origin_nodes[g])
-        for i in origin_nodes[g]:
-            if i == (tree_array.shape[0] - 1):
-                # print("here")
-                gn_l = u_l - v_l
-            else:
-                gn_l = u_l - v_l + log1mexp(v * tree_array[i][6])
-            print(gn_l, tree_array[i][3], tree_array[i][6])
-            print(tree_array[i][3] + gn_l)
-            N_exp = np.logaddexp(N_exp, tree_array[i][3] + gn_l)
-
-        # llk += N_exp - np.log(np.exp(N_tot) - np.exp(N_null) - np.exp(N_1))
-        llk += N_exp - log_subtract(log_subtract(N_tot, N_null), N_1)
-
-    if verbose: print("N_exp: ", N_exp)
-    if verbose: print("llk: ", llk)
-
-    return -llk
-
-
 def get_discrete_gamma_rates(alpha, k):
     points = np.arange(1, 2 * k, 2) / (2 * k)
     median_rates = stats.gamma.ppf(q=points, a=alpha, scale=1 / alpha)
     return (median_rates)
 
 
-# def calc_llk_fmg_with_rate(params, k, tree_array, nleaves,
-#     presence_absence, isolates):
-
-#     alpha = params[0]
-#     a_rates = params[1:]
-#     v_rates = get_discrete_gamma_rates(alpha, k)
-
-#     print("alpha:", alpha)
-#     print("a_rates:", a_rates)
-#     print("v_rates:", v_rates)
-
-#     llk = -math.inf
-#     for a,v in zip(a_rates, v_rates):
-#         print(a,v)
-#         llk = np.logaddexp(llk, calc_llk_fmg((a,v), tree_array, nleaves,
-#             presence_absence, isolates) - np.log(k))
-
-#     return -llk
-
-# def calc_llk_img_with_rate(params, k, tree_array, nleaves, origin_nodes,
-#     origin_nodes_n1, presence_absence, isolates):
-
-#     alpha = params[0]
-#     u_rates = params[1:]
-#     v_rates = get_discrete_gamma_rates(alpha, k)
-
-#     print("alpha:", alpha)
-#     print("u_rates:", u_rates)
-#     print("v_rates:", v_rates)
-
-#     llk = -math.inf
-#     for u,v in zip(u_rates, v_rates):
-#         print(u,v)
-#         llk = np.logaddexp(llk, calc_llk_img((u,v), tree_array, nleaves, origin_nodes,
-#             origin_nodes_n1, presence_absence, isolates) - np.log(k))
-
-#     return -llk
-
-
 def get_options():
     import argparse
 
-    description = 'Estimate model parameters for either the Infinitely or Finitely Many Genes Model'
+    description = 'Estimate model parameters for either the Finitely Many Genes Model'
     parser = argparse.ArgumentParser(description=description,
-                                     prog='panaroo_mg_est')
-
-    parser.add_argument(
-        "--model",
-        dest="model",
-        help="Specify a model to estimate. One of 'IMG', 'FMG' or 'both'",
-        type=str,
-        choices={'IMG', 'FMG', 'both'},
-        default="IMG")
+                                     prog='panaroo_fmg_est')
 
     parser.add_argument("--tree",
                         dest="tree",
@@ -462,21 +237,13 @@ def optimise_model(model,
         boot_pa[j] = presence_absence_llk[g]
         boot_gene_count += presence_absence_llk[g][1] == 0
 
-    if model == "FMG":
-        boot_result = optimize.minimize(calc_llk_fmg,
-                                        bounds=bounds,
-                                        x0=x0,
-                                        method='L-BFGS-B',
-                                        args=(tree_array, nleaves, boot_pa,
-                                              isolates, False))
-    else:
-        boot_result = optimize.minimize(calc_llk_img,
-                                        bounds=bounds,
-                                        x0=x0,
-                                        method='L-BFGS-B',
-                                        args=(tree_array, nleaves,
-                                              origin_nodes, origin_nodes_n1,
-                                              boot_pa, isolates, False))
+    boot_result = optimize.minimize(calc_llk_fmg,
+                                    bounds=bounds,
+                                    x0=x0,
+                                    method='L-BFGS-B',
+                                    args=(tree_array, nleaves, boot_pa,
+                                            isolates, False))
+
 
     return ((boot_result.x[0], boot_result.x[1], np.mean(boot_gene_count)))
 
@@ -548,123 +315,57 @@ def main():
         tree_array[j][5] = children[1].edge.length
         tree_array[j][6] = node.edge.length
 
-    # observed_Nall = len(np.unique(presence_absence, axis=0))
     outfile = open(args.outputfile, 'w')
+ 
+    a_bounds = (1e-7, 1e3)
+    v_bounds = (1e-7, 1e3)
+    bounds = [a_bounds, v_bounds]
+    x0 = [0.001, 0.001]
 
-    if (args.model == 'IMG') or (args.model == 'both'):
+    result = optimize.minimize(calc_llk_fmg,
+                                bounds=bounds,
+                                x0=x0,
+                                method='L-BFGS-B',
+                                args=(tree_array, nleaves,
+                                        presence_absence_llk, isolates,
+                                        args.verbose))
 
-        # # get origin indices
-        # if args.verbose: print("Obtaining origin nodes...")
-        # origin_indices = get_origin_nodes(tree, node_index, presence_absence)
-        # if args.verbose: print("Obtaining origin nodes n1...")
-        # origin_indices_n1 = get_origin_nodes(tree,
-        #                                      node_index,
-        #                                      presence_absence,
-        #                                      n1=True)
+    gene_count = np.zeros(len(isolates))
+    for g in presence_absence_llk:
+        gene_count += presence_absence_llk[g][1] == 0
+    gene_count = np.mean(gene_count)
 
-        import pickle
-        # with open("origin_indices.pkl", 'wb') as picklefile:
-        #     pickle.dump(origin_indices, picklefile)
-        # with open("origin_indices_n1.pkl", 'wb') as picklefile:
-        #     pickle.dump(origin_indices_n1, picklefile)
+    if args.nboot > 0:
+        # all_genes = list(presence_absence_llk.keys())
+        all_boots = np.zeros((args.nboot, 3))
 
-        with open("origin_indices.pkl", 'rb') as picklefile:
-            origin_indices = pickle.load(picklefile)
-        with open("origin_indices_n1.pkl", 'rb') as picklefile:
-            origin_indices_n1 = pickle.load(picklefile)
+        boot_results = Parallel(n_jobs=args.n_cpu)(
+            delayed(optimise_model)("FMG", presence_absence_llk, bounds,
+                                    x0, tree_array, nleaves, isolates)
+            for i in range(args.nboot))
+        for i, boot in enumerate(boot_results):
+            all_boots[i, 0] = boot[0]
+            all_boots[i, 1] = boot[1]
+            all_boots[i, 2] = boot[2]
 
-        u_bounds = (1e-6, 1e4)
-        v_bounds = (1e-6, 1e4)
-        bounds = [u_bounds, v_bounds]
-        x0 = [1889.42, 10]
+        a_q = np.quantile(all_boots[:, 0], np.array([0.025, 0.975]))
+        v_q = np.quantile(all_boots[:, 1], np.array([0.025, 0.975]))
+        G_q = np.quantile(all_boots[:, 2], np.array([0.025, 0.975]))
+    else:
+        a_q = [math.nan, math.nan]
+        v_q = [math.nan, math.nan]
+        G_q = [math.nan, math.nan]
 
-        result = optimize.minimize(
-            calc_llk_img,
-            bounds=bounds,
-            x0=x0,
-            method='L-BFGS-B',
-            args=(tree_array, nleaves, origin_indices, origin_indices_n1,
-                  presence_absence_llk, isolates, args.verbose))
-
-        if args.nboot > 0:
-            all_genes = list(presence_absence_llk.keys())
-            all_boots = np.zeros((args.nboot, 2))
-
-            boot_results = Parallel(n_jobs=args.n_cpu)(
-                delayed(optimise_model)("IMG", presence_absence_llk, bounds,
-                                        x0, tree_array, nleaves, isolates,
-                                        origin_indices, origin_indices_n1)
-                for i in range(args.nboot))
-            for i, boot in enumerate(boot_results):
-                all_boots[i, 0] = boot[0]
-                all_boots[i, 1] = boot[1]
-
-            u_q = np.quantile(all_boots[:, 0], np.array([0.025, 0.975]))
-            v_q = np.quantile(all_boots[:, 1], np.array([0.025, 0.975]))
-        else:
-            u_q = [math.nan, math.nan]
-            v_q = [math.nan, math.nan]
-
-        outfile.write("Model: Infitely Many Genes (IMG)\n")
-        outfile.write("Llk: " + str(-result.fun) + "\n")
-        outfile.write(f"BIC: {2*np.log(len(isolates)) + 2*result.fun}\n")
-        outfile.write("Parameter,2.5%CI,97.5%CI\n")
-        outfile.write(f"u,{result.x[0]},{u_q[0]},{u_q[1]}\n")
-        outfile.write(f"v,{result.x[1]},{v_q[0]},{v_q[1]}\n")
-        outfile.write(
-            f"G,{result.x[0]/result.x[1]},{u_q[0]/v_q[0]},{u_q[1]/v_q[1]}\n")
-        outfile.write("\n")
-
-    if (args.model == 'FMG') or (args.model == 'both'):
-        a_bounds = (1e-3, 1e3)
-        v_bounds = (1e-3, 1e3)
-        bounds = [a_bounds, v_bounds]
-        x0 = [10, 10]
-
-        result = optimize.minimize(calc_llk_fmg,
-                                   bounds=bounds,
-                                   x0=x0,
-                                   method='L-BFGS-B',
-                                   args=(tree_array, nleaves,
-                                         presence_absence_llk, isolates,
-                                         args.verbose))
-
-        gene_count = np.zeros(len(isolates))
-        for g in presence_absence_llk:
-            gene_count += presence_absence_llk[g][1] == 0
-        gene_count = np.mean(gene_count)
-
-        if args.nboot > 0:
-            # all_genes = list(presence_absence_llk.keys())
-            all_boots = np.zeros((args.nboot, 3))
-
-            boot_results = Parallel(n_jobs=args.n_cpu)(
-                delayed(optimise_model)("FMG", presence_absence_llk, bounds,
-                                        x0, tree_array, nleaves, isolates)
-                for i in range(args.nboot))
-            for i, boot in enumerate(boot_results):
-                all_boots[i, 0] = boot[0]
-                all_boots[i, 1] = boot[1]
-                all_boots[i, 2] = boot[2]
-
-            a_q = np.quantile(all_boots[:, 0], np.array([0.025, 0.975]))
-            v_q = np.quantile(all_boots[:, 1], np.array([0.025, 0.975]))
-            G_q = np.quantile(all_boots[:, 2], np.array([0.025, 0.975]))
-        else:
-            a_q = [math.nan, math.nan]
-            v_q = [math.nan, math.nan]
-            G_q = [math.nan, math.nan]
-
-        outfile.write("Model: Finitely Many Genes (FMG)\n")
-        outfile.write("Llk: " + str(-result.fun) + "\n")
-        outfile.write(f"BIC: {2*np.log(len(isolates)) + 2*result.fun}\n")
-        outfile.write("Parameter,2.5%CI,97.5%CI\n")
-        outfile.write(f"a,{result.x[0]},{a_q[0]},{a_q[1]}\n")
-        outfile.write(f"v,{result.x[1]},{v_q[0]},{v_q[1]}\n")
-        outfile.write(f"G,{gene_count},{G_q[0]},{G_q[1]}\n")
-        outfile.write(
-            f"M,{gene_count*(result.x[0]+result.x[1])/result.x[0]},{G_q[0]*(a_q[0]+v_q[0])/a_q[0]},{G_q[1]*(a_q[1]+v_q[1])/a_q[1]}\n"
-        )
+    outfile.write("Model: Finitely Many Genes (FMG)\n")
+    outfile.write("Llk: " + str(-result.fun) + "\n")
+    outfile.write(f"BIC: {2*np.log(len(isolates)) + 2*result.fun}\n")
+    outfile.write("Parameter,2.5%CI,97.5%CI\n")
+    outfile.write(f"a,{result.x[0]},{a_q[0]},{a_q[1]}\n")
+    outfile.write(f"v,{result.x[1]},{v_q[0]},{v_q[1]}\n")
+    outfile.write(f"G,{gene_count},{G_q[0]},{G_q[1]}\n")
+    outfile.write(
+        f"M,{gene_count*(result.x[0]+result.x[1])/result.x[0]},{G_q[0]*(a_q[0]+v_q[0])/a_q[0]},{G_q[1]*(a_q[1]+v_q[1])/a_q[1]}\n"
+    )
 
     outfile.close()
 

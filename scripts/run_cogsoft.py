@@ -1,6 +1,7 @@
 import argparse
 import subprocess
 import sys, os
+import shutil
 import gffutils as gff
 from Bio import SeqIO
 from Bio.Seq import Seq
@@ -299,8 +300,9 @@ def main():
     post_process_fmt(args.output_dir, args.input_files, mapping)
 
     # clean up BLAST/DIAMOND output as it uses too much space
-    os.rmdir(args.output_dir + "BLASTff")
-    os.rmdir(args.output_dir + "BLASTno")
+    shutil.rmtree(args.output_dir + "BLASTff")
+    shutil.rmtree(args.output_dir + "BLASTno")
+    shutil.rmtree(args.output_dir + "BLASTconv")
 
     return
 
