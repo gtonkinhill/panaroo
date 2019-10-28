@@ -25,6 +25,8 @@ def expand_path(g2g2n, paths, target):
     for genome in paths:
         path = paths[genome]
         head = path[-1]
+        if genome not in g2g2n[head]:
+            continue
         neighbors = g2g2n[head][genome]
         if len(neighbors) == 2:
             if len(path) == 1:
@@ -59,25 +61,33 @@ def join_paths(path_f, path_r, target):
     return path_dict
 
 
-def get_neighbors(name, g2g2n, graph, length=10):
+def get_neighbors(name, g2g2n, graph, expand_no):
     target = g2g2n[name]
+    #forward paths
     paths_f = {}
+    #reverse paths
     paths_r = {}
+    #iterate over all genomes that are in the target node
     for genome in target:
+        #forward
         if genome not in paths_f:
             paths_f[genome] = [target[genome][0]]
         else:
             paths_f[genome].append(target[genome][0])
+        #reverse (always shorter or equal size)
         if len(target[genome]) > 1:
             if genome not in paths_r:
                 paths_r[genome] = [target[genome][1]]
             else:
                 paths_r[genome].append(target[genome][1])
-    for i in range(5):
+    #expand paths to both sides
+    for i in range(expand_no):
         expand_path(g2g2n, paths_r, name)
         expand_path(g2g2n, paths_f, name)
+    #aggregate paths
     path_dict = join_paths(paths_f, paths_r, name)
     path_dict_t = {}
+    #translate gene ids into gene names
     for p, genomes in zip(path_dict.keys(), path_dict.values()):
         gene_path = []
         for gene in p:
@@ -101,13 +111,12 @@ def write_paths(paths, out):
             f.write('\n')
 
 
-def run(gene, graph, out):
+def run(gene, graph, expand_no, out):
     g = nx.read_gml(graph)
     target = get_target(g, gene)
     g2g2n = index_neighbors(g)
-    paths = get_neighbors(target, g2g2n, g)
+    paths = get_neighbors(target, g2g2n, g, expand_no)
     write_paths(paths, out)
-    #"143"'ureR_1'
 
 
 if __name__ == "__main__":
@@ -115,6 +124,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser("explore gene neighbordhood")
     parser.add_argument("gene", help="gene of interested")
     parser.add_argument("graph", help="genome graph gml")
+    parser.add_argument("--expand_no", default = 5, help="lengths of the path that will be expanded on either side of the target gene", type = int)
     parser.add_argument("out", help="output file")
     args = parser.parse_args()
     run(**vars(args))
