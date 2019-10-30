@@ -8,11 +8,11 @@ def set_default_args(args):
 
     if args.mode == 'strict':
         if args.id is None:
-            args.id = 0.95
+            args.id = 0.98
         if args.family_threshold is None:
             args.family_threshold = 0.7
         if args.len_dif_percent is None:
-            args.len_dif_percent = 0.95
+            args.len_dif_percent = 0.98
         if args.min_trailing_support is None:
             args.min_trailing_support = max(2, math.ceil(0.05 * n_samples))
         if args.trailing_recursive is None:
@@ -26,11 +26,11 @@ def set_default_args(args):
 
     elif args.mode == 'moderate':
         if args.id is None:
-            args.id = 0.95
+            args.id = 0.98
         if args.family_threshold is None:
             args.family_threshold = 0.7
         if args.len_dif_percent is None:
-            args.len_dif_percent = 0.95
+            args.len_dif_percent = 0.98
         if args.min_trailing_support is None:
             args.min_trailing_support = max(2, math.ceil(0.01 * n_samples))
         if args.trailing_recursive is None:
@@ -44,11 +44,11 @@ def set_default_args(args):
 
     else:
         if args.id is None:
-            args.id = 0.95
+            args.id = 0.98
         if args.family_threshold is None:
             args.family_threshold = 0.7
         if args.len_dif_percent is None:
-            args.len_dif_percent = 0.95
+            args.len_dif_percent = 0.98
         if args.min_trailing_support is None:
             args.min_trailing_support = 2
         if args.trailing_recursive is None:

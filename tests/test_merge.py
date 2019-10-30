@@ -15,14 +15,16 @@ def test_merge(datafolder):
             sys.argv = ["", "-i", 
                 datafolder + "aa1.gff", 
                 datafolder + "aa2.gff", 
+                datafolder + "aa3.gff",
+                datafolder + "aa4.gff",
                 "-o", tmpdirA]
             main()
             # read gene p/a file
             pa = np.genfromtxt(tmpdirA + "/gene_presence_absence.Rtab",
                 delimiter="\t", skip_header=1)
 
-            assert pa.shape == (5113, 3)
-            assert np.sum(pa[:,1:])==10224
+            assert abs(pa.shape[0] - 5110)<2
+            assert abs(np.sum(pa[:,1:])-20417)<3
 
             # merge the result
             sys.argv = ["", "-d", 
@@ -37,14 +39,14 @@ def test_merge(datafolder):
         pa = np.genfromtxt(tmpoutdir + "/gene_presence_absence.Rtab",
             delimiter="\t", skip_header=1)
 
-        assert pa.shape == (5113, 5)
-        assert np.sum(pa[:,1:])==20448
+        assert abs(pa.shape[0] - 5110)<2
+        assert abs(np.sum(pa[:,1:])-40836)<3
 
         # read struct p/a file
         pa = np.genfromtxt(tmpoutdir + "/struct_presence_absence.Rtab",
             delimiter="\t", skip_header=1)
         
-        assert pa.shape == (112, 5)
-        assert np.sum(pa[:,1:])==224
+        assert pa.shape == (120 , 9)
+        assert np.sum(pa[:,1:])==478
 
     return

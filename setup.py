@@ -37,7 +37,7 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/gtonkinhill/panaroo",
     install_requires=[
-        'networkx>=2.0', 'gffutils', 'BioPython', 'joblib', 'tqdm', 'edlib',
+        'networkx==2.3', 'gffutils', 'BioPython', 'joblib', 'tqdm', 'edlib',
         'scipy', 'numpy', 'matplotlib', 'sklearn', 'plotly', 'dendropy'
     ],
     python_requires='>=3.6.0',

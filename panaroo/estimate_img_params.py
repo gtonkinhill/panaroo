@@ -313,7 +313,7 @@ def f_theory_dist(params,
             u2 = 0
         elif len(params) == 2:  # 1D+E constrained
             v1 = params[0]
-            gess = params[1]
+            gess = np.power(10, params[1])
             u1 = v1 * (genomesize - gess)
             v2 = 255
             u2 = 0
@@ -326,7 +326,7 @@ def f_theory_dist(params,
         elif len(params) == 4:  # 2D+E constrained
             v1 = params[0]
             u1 = params[1]
-            gess = params[2]
+            gess = np.power(10, params[2])
             v2 = params[3]
             u2 = v2 * (genomesize - u1 / v1 - gess)
     else:
@@ -339,7 +339,7 @@ def f_theory_dist(params,
         elif len(params) == 3:  # 1D+E unconstrained
             v1 = params[0]
             u1 = params[1]
-            gess = params[2]
+            gess = np.power(10, params[2])
             v2 = 255
             u2 = 0
         elif len(params) == 4:  # 2D unconstrained
@@ -351,7 +351,7 @@ def f_theory_dist(params,
         elif len(params) == 5:  # 2D+E unconstrained
             v1 = params[0]
             u1 = params[1]
-            gess = params[2]
+            gess = np.power(10, params[2])
             v2 = params[3]
             u2 = params[4]
 
@@ -439,35 +439,35 @@ def get_options():
 
     parser.add_argument("--init_u1",
                         dest="u1",
-                        help=("Initial value for u1 (default=1)."),
+                        help=("Initial value for u1 (default=0.01)."),
                         type=float,
-                        default=1)
+                        default=0.01)
 
     parser.add_argument("--init_u2",
                         dest="u2",
-                        help=("Initial value for u2 (default=1)."),
+                        help=("Initial value for u2 (default=0.01)."),
                         type=float,
-                        default=1)
+                        default=0.01)
 
     parser.add_argument("--init_v1",
                         dest="v1",
-                        help=("Initial value for v1 (default=1)."),
+                        help=("Initial value for v1 (default=0.01)."),
                         type=float,
-                        default=1)
+                        default=0.01)
 
     parser.add_argument("--init_v2",
                         dest="v2",
-                        help=("Initial value for v2 (default=1)."),
+                        help=("Initial value for v2 (default=0.01)."),
                         type=float,
-                        default=1)
+                        default=0.01)
 
     parser.add_argument(
         "--init_ess",
         dest="gess",
         help=(
-            "Initial value for the number of essential genes (default=1000)."),
+            "Initial value for the number of essential genes (default=2000)."),
         type=float,
-        default=1000)
+        default=2000)
 
     parser.add_argument("--verbose",
                         dest="verbose",
@@ -517,41 +517,69 @@ def main():
 
     if args.no_constraint:
         params_init = [args.v1, args.u1]
+        bounds = [(1e-7, 1e3), (1e-7, 1e3)]
         if not args.no_essential:
-            params_init += [args.gess]
+            params_init += [np.log10(args.gess)]
+            bounds += [(1e-7, 7)]
         if args.n_classes == 2:
             params_init += [args.v2, args.u2]
+            bounds += [(1e-7, 1e3), (1e-7, 1e3)]
     else:
         params_init = [args.v1]
+        bounds = [(1e-7, 1e3)]
         if args.n_classes == 2:
             params_init += [args.u1]
+            bounds += [(1e-7, 1e3)]
         if not args.no_essential:
-            params_init += [args.gess]
+            params_init += [np.log10(args.gess)]
+            bounds += [(1e-7, 7)]
         if args.n_classes == 2:
             params_init += [args.v2]
+            bounds += [(1e-7, 1e3)]
 
-    options = {"maxiter": 1e4, 'disp': True}
-
+    options = {"maxiter": 1e4}
+    
     if args.model == 'coalescent':
-        result = optimize.minimize(f_theory_dist,
-                                   x0=params_init,
-                                   method='Nelder-Mead',
-                                   args=(data, (not args.no_constraint),
-                                         args.model, args.fit, genomesize,
-                                         ngenomes),
-                                   options=options)
+        # result = optimize.minimize(f_theory_dist,
+        #                         bounds=bounds,
+        #                         x0=params_init,
+        #                         method='L-BFGS-B',
+        #                         args=(data, (not args.no_constraint),
+        #                                 args.model, args.fit, genomesize,
+        #                                 ngenomes),
+        #                         options=options)
+        
+        result = optimize.basinhopping(f_theory_dist,
+                                x0=params_init,
+                                niter=10,
+                                minimizer_kwargs={'args': (data, (not args.no_constraint),
+                                        args.model, args.fit, genomesize,
+                                        ngenomes),
+                                        "method": 'L-BFGS-B',
+                                        "bounds": bounds})
+
     else:
         if args.tree is None:
             raise RuntimeError("A phylogeny is required for the fixed model!")
         tree_table = get_tree_table(tree)
 
-        result = optimize.minimize(f_theory_dist,
-                                   x0=params_init,
-                                   method='Nelder-Mead',
-                                   args=(data, (not args.no_constraint),
-                                         args.model, args.fit, genomesize,
-                                         ngenomes, tree_table),
-                                   options=options)
+        # result = optimize.minimize(f_theory_dist,
+        #                         bounds=bounds,
+        #                         x0=params_init,
+        #                         method='L-BFGS-B',
+        #                         args=(data, (not args.no_constraint),
+        #                                 args.model, args.fit, genomesize,
+        #                                 ngenomes, tree_table),
+        #                         options=options)
+
+        result = optimize.basinhopping(f_theory_dist,
+                                x0=params_init,
+                                niter=10,
+                                minimizer_kwargs={'args': (data, (not args.no_constraint),
+                                        args.model, args.fit, genomesize,
+                                        ngenomes, tree_table),
+                                        "method": 'L-BFGS-B',
+                                        "bounds": bounds})
 
     if args.verbose:
         print("***** Optimisation Summary ******")
@@ -563,7 +591,7 @@ def main():
     if args.no_constraint:
         result_summary = [('v1', params.pop(0)), ('u1', params.pop(0))]
         if not args.no_essential:
-            result_summary += [('ess', params.pop(0))]
+            result_summary += [('ess', np.power(10, params.pop(0)))]
         if args.n_classes == 2:
             result_summary += [('v2', params.pop(0)), ('u2', params.pop(0))]
     else:
@@ -571,7 +599,7 @@ def main():
         if args.n_classes == 2:
             result_summary += [('u1', params.pop(0))]
         if not args.no_essential:
-            result_summary += [('ess', params.pop(0))]
+            result_summary += [('ess', np.power(10, params.pop(0)))]
         if args.n_classes == 2:
             result_summary += [('v2', params.pop(0))]
 

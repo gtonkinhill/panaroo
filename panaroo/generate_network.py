@@ -32,11 +32,12 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
 
     # Load meta data such as sequence and annotation
     cluster_centroid_data = {}
+    centroid_ids = set(cluster_centroids.values())
     with open(data_file, 'rU') as infile:
         next(infile)  # skip header
         for line in infile:
             line = line.strip().split(",")
-            if line[2] in seq_to_cluster:
+            if line[2] in centroid_ids:
                 # this is a cluster centroid so keep it
                 cluster_centroid_data[seq_to_cluster[line[2]]] = {
                     'prot_sequence': line[4],
@@ -104,6 +105,9 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                     ['description'],
                     lengths=[len(cluster_centroid_data[current_cluster]
                         ['dna_sequence'])],
+                    longCentroidID=(len(cluster_centroid_data[current_cluster]
+                        ['dna_sequence']),
+                        cluster_centroids[current_cluster]),
                     paralog=(current_cluster in paralogs),
                     mergedDNA=False)
         else:
@@ -131,6 +135,9 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                     ['description'],
                     lengths=[len(cluster_centroid_data[current_cluster]
                         ['dna_sequence'])],
+                    longCentroidID=(len(cluster_centroid_data[current_cluster]
+                        ['dna_sequence']),
+                        cluster_centroids[current_cluster]),
                     paralog=True,
                     mergedDNA=False)
                 # add edge between nodes
@@ -156,6 +163,9 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                         ['description'],
                         lengths=[len(cluster_centroid_data[current_cluster]
                         ['dna_sequence'])],
+                        longCentroidID=(len(cluster_centroid_data[current_cluster]
+                        ['dna_sequence']),
+                        cluster_centroids[current_cluster]),
                         paralog=is_paralog,
                         mergedDNA=False)
                     # add edge between nodes

@@ -35,6 +35,7 @@ def merge_nodes(G,
                        set(G.node[nodeA]['description'].split(";") +
                            G.node[nodeB]['description'].split(";"))),
                    lengths=G.node[nodeA]['lengths'] + G.node[nodeB]['lengths'],
+                   longCentroidID=max(G.node[nodeA]['longCentroidID'], G.node[nodeB]['longCentroidID']),
                    paralog=(G.node[nodeA]['paralog']
                             or G.node[nodeB]['paralog']),
                    mergedDNA=(G.node[nodeA]['mergedDNA']
@@ -49,7 +50,7 @@ def merge_nodes(G,
             nodeB, nodeA = nodeA, nodeB
 
         G.add_node(newNode,
-                   size=G.node[nodeA]['size'] + G.node[nodeB]['size'],
+                   size=len(set(G.node[nodeA]['members'] + G.node[nodeB]['members'])),
                    centroid=G.node[nodeA]['centroid'],
                    members=G.node[nodeA]['members'] + G.node[nodeB]['members'],
                    seqIDs=G.node[nodeA]['seqIDs'] + G.node[nodeB]['seqIDs'],
@@ -62,6 +63,7 @@ def merge_nodes(G,
                    paralog=(G.node[nodeA]['paralog']
                             or G.node[nodeB]['paralog']),
                    lengths=G.node[nodeA]['lengths'] + G.node[nodeB]['lengths'],
+                   longCentroidID=max(G.node[nodeA]['longCentroidID'], G.node[nodeB]['longCentroidID']),
                    mergedDNA=True)
         if "prevCentroids" in G.node[nodeA]:
             G.node[newNode]['prevCentroids'] = ";".join(
@@ -135,8 +137,9 @@ def remove_member_from_node(G, node, member):
                 G.add_edge(n1, n2, weight=1, members=[member])
 
     # remove member from node
-    while member in G.node[node]['members']:
+    while str(member) in G.node[node]['members']:
         G.node[node]['members'].remove(str(member))
+    G.node[node]['seqIDs'] = [sid for sid in G.node[node]['seqIDs'] if sid.split("_")[0]!=str(member)]
     G.node[node]['size'] -= 1
 
     return G

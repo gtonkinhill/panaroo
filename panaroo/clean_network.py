@@ -29,55 +29,79 @@ def trim_low_support_trailing_ends(G, min_support=3, max_recursive=2):
 
     return G
 
+def mod_bfs_edges(G, source, depth_limit=None):
+    """Iterate over edges in a breadth-first search.
+    Modified version of 'generic_bfs_edges' from networkx
+    """
+    neighbors = G.neighbors
+
+    visited = {source}
+    if depth_limit is None:
+        depth_limit = len(G)
+    queue = deque([(source, depth_limit, neighbors(source))])
+    while queue:
+        parent, depth_now, children = queue[0]
+        try:
+            child = next(children)
+            if child not in visited:
+                yield parent, child, depth_now
+                visited.add(child)
+                if depth_now > 1:
+                    queue.append((child, depth_now - 1, neighbors(child)))
+        except StopIteration:
+            queue.popleft()
+
+def max_clique(G):
+    max_clique = []
+    max_len = 0
+    for clique in nx.find_cliques(G):
+        if len(clique)>max_len:
+            max_len = len(clique)
+            max_clique = clique
+    return max_clique
+
 def collapse_families(G,
                       outdir,
                       family_threshold=0.7,
                       dna_error_threshold=0.99,
                       correct_mistranslations=False,
                       n_cpu=1,
-                      quiet=False):
+                      quiet=False,
+                      distances_bwtn_centroids=None, 
+                      centroid_to_index=None):
 
     node_count = max(list(G.nodes())) + 10
 
+    
     if correct_mistranslations:
         depths = [1, 2, 3]
-        if dna_error_threshold > 0.96:
-            threshold = list(np.arange(1, dna_error_threshold, -0.01))
-        else:
-            threshold = list(np.arange(1, 0.97, -0.01)) + list(
-                np.arange(0.96, dna_error_threshold, -0.05))
+        threshold = [0.99, 0.98, 0.95, 0.9]
     else:
         depths = [1, 2, 3]
-        if family_threshold == 1:
-            threshold = [1]
-        else:
-            if family_threshold > 0.98:
-                threshold = [family_threshold]
-            elif family_threshold > 0.95:
-                threshold = [0.99] + list(np.arange(1, family_threshold,
-                                                    -0.02))
-            else:
-                threshold = [0.99, 0.95] + list(
-                    np.arange(0.90, family_threshold, -0.1))
+        threshold = [0.99, 0.95, 0.9, 0.8, 0.7, 0.6, 0.5]
 
     # precluster for speed
     if correct_mistranslations:
         cdhit_clusters = iterative_cdhit(
             G,
-            G.nodes(),
             outdir,
             thresholds=threshold,
             n_cpu=n_cpu,
             quiet=True,
             dna=True,
-            # aL=0.6,
-            use_local=False,
+            word_length=7,
             accurate=False)
         distances_bwtn_centroids, centroid_to_index = pwdist_edlib(
             G, cdhit_clusters, dna_error_threshold, dna=True, n_cpu=n_cpu)
-    else:
+
+        # keep track of centroids for each sequence. Need this to resolve clashes
+        seqid_to_index = {}
+        for node in G.nodes():
+            for sid in G.node[node]['seqIDs']:
+                seqid_to_index[sid] = centroid_to_index[G.node[node]["longCentroidID"][1]]
+
+    elif distances_bwtn_centroids is None:
         cdhit_clusters = iterative_cdhit(G,
-                                         G.nodes(),
                                          outdir,
                                          thresholds=threshold,
                                          n_cpu=n_cpu,
@@ -85,7 +109,7 @@ def collapse_families(G,
                                          dna=False)
         distances_bwtn_centroids, centroid_to_index = pwdist_edlib(
             G, cdhit_clusters, family_threshold, dna=False, n_cpu=n_cpu)
-    for d in depths:
+    for depth in depths:
         search_space = set(G.nodes())
         while len(search_space) > 0:
             # look for nodes to merge
@@ -101,12 +125,14 @@ def collapse_families(G,
 
                 # find neighbouring nodes and cluster their centroid with cdhit
                 neighbours = [
-                    v for u, v in nx.bfs_edges(G, source=node, depth_limit=d)
+                    v for u, v in nx.bfs_edges(G, source=node, depth_limit=depth)
                 ]
+                if correct_mistranslations:
+                    neighbours += [node]
 
                 # find clusters
                 index = np.array([
-                    centroid_to_index[G.node[neigh]["centroid"].split(";")[0]]
+                    centroid_to_index[G.node[neigh]["longCentroidID"][1]]
                     for neigh in neighbours
                 ],
                                  dtype=int)
@@ -121,14 +147,15 @@ def collapse_families(G,
                 ]
 
                 for cluster in clusters:
-                    # check if there are any to collapse
 
+                    # check if there are any to collapse
                     if len(cluster) <= 1: continue
 
                     # check for conflicts
-                    members = list(
-                        chain.from_iterable(
-                            [G.node[n]['members'] for n in cluster]))
+                    members = []
+                    for n in cluster:
+                        for m in set(G.node[n]['members']):
+                            members.append(m)
 
                     if (len(members) == len(set(members))):
                         # no conflicts so merge
@@ -156,35 +183,40 @@ def collapse_families(G,
                         if correct_mistranslations:
                             # merge if the centroids don't conflict and the nodes are adjacent in the conflicting genome
                             # this corresponds to a mistranslation where one gene has been split into two in a subset of genomes
+                            
+                            # build a mini graph of allowed pairwise merges
+                            tempG = nx.Graph()
+                            for nA, nB in itertools.combinations(cluster, 2):
+                                mem_inter = set(G.node[nA]['members']).intersection(G.node[nB]['members'])
+                                if len(mem_inter) > 0:
+                                    if distances_bwtn_centroids[centroid_to_index[G.node[nA]["longCentroidID"][1]], 
+                                        centroid_to_index[G.node[nB]["longCentroidID"][1]]]==0:
+                                        tempG.add_edge(nA, nB)
+                                    else:
+                                        for imem in mem_inter:
+                                            tempids = []
+                                            for sid in G.node[nA]['seqIDs'] + G.node[nB]['seqIDs']:
+                                                if int(sid.split("_")[0])==imem:
+                                                    tempids.append(sid)
+                                            shouldmerge = True
+                                            for sidA, sidB in itertools.combinations(tempids, 2):
+                                                if distances_bwtn_centroids[seqid_to_index[sidA],
+                                                    seqid_to_index[sidB]]==1: shouldmerge=False
+                                            if shouldmerge:
+                                                tempG.add_edge(nA, nB)
+                                else:
+                                    tempG.add_edge(nA, nB)
 
-                            # work out which nodes each genome has
-                            member_to_nodes = defaultdict(set)
-                            for n in cluster:
-                                for mem in G.node[n]['members']:
-                                    member_to_nodes[mem].add(n)
-
-                            should_merge = True
-                            for mem in member_to_nodes:
-                                if len(member_to_nodes[mem]) <= 1: continue
-                                temp_centroids = [
-                                    G.node[n]['centroid']
-                                    for n in member_to_nodes[mem]
-                                ]
-                                if len(temp_centroids) != len(
-                                        set(temp_centroids)):
-                                    # matching centroids so dont merge
-                                    should_merge = False
-                                sub_G = G.subgraph(member_to_nodes[mem])
-                                if not nx.is_connected(sub_G):
-                                    should_merge = False
-
-                            if should_merge:
+                            # merge from largest clique to smallest
+                            clique = max_clique(tempG)
+                            while len(clique)>1:
                                 node_count += 1
-                                for neig in cluster:
+                                for neig in clique:
                                     removed_nodes.add(neig)
                                     if neig in search_space:
                                         search_space.remove(neig)
-                                temp_c = cluster.copy()
+                                
+                                temp_c = clique.copy()
                                 G = merge_nodes(G,
                                                 temp_c.pop(),
                                                 temp_c.pop(),
@@ -200,6 +232,8 @@ def collapse_families(G,
                                                     check_merge_mems=False)
                                     node_count += 1
                                 search_space.add(node_count)
+                                tempG.remove_nodes_from(clique)
+                                clique = max_clique(tempG)
                         else:
                             # there is a conflict in the merge, check if we can split based on neighbours
                             was_merged = True
@@ -247,32 +281,12 @@ def collapse_families(G,
                                     cluster.remove(best_merge[2])
                                     cluster.append(node_count)
                                     search_space.add(node_count)
+                
+                if node in search_space:
+                    search_space.remove(node)
 
-                search_space.remove(node)
+    return G, distances_bwtn_centroids, centroid_to_index
 
-    return G
-
-def mod_bfs_edges(G, source, depth_limit=None):
-    """Iterate over edges in a breadth-first search.
-    Modified version of 'generic_bfs_edges' from networkx
-    """
-    neighbors = G.neighbors
-
-    visited = {source}
-    if depth_limit is None:
-        depth_limit = len(G)
-    queue = deque([(source, depth_limit, neighbors(source))])
-    while queue:
-        parent, depth_now, children = queue[0]
-        try:
-            child = next(children)
-            if child not in visited:
-                yield parent, child, depth_now
-                visited.add(child)
-                if depth_now > 1:
-                    queue.append((child, depth_now - 1, neighbors(child)))
-        except StopIteration:
-            queue.popleft()
 
 def collapse_paralogs(G, centroid_contexts, max_context=5, quiet=False):
     
