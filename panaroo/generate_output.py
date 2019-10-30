@@ -284,3 +284,37 @@ def generate_core_genome_alignment(G, temp_dir, output_dir, threads, aligner,
     #Concatenate them together to produce the two output files
     concatenate_core_genome_alignments(core_gene_names, output_dir)
     return
+
+def generate_summary_stats(output_dir):
+    with open(output_dir + "gene_presence_absence.csv", 'r') as inhandle:
+        gene_presence_absence = inhandle.read().splitlines()[1:]
+    noSamples = len(gene_presence_absence[0].split(',')) - 14
+    #Layout categories 
+    noCore = 0
+    noSoftCore = 0
+    noShell = 0
+    noCloud = 0
+    total_genes = 0
+    #Iterate through GPA and summarise
+    for gene in gene_presence_absence:
+        proportion_present = float(gene.split(',')[4])/noSamples * 100.0
+        if proportion_present >= 99:
+            noCore += 1
+        elif proportion_present >= 95:
+            noSoftCore += 1
+        elif proportion_present >= 15:
+            noShell += 1
+        else:
+            noCloud += 1 
+        total_genes += 1
+    
+    #write output
+    with open(output_dir + "summary_statistics.txt", 'w') as outfile:
+        output = ("Core genes\t(99% <= strains <= 100%)\t" + str(noCore) +"\n"+ 
+        "Soft core genes\t(95% <= strains < 99%)\t" + str(noSoftCore) + "\n"+
+        "Shell genes\t(15% <= strains < 95%)\t" + str(noShell) + "\n"+
+        "Cloud genes\t(0% <= strains < 15%)\t" + str(noCloud) + "\n"+
+        "Total genes\t(0% <= strains <= 100%)\t" + str(total_genes)) 
+        outfile.write(output)
+    
+    return True

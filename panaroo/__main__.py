@@ -322,6 +322,9 @@ def main():
     for i, iso in enumerate(isolate_names):
         mems_to_isolates[str(i)] = iso
 
+    if args.verbose:
+        print("writing output...")
+
     # write out roary like gene_presence_absence.csv
     # get original annotaiton IDs
     orig_ids = {}
@@ -335,7 +338,9 @@ def main():
                                              mems_to_isolates=mems_to_isolates,
                                              orig_ids=orig_ids,
                                              output_dir=args.output_dir)
-
+    #Write out presence_absence summary
+    generate_summary_stats(output_dir=args.output_dir)
+    
     # add helpful attributes and write out graph in GML format
     for node in G.nodes():
         G.node[node]['size'] = len(set(G.node[node]['members']))
