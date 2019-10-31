@@ -1,6 +1,6 @@
 # Graph Correction
 
-### Spurious ends
+### Spurious Ends
 
 ![logo](_figures/trailing_end_error.png ':size=500%')
 
