@@ -213,7 +213,7 @@ def get_core_gene_nodes(G, threshold, num_isolates):
     core_nodes = []
     for node in G.nodes():
         if float(G.node[node]["size"]) / float(num_isolates) > threshold:
-            core_nodes.append(node)
+            core_nodes.append(G.node[node]["name"])
     return core_nodes
 
 
@@ -222,10 +222,11 @@ def concatenate_core_genome_alignments(core_names, output_dir):
     alignments_dir = output_dir + "/aligned_gene_sequences/"
     #Open up each alignment that is assosciated with a core node
     alignment_filenames = os.listdir(alignments_dir)
+    print("len(alignment_filesnames) %s" %len(alignment_filenames))
     core_filenames = [
         x for x in alignment_filenames if x.split('.')[0] in core_names
     ]
-
+    print("len(core_filesnames) %s" %len(core_filenames))
     #Read in all these alginemnts
     gene_alignments = []
     gene_names = []
@@ -240,7 +241,9 @@ def concatenate_core_genome_alignments(core_names, output_dir):
             gene_length = len(record.seq)
             isolates.add(genome_id)
         gene_alignments.append((gene_name, gene_dict, gene_length))
-
+    print("len(gene_alignments) %s" %len(gene_alignments))
+    print("len(gene_names) %s" %len(gene_names))
+    print("len(isolates) %s" %len(isolates))
     #Combine them
     isolate_aln = []
     for iso in isolates:
@@ -253,6 +256,7 @@ def concatenate_core_genome_alignments(core_names, output_dir):
         isolate_aln.append(SeqRecord(seq, id=iso, description=""))
 
     #Write out the two output files
+    print(isolate_aln)
     SeqIO.write(isolate_aln, output_dir + 'core_gene_alignment.aln', 'fasta')
 
     write_alignment_header(gene_alignments, output_dir)
