@@ -213,7 +213,7 @@ def get_core_gene_nodes(G, threshold, num_isolates):
     core_nodes = []
     for node in G.nodes():
         if float(G.node[node]["size"]) / float(num_isolates) > threshold:
-            core_nodes.append(node)
+            core_nodes.append(G.node[node]["name"])
     return core_nodes
 
 
@@ -225,10 +225,8 @@ def concatenate_core_genome_alignments(core_names, output_dir):
     core_filenames = [
         x for x in alignment_filenames if x.split('.')[0] in core_names
     ]
-
     #Read in all these alginemnts
     gene_alignments = []
-    gene_names = []
     isolates = set()
     for filename in core_filenames:
         gene_name = os.path.splitext(os.path.basename(filename))[0]
@@ -240,7 +238,6 @@ def concatenate_core_genome_alignments(core_names, output_dir):
             gene_length = len(record.seq)
             isolates.add(genome_id)
         gene_alignments.append((gene_name, gene_dict, gene_length))
-
     #Combine them
     isolate_aln = []
     for iso in isolates:
