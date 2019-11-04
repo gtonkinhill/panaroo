@@ -54,6 +54,12 @@ def plot_MDS(dist_mat, file_names, outdir):
     projection = mds.fit(dist_mat)
     coords = projection.embedding_
 
+    #write MDS coordinates to disk
+    with open(outdir + "mds_coords.txt", "w") as contig_out:
+        contig_out.write("sample\tcoordx\tcoordy\n")
+        for i, coord in zip(file_names, coords):
+            contig_out.write("%s\t%s\t%s\n" % (i, coord[0], coord[1]))
+
     # find margins for plot
     c_min = np.min(coords) - abs(np.quantile(coords, 0.05))
     c_max = np.max(coords) + abs(np.quantile(coords, 0.05))
@@ -118,6 +124,10 @@ def plot_ngenes(input_gffs, outdir):
             if "##" == line[:2]: continue
             ngenes[i] += 1
 
+    with open(outdir + "ngenes.txt", "w") as genes_out:
+        genes_out.write("sample\tno_genes\n")
+        for i,j in zip(file_names, ngenes):
+            genes_out.write("%s\t%s\n" % (i, j))
     # generate static plot
     plt.style.use('ggplot')
     fig = plt.figure()
@@ -173,6 +183,10 @@ def plot_ncontigs(input_gffs, outdir):
                 in_fasta = True
 
     # generate static plot
+    with open(outdir + "ncontigs.txt", "w") as contig_out:
+        contig_out.write("sample\tno_contigs\n")
+        for i,j in zip(file_names, ncontigs):
+            contig_out.write("%s\t%s\n" % (i, j))
     plt.style.use('ggplot')
     fig = plt.figure()
     plt.barh(np.arange(len(ncontigs)), ncontigs)

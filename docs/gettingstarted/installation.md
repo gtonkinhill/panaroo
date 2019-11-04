@@ -4,11 +4,14 @@ Conda is the simplest way to install Panaroo and all its dependencies.
 
 ### Conda
 
-### PyPi
+
 
 ### Manual
 
+Install cd-hit using either conda or by following the instructions at https://github.com/weizhongli/cdhit
+
 Download or clone the repository and install by running
+
 ```
 git clone https://github.com/gtonkinhill/panaroo
 cd panaroo
