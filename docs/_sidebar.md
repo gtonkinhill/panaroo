@@ -1,25 +1,22 @@
 <!-- docs/_sidebar.md -->
 
-- Getting started
+- Getting Started
 
-    - [Quick start](/gettingstarted/quickstart.md)
+    - [Quick Start](/gettingstarted/quickstart.md)
     - [Installation](/gettingstarted/installation.md)
     - [Parameters](/gettingstarted/params.md)
     - [Output](/gettingstarted/output.md)
 
-- Quality Control
-    - [Contamination](/quality/contamination.md)
-    - [Outlier detection](/quality/outlier.md)
+- [Quality Control](/quality/quality_control.md)
 
-- Post-processing
-    - [Pan-genome association study](/post/pwas.md)
-    - [Structural variant analysis](/post/sv.md)
-    - [Estimating the pan-genome size](/post/pansize.md)
+- Post-Processing
+    - [Pangenome Association Study](/post/pwas.md)
+    - [Structural Variant Analysis](/post/sv.md)
+    - [Estimating the Pangenome Size](/post/pansize.md)
+    - [Co-Evolving Genes](/post/coevolution.md)
     
-
 - Visualisation
-    - [Viewing the pan-genome graph](/vis/cytoscape.md)
-    - [Creating summary plots](/vis/plots.md)
+    - [Visualising the Pangenome](/vis/cytoscape.md)
 
-- Methods
-    - [Graph correction](/methods/graphcorrection.md)
+- Panaroo Algorithm
+    - [Graph Correction](/methods/graphcorrection.md)

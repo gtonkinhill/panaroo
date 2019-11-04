@@ -58,7 +58,9 @@ setup(
             'panaroo-qc = panaroo.generate_qc_plots:main',
             'panaroo-merge = panaroo.merge_graphs:main',
             'panaroo-plot-abundance = panaroo.generate_abundance_plots:main',
-            'panaroo-spydrpick = panaroo.spydrpick:main'
+            'panaroo-spydrpick = panaroo.spydrpick:main',
+            'panaroo-img = panaroo.estimate_img_params:main',
+            'panaroo-fmg = panaroo.estimate_many_genes_params:main'
         ],
     },
 )

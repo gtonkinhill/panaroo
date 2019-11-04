@@ -44,7 +44,7 @@ def find_missing(G,
     for node in G.nodes():
         if (len(G.node[node]['centroid'].split(";")) >
                 1) or (G.node[node]['mergedDNA']):
-            merged_nodes[node] = max(G.node[node]["dna"].split(";"), key=len)
+            merged_nodes[node] = G.node[node]["dna"].split(";")[0]
 
     # iterate through nodes to identify accessory genes for searching
     # these are nodes missing a member with at least one neighbour that has that member
@@ -386,6 +386,7 @@ def search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh, refind):
     #     print(loc)
     #     print("<<<<<<<<<<<<<<<<<<")
     seq = found_dna.replace('X', 'N').replace('E','N')
+    seq = seq.strip('N')
 
     return seq, loc
 

@@ -26,7 +26,7 @@ install:
 
 # command to run tests
 script:
-  - travis_wait 60 pytest -W ignore -q --datafolder="${TRAVIS_BUILD_DIR}/travis_test_data/"
+  - travis_wait 30 pytest -W ignore -q --datafolder="${TRAVIS_BUILD_DIR}/travis_test_data/"
 
 notifications:
     slack: pathogens:8NUkMUXlMNecj9NXnwTKbBQU
