@@ -20,7 +20,7 @@ def merge_nodes(G,
     # First create a new node and combine the attributes
     if multi_centroid:
         G.add_node(newNode,
-                   size=G.node[nodeA]['size'] + G.node[nodeB]['size'],
+                   size=len(set(G.node[nodeA]['members'] + G.node[nodeB]['members'])),
                    centroid=";".join(
                        del_dups(G.node[nodeA]['centroid'].split(";") +
                            G.node[nodeB]['centroid'].split(";"))),
@@ -51,18 +51,23 @@ def merge_nodes(G,
     else:
         G.add_node(newNode,
                    size=len(set(G.node[nodeA]['members'] + G.node[nodeB]['members'])),
-                   centroid=G.node[nodeA]['centroid'],
+                   centroid=";".join(
+                       del_dups(G.node[nodeA]['centroid'].split(";") +
+                           G.node[nodeB]['centroid'].split(";"))),
                    members=G.node[nodeA]['members'] + G.node[nodeB]['members'],
                    seqIDs=G.node[nodeA]['seqIDs'] + G.node[nodeB]['seqIDs'],
                    hasEnd=(G.node[nodeA]['hasEnd'] or G.node[nodeB]['hasEnd']),
-                   protein=G.node[nodeA]['protein'],
-                   dna=G.node[nodeA]['dna'],
+                   protein=";".join(
+                       del_dups(G.node[nodeA]['protein'].split(";"))+
+                                G.node[nodeB]['protein'].split(";")), 
+                   dna=";".join(G.node[nodeA]['dna'].split(";") +
+                                G.node[nodeB]['dna'].split(";")),
                    annotation=G.node[nodeA]['annotation'],
                    description=G.node[nodeA]['description'],
                    paralog=(G.node[nodeA]['paralog']
                             or G.node[nodeB]['paralog']),
                    lengths=G.node[nodeA]['lengths'] + G.node[nodeB]['lengths'],
-                   longCentroidID=G.node[nodeA]['longCentroidID'],
+                   longCentroidID=max(G.node[nodeA]['longCentroidID'], G.node[nodeB]['longCentroidID']),
                    mergedDNA=True)
         if "prevCentroids" in G.node[nodeA]:
             G.node[newNode]['prevCentroids'] = ";".join(

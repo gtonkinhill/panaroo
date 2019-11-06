@@ -146,15 +146,15 @@ def collapse_families(G,
                     directed=False,
                     return_labels=True)
                 # labels = labels[index]
+                for neigh in neighbours:
+                    l = list(set(labels[neigh_array == neigh]))
+                    if len(l)>1:
+                        for i in l[1:]:
+                            labels[labels==i] = l[0]
+
                 clusters = [
                     del_dups(list(neigh_array[labels == i])) for i in np.unique(labels)
                 ]
-
-                if correct_mistranslations:
-                    sub_clusters = []
-                    for cluster in clusters:
-                        sub_clusters += get_sub_clusters(G, distances_bwtn_centroids, centroid_to_index, cluster)
-                    clusters = sub_clusters
 
                 for cluster in clusters:
 
@@ -248,80 +248,11 @@ def collapse_families(G,
                             search_space.add(node_count)
                             tempG.remove_nodes_from(clique)
                             clique = max_clique(tempG)
-                        # else:
-                        #     # there is a conflict in the merge, check if we can split based on neighbours
-                        #     was_merged = True
-                        #     already_merged = set()
-                        #     while was_merged:
-                        #         was_merged = False
-                        #         pos_merges = []
-                        #         for nA in cluster:
-                        #             if nA in already_merged: continue
-                        #             best_inter = -1
-                        #             for nB in cluster:
-                        #                 if nA == nB: continue
-                        #                 if len(
-                        #                         set(G.node[nA]
-                        #                             ['members']).intersection(
-                        #                                 set(G.node[nB]
-                        #                                     ['members']))) > 0:
-                        #                     continue
-                        #                 temp_inter = len(
-                        #                     set(G.neighbors(nA)).intersection(
-                        #                         set(G.neighbors(nB))))
-                        #                 # if temp_inter==0: continue
-                        #                 if temp_inter > best_inter:
-                        #                     best_inter = temp_inter
-                        #                     best_merge = nB
-                        #             if best_inter == -1:
-                        #                 # none left to merge with this node
-                        #                 already_merged.add(nA)
-                        #             else:
-                        #                 pos_merges.append(
-                        #                     (best_inter, nA, best_merge))
-                        #         if len(pos_merges) > 0:
-                        #             was_merged = True
-                        #             best_merge = max(pos_merges)
-                        #             node_count += 1
-                        #             G = merge_nodes(G, best_merge[1],
-                        #                             best_merge[2], node_count)
-                        #             if best_merge[1] in search_space:
-                        #                 search_space.remove(best_merge[1])
-                        #             if best_merge[2] in search_space:
-                        #                 search_space.remove(best_merge[2])
-                        #             removed_nodes.add(best_merge[1])
-                        #             removed_nodes.add(best_merge[2])
-                        #             cluster.remove(best_merge[1])
-                        #             cluster.remove(best_merge[2])
-                        #             cluster.append(node_count)
-                        #             search_space.add(node_count)
                 
                 if node in search_space:
                     search_space.remove(node)
 
     return G, distances_bwtn_centroids, centroid_to_index
-
-def get_sub_clusters(G, distances_bwtn_centroids, centroid_to_index, cluster):
-
-    # order nodes by size
-    cluster = sorted(cluster, key=lambda x: G.node[x]['size'], reverse=True)
-
-    # cluster greedily similar to cdhit  but with the order defined by node support
-    sub_clusters = [[cluster[0]]]
-    for nodeA in cluster[1:]:
-        found=False
-        for i, sub in enumerate(sub_clusters):
-            for nodeB in sub:
-                if distances_bwtn_centroids[centroid_to_index[G.node[nodeA]["longCentroidID"][1]], 
-                                    centroid_to_index[G.node[nodeB]["longCentroidID"][1]]]==1:
-                                    sub_clusters[i].append(nodeA)
-                                    found=True
-                                    break
-            if found: break
-        if not found:
-            sub_clusters.append([nodeA])
-
-    return(sub_clusters)
 
 
 def collapse_paralogs(G, centroid_contexts, max_context=5, quiet=False):

@@ -40,11 +40,26 @@ def find_missing(G,
             id_to_gff[line[2]] = line[3]
 
     # identify nodes that have been merged at the protein level
-    merged_nodes = {}
+    merged_ids = {}
     for node in G.nodes():
         if (len(G.node[node]['centroid'].split(";")) >
                 1) or (G.node[node]['mergedDNA']):
-            merged_nodes[node] = G.node[node]["dna"].split(";")[0]
+                for sid in G.node[node]['seqIDs']:
+                    merged_ids[sid] = node
+
+    merged_nodes = defaultdict(dict)
+    with open(gene_data_file, 'r') as infile:
+        next(infile)
+        for line in infile:
+            line = line.split(",")
+            if line[2] in merged_ids:
+                mem = int(sid.split("_")[0])
+                if merged_ids[line[2]] in merged_nodes[mem]:
+                    merged_nodes[mem][merged_ids[line[2]]] = max(
+                        G.node[merged_ids[line[2]]]["dna"].split(";"), key=len)
+                else:
+                    merged_nodes[mem][merged_ids[line[2]]] = line[5]
+
 
     # iterate through nodes to identify accessory genes for searching
     # these are nodes missing a member with at least one neighbour that has that member
@@ -76,7 +91,7 @@ def find_missing(G,
         delayed(search_gff)(search_list[member],
                             conflicts[member],
                             gff_handle,
-                            merged_nodes=merged_nodes,
+                            merged_nodes=merged_nodes[member],
                             search_radius=search_radius,
                             prop_match=prop_match,
                             pairwise_id_thresh=pairwise_id_thresh,
@@ -149,29 +164,38 @@ def find_missing(G,
     n_found = 0
     with open(dna_seq_file, 'a') as dna_out:
         with open(prot_seq_file, 'a') as prot_out:
-            for member, hits in enumerate(all_hits):
-                i = -1
-                for node, dna_hit in hits:
-                    i += 1
-                    if dna_hit == "": continue
-                    if node in bad_nodes: continue
-                    if (node, member) in bad_node_mem_pairs: continue
-                    hit_protein = hits_trans_dict[member][i]
-                    G.node[node]['members'] += [str(member)]
-                    G.node[node]['size'] += 1
-                    G.node[node]['dna'] = ";".join(
-                        set(G.node[node]['dna'].split(";") + [dna_hit]))
-                    dna_out.write(">" + str(member) + "_refound_" +
-                                  str(n_found) + "\n" + dna_hit + "\n")
-                    G.node[node]['protein'] = ";".join(
-                        set(G.node[node]['protein'].split(";") +
-                            [hit_protein]))
-                    prot_out.write(">" + str(member) + "_refound_" +
-                                   str(n_found) + "\n" + hit_protein + "\n")
-                    G.node[node]['seqIDs'] += [
-                        str(member) + "_refound_" + str(n_found)
-                    ]
-                    n_found += 1
+            with open(gene_data_file, 'a') as data_out:
+                for member, hits in enumerate(all_hits):
+                    i = -1
+                    for node, dna_hit in hits:
+                        i += 1
+                        if dna_hit == "": continue
+                        if node in bad_nodes: continue
+                        if (node, member) in bad_node_mem_pairs: continue
+                        hit_protein = hits_trans_dict[member][i]
+                        G.node[node]['members'] += [str(member)]
+                        G.node[node]['size'] += 1
+                        G.node[node]['dna'] = ";".join(
+                            set(G.node[node]['dna'].split(";") + [dna_hit]))
+                        dna_out.write(">" + str(member) + "_refound_" +
+                                    str(n_found) + "\n" + dna_hit + "\n")
+                        G.node[node]['protein'] = ";".join(
+                            set(G.node[node]['protein'].split(";") +
+                                [hit_protein]))
+                        prot_out.write(">" + str(member) + "_refound_" +
+                                    str(n_found) + "\n" + hit_protein + "\n")
+                        data_out.write(",".join([
+                            os.path.splitext(os.path.basename(gff_file_handles[member].name))[0],
+                            "",
+                            str(member) + "_refound_" + str(n_found),
+                            str(member) + "_refound_" + str(n_found),
+                            hit_protein,
+                            dna_hit,
+                            "",""]) + "\n")
+                        G.node[node]['seqIDs'] += [
+                            str(member) + "_refound_" + str(n_found)
+                        ]
+                        n_found += 1
 
     print("Number of refound genes: ", n_found)
 
@@ -187,6 +211,12 @@ def search_gff(node_search_dict,
                pairwise_id_thresh=0.95,
                merge_id_thresh=0.7,
                n_cpu=1):
+
+    # sort sets to fix order
+    conflicts = sorted(conflicts)
+    for node in node_search_dict:
+        node_search_dict[node] = sorted(node_search_dict[node])
+
 
     # reset file handle to the beginning
     gff_handle.seek(0)

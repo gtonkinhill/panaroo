@@ -276,16 +276,6 @@ def cluster_nodes_cdhit(
             print("clust_node_set:", clust_node_set)
             raise ValueError('Clusters are missing a node!')
 
-    # DEBUG: check
-    # for c in clusters:
-    #     members = [G.node[n]['members'] for n in c]
-    #     members = [item for sublist in members for item in sublist]
-    #     seen = set()
-    #     for m in members:
-    #         if m in seen:
-    #             raise ValueError("duplicate members!")
-    #         seen.add(m)
-
     # remove temporary files
     os.remove(temp_input_file.name)
     os.remove(temp_output_file.name)
@@ -397,9 +387,11 @@ def iterative_cdhit(
     centroid_to_seq = {}
     for node in G.nodes():
         if dna:
-            centroid_to_seq[G.node[node]["longCentroidID"][1]] = max(G.node[node]["dna"].split(";"), key=len)
+            for sid, seq in zip(G.node[node]["centroid"].split(";"), G.node[node]["dna"].split(";")):
+                centroid_to_seq[sid] = seq
         else:
-            centroid_to_seq[G.node[node]["longCentroidID"][1]] = max(G.node[node]["protein"].split(";"), key=len)
+            for sid, seq in zip(G.node[node]["centroid"].split(";"), G.node[node]["protein"].split(";")):
+                centroid_to_seq[sid] = seq
 
 
     clusters = []
@@ -474,13 +466,6 @@ def iterative_cdhit(
         temp_input_file.name = temp_output_file.name
         temp_output_file.name = temp_output_file.name + "t" + str(cid)
 
-    if dna:
-        with open("temp_clusters_dna.txt", 'w') as tempout:
-            tempout.write(str(clusters))
-    else:
-        with open("temp_clusters_protein.txt", 'w') as tempout:
-            tempout.write(str(clusters))
-
     return (clusters)
 
 
@@ -490,15 +475,17 @@ def pwdist_edlib(G, cdhit_clusters, threshold, dna=False, n_cpu=1):
     centroid_to_seq = {}
     for node in G.nodes():
         if dna:
-            centroid_to_seq[G.node[node]["longCentroidID"][1]] = max(G.node[node]["dna"].split(";"), key=len)
+            for sid, seq in zip(G.node[node]["centroid"].split(";"), G.node[node]["dna"].split(";")):
+                centroid_to_seq[sid] = seq
         else:
-            centroid_to_seq[G.node[node]["longCentroidID"][1]] = max(G.node[node]["protein"].split(";"), key=len)
+            for sid, seq in zip(G.node[node]["centroid"].split(";"), G.node[node]["protein"].split(";")):
+                centroid_to_seq[sid] = seq
     
     ncentroids = len(centroid_to_seq)
 
     # centroid to index
     centroid_to_index = {}
-    for i,centroid in enumerate(centroid_to_seq):
+    for i, centroid in enumerate(centroid_to_seq):
         centroid_to_index[centroid] = i
 
     # get pairwise id between sequences in the same cdhit clusters
