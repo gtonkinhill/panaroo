@@ -16,7 +16,7 @@ def clean_gff_string(gff_string):
     return cleaned_gff
 
 
-def convert(gfffile, outputfile, fastafile=None):
+def convert(gfffile, outputfile, fastafile, is_ignore_overlapping):
 
     #Split file and parse
     with open(gfffile, 'r') as infile:
@@ -62,9 +62,11 @@ def convert(gfffile, outputfile, fastafile=None):
         seq_order = []
         for entry in parsed_gff.all_features(featuretype=(), order_by=('seqid','start')):
             entry.chrom = entry.chrom.split()[0]
-            # skip non CDS and overlapping regions
+            # skip non CDS
             if "CDS" not in entry.featuretype: continue
-            if (entry.chrom==prev_chrom) and (entry.start<prev_end): continue
+            # skip overlapping CDS if option is set
+            if entry.chrom==prev_chrom and entry.start<prev_end and is_ignore_overlapping: 
+                continue
             # skip CDS that dont appear to be complete or have a premature stop codon
             
             premature_stop = False
@@ -112,14 +114,14 @@ def main():
                        help='input gff file name')
 
     parser.add_argument('-f', '--fasta', dest='fasta', type=str, default=None,
-                       help='input fasta file name (if seperate from the GFF)')
+                       help='input fasta file name (if separate from the GFF)')
 
     parser.add_argument('-o', '--out', dest='out', type=str, required=True,
                        help='output file name')
-
+    parser.add_argument('--is_ignore_overlapping', action = "store_true", help = "set to ignore CDS that overlap (that's common in bacteria)")
     args = parser.parse_args()
 
-    convert(args.gff, args.out, args.fasta)
+    convert(args.gff, args.out, args.fasta, args.is_ignore_overlapping)
 
     return
 
