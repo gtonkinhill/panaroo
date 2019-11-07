@@ -30,7 +30,8 @@ def get_options(args):
         "--input",
         dest="input_files",
         required=True,
-        help="input GFF3 files (usually output from running Prokka)",
+        help=("input GFF3 files (usually output from running Prokka). " +
+            "Can also take a file listing each gff file line by line."),
         type=argparse.FileType('rU'),
         nargs='+')
     io_opts.add_argument("-o",
@@ -195,6 +196,13 @@ def main():
     args.output_dir = os.path.join(args.output_dir, "")
     # Create temporary directory
     temp_dir = os.path.join(tempfile.mkdtemp(dir=args.output_dir), "")
+
+    # check if input is a file containing filenames
+    if len(args.input_files)==1:
+        files = []
+        for line in args.input_files[0]:
+            files.append(open(line.strip(), 'rU'))
+        args.input_files = files
 
     if args.verbose:
         print("pre-processing gff3 files...")
