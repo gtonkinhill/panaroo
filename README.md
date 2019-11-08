@@ -10,7 +10,7 @@ An updated pipeline for pan-genome investigation
 
 ## Beta
 
-*Panaroo is currently in beta testing and may change frequently in backwards incompatoble ways.*
+*Panaroo is currently in beta testing and may change frequently in backwards incompatible ways.*
 
 ## Documentation
 
