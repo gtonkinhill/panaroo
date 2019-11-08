@@ -42,7 +42,7 @@ def test_aln(datafolder):
 
     seq, loc = search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh, False)
 
-    assert("NNNNCAGATCACCGGGTGC"==seq)
+    assert("CAGATCACCGGGTGC"==seq)
     assert("CAGATCACCGGGTGC"==db_seq[loc[0]:loc[1]])
 
     return

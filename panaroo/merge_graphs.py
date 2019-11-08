@@ -173,8 +173,13 @@ def simple_merge_graphs(graphs, clusters):
         merged_G.node[node]['description'] = ";".join(description)
         merged_G.node[node]['paralog'] = paralog
         merged_G.node[node]['mergedDNA'] = mergedDNA
-        merged_G.node[node]['centroid'] = merge_centroids[node]
+        merged_G.node[node]['centroid'] = ";".join(centroid)#merge_centroids[node]
         
+    # fix longcentroid
+    for node in merged_G.node():
+        merged_G.node[node]['longCentroidID'] = max([(len(s), sid) for s,sid in zip(
+            merged_G.node[node]['dna'].split(";"), merged_G.node[node]['centroid'].split(";"))])
+
 
     # fix up edge attributes
     for edge in merged_G.edges():
@@ -298,13 +303,11 @@ def main():
 
     G = collapse_families(G,
                           outdir=temp_dir,
-                          dna_error_threshold=0.99,
+                          dna_error_threshold=0.98,
                           correct_mistranslations=True,
                           n_cpu=args.n_cpu,
                           quiet=(not args.verbose))[0]
 
-
-    # for thresh in [0.99, args.family_threshold]:
     G = collapse_families(G,
                         outdir=temp_dir,
                         family_threshold=args.family_threshold,
@@ -326,17 +329,22 @@ def main():
     args.min_edge_support_sv = max(2, math.ceil(0.01*n_samples))
 
     # get original annotaiton IDs
+    # get original annotaiton IDs, lengts and whether or 
+    # not an internal stop codon is present
     orig_ids = {}
+    ids_len_stop = {}
     for i, d in enumerate(args.directories):
         with open(d + "gene_data.csv", 'r') as infile:
             next(infile)
             for line in infile:
                 line=line.split(",")
                 orig_ids[str(i) + "_" + line[2]] = line[3]
+                ids_len_stop[str(i) + "_" + line[2]] = (len(line[4]), "*" in line[4][1:-3])
 
     G = generate_roary_gene_presence_absence(G,
             mems_to_isolates=mems_to_isolates,
             orig_ids=orig_ids,
+            ids_len_stop=ids_len_stop,
             output_dir=args.output_dir)
 
     # add helpful attributes and write out graph in GML format
