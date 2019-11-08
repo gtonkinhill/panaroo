@@ -14,4 +14,4 @@ An updated pipeline for pan-genome investigation
 
 ## Documentation
 
-Documentation for Panaroo can be [here](https://gtonkinhill.github.io/panaroo)
+Documentation for Panaroo can be found [here](https://gtonkinhill.github.io/panaroo)
