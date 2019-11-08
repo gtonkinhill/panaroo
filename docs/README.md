@@ -1,62 +1,43 @@
-## Panaroo
+# Quick Start
 
-An updated pipeline for pan-genome investigation
-
-## Installation
-```
-python setup.py install
-```
-Then run `panaroo` or `run_prokka`.
-
-If cloning the repository, instead use `python panaroo-runner.py` or `python prokka-runner.py`.
-
-### Dependencies
-Required:
-* biopython
-* numpy
-* networkx
-* gffutils
-* joblib
-* tdqm
-* cd-hit
-
-Optional:
-* prodigal
-* prokka
-* prank
-* mafft
-* clustal
 
 ## Basic usage
-To regenerate gene annotations from sequence assemblies using a better training model:
-```
-run_prokka -i *.gff -o reannotated
-```
 
-Using these GFFs, or alternatively those from Prokka:
+Using GFFs in the same format as output by Prokka run:
+
 ```
-panaroo --verbose -i reannotated/*.gff -o results
+mkdir results
+panaroo -i *.gff -o results
 ```
 
-### Pipeline
+## Mode
 
-1. Run prodigal on full dataset (so as not to run into issue with its model inference step). We will also take Prokka output as input.
-2. Cluster using cd-hit
-3. Build a pan-population pan-genome graph using the cd-hit clusters and adjaceny information from the assemblies
-4. Split paralogs into multiple nodes
-5. Trim genes that have low support and appear at the ends of the graph. These are likely false positive occuring as a result of the difficulty in calling genes near the end of contigs.
-6. Collapse 'bubbles' into gene families based on a second more relaxed cut-off. Perhaps use fastbaps here.
-7. Prepare suitable output files for further downstream analysis
-    * Core genome alignment (split out as a seperate script)
-    * Gene presence/absence (or count) matrix with and without genes being collapsed into families
-    * Pan genome reference fasta
-    * Optional MSA of each gene cluster (split out as a seperate script)
-    * Output for visulaisation in Gephi (add paths if requested)
+By default Panaroo runs in its strictest (most conservative) mode. We have found that for most use cases this removes potential sources of contamination and error whilst retaining the majority of genes researchers are interested in. 
 
-### Potential downstream analysis
+Very rare plasmids are difficult to distguish from contamination. Thus, if you are interested in retaining such plasmids at the expense of added contamination we recommend running panaroo using its most sensitive mode
 
-1. Use capture-reacture methods that take into account measurement error (ghost records) http://www.math.canterbury.ac.nz/~r.vale/Mta.pdf or https://arxiv.org/pdf/1401.3290.pdf
-2. Analyse the number of 'forks' in the graph which represent recombination events as we have already split out paralogs.
-3. Possible identify phages
-4. Include R code for the analysis of gene presence/absence.
-5. Produce some function for common plots that people like.
+```
+panaroo -i *.gff -o results --mode relaxed
+```
+
+
+## Pre-processing scripts
+
+It is usually a good idea to perform some rudimentary quality checks on the input data prior to running Panaroo. This can be accomplished using the pre-processing script provided.
+
+The reference mash database can be downloaded from https://mash.readthedocs.io/en/latest/tutorials.html
+
+```
+panaroo-qc -t 3 --graph_type all -i *.gff --ref_db refseq.genomes.k21.s1000.msh -o results
+```
+
+
+## Running Prokka
+
+Whilst Panaroo is designed to correct for many sources of error introduced during annotation, you can improve the consistency of annotations by using the same gene model in Prokka. We have provided a helpful script to do this:
+
+```
+mkdir reannotated
+run_prokka -i *.fasta -o reannotated
+```
+
