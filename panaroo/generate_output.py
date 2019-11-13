@@ -14,7 +14,7 @@ from tqdm import tqdm
 from panaroo.generate_alignments import *
 
 
-def generate_roary_gene_presence_absence(G, mems_to_isolates, orig_ids, output_dir):
+def generate_roary_gene_presence_absence(G, mems_to_isolates, orig_ids, ids_len_stop, output_dir):
 
     # arange isolates
     isolates = []
@@ -24,7 +24,8 @@ def generate_roary_gene_presence_absence(G, mems_to_isolates, orig_ids, output_d
         mems_to_index[str(mem)] = i
 
     # generate file
-    with open(output_dir + "gene_presence_absence.csv", 'w') as csv_outfile, \
+    with open(output_dir + "gene_presence_absence_roary.csv", 'w') as roary_csv_outfile, \
+         open(output_dir + "gene_presence_absence.csv", 'w') as csv_outfile, \
          open(output_dir + "gene_presence_absence.Rtab", 'w') as Rtab_outfile:
         header = [
             "Gene", "Non-unique Gene name", "Annotation", "No. isolates",
@@ -33,7 +34,8 @@ def generate_roary_gene_presence_absence(G, mems_to_isolates, orig_ids, output_d
             "Accessory Order with Fragment", "QC", "Min group size nuc",
             "Max group size nuc", "Avg group size nuc"
         ] + isolates
-        csv_outfile.write(",".join(header) + "\n")
+        roary_csv_outfile.write(",".join(header) + "\n")
+        csv_outfile.write(",".join(header[:3]) + "\n")
         Rtab_outfile.write("\t".join((["Gene"] + isolates)) + "\n")
 
         # Iterate through coponents writing out to file
@@ -41,6 +43,7 @@ def generate_roary_gene_presence_absence(G, mems_to_isolates, orig_ids, output_d
         unique_id_count = 0
         frag = 0
         entry_list = []
+        entry_ext_list = []
         pres_abs_list = []
         entry_sizes = []
         entry_count = 0
@@ -49,6 +52,7 @@ def generate_roary_gene_presence_absence(G, mems_to_isolates, orig_ids, output_d
             count = 0
             for node in component:
                 count += 1
+                len_mode = max(G.node[node]['lengths'], key=G.node[node]['lengths'].count)
                 name = '_'.join(
                     G.node[node]['annotation'].strip().strip(';').split(';'))
                 name = ''.join(e for e in name if e.isalnum() or e == "_")
@@ -73,23 +77,34 @@ def generate_roary_gene_presence_absence(G, mems_to_isolates, orig_ids, output_d
                 entry.append(np.max(G.node[node]['lengths']))
                 entry.append(np.mean(G.node[node]['lengths']))
                 pres_abs = [""] * len(isolates)
+                pres_abs_ext  = [""] * len(isolates)
                 entry_size = 0
                 for seq in G.node[node]['seqIDs']:
                     sample_id = mems_to_index["_".join(seq.split("_")[:-2])]
                     if pres_abs[sample_id]=="": #ensures we only take the first one
                         if seq in orig_ids:
                             pres_abs[sample_id] = orig_ids[seq]
+                            pres_abs_ext[sample_id] = orig_ids[seq]
                         else:
                             pres_abs[sample_id] = seq
+                            pres_abs_ext[sample_id] = seq
                         entry_size += 1
                     else:
                         #this is similar to PIRATE output
                         if seq in orig_ids:
-                            pres_abs[sample_id] += ";" + orig_ids[seq] 
+                            pres_abs[sample_id] += ";" + orig_ids[seq]
+                            pres_abs_ext[sample_id] += ";" + orig_ids[seq]
                         else:
-                            pres_abs[sample_id] += ";" + seq 
+                            pres_abs[sample_id] += ";" + seq
+                            pres_abs_ext[sample_id] += ";" + seq
+                    if (abs(ids_len_stop[seq][0]-len_mode)/len_mode)>(0.05*len_mode):
+                        pres_abs_ext[sample_id] += "_len"
+                    if ids_len_stop[seq][1]:
+                        pres_abs_ext[sample_id] += "_stop"                        
+                    
                 entry += pres_abs
                 entry_list.append(entry)
+                entry_ext_list.append(entry[:3] + pres_abs_ext)
                 pres_abs_list.append(pres_abs)
                 entry_sizes.append((entry_size,entry_count))
                 entry_count += 1
@@ -97,7 +112,8 @@ def generate_roary_gene_presence_absence(G, mems_to_isolates, orig_ids, output_d
         # sort so that the most common genes are first (as in roary)
         entry_sizes = sorted(entry_sizes, reverse=True)
         for s, i in entry_sizes:
-            csv_outfile.write(",".join([str(e) for e in entry_list[i]]) + "\n")
+            roary_csv_outfile.write(",".join([str(e) for e in entry_list[i]]) + "\n")
+            csv_outfile.write(",".join([str(e) for e in entry_ext_list[i]]) + "\n")
             Rtab_outfile.write(entry_list[i][0] + "\t")
             Rtab_outfile.write("\t".join(
                 (["0" if e == "" else "1" for e in pres_abs_list[i]])) + "\n")
@@ -126,22 +142,22 @@ def generate_pan_genome_reference(G, output_dir, split_paralogs=False):
     return
 
 
-# TODO: come with a nice weighting to account for the number of observations
-def generate_gene_mobility(G, output_dir):
+# # TODO: come with a nice weighting to account for the number of observations
+# def generate_gene_mobility(G, output_dir):
 
-    with open(output_dir + "gene_mobility.csv", 'w') as outfile:
-        outfile.write("gene_id,annotation,count,degree,entropy\n")
-        for node in G.nodes():
-            entropy = 0
-            for edge in G.edges(node):
-                p = G[edge[0]][edge[1]]['weight'] / (1.0 *
-                                                     G.node[node]['size'])
-                entropy -= p * np.log(p)
-            outfile.write(",".join([
-                G.node[node]['name'], G.node[node]['annotation'],
-                str(G.node[node]['size']),
-                str(G.degree[node]), "{:.5f}".format(entropy)
-            ]) + "\n")
+#     with open(output_dir + "gene_mobility.csv", 'w') as outfile:
+#         outfile.write("gene_id,annotation,count,degree,entropy\n")
+#         for node in G.nodes():
+#             entropy = 0
+#             for edge in G.edges(node):
+#                 p = G[edge[0]][edge[1]]['weight'] / (1.0 *
+#                                                      G.node[node]['size'])
+#                 entropy -= p * np.log(p)
+#             outfile.write(",".join([
+#                 G.node[node]['name'], G.node[node]['annotation'],
+#                 str(G.node[node]['size']),
+#                 str(G.degree[node]), "{:.5f}".format(entropy)
+#             ]) + "\n")
 
 
 def generate_common_struct_presence_absence(G,
@@ -225,10 +241,8 @@ def concatenate_core_genome_alignments(core_names, output_dir):
     core_filenames = [
         x for x in alignment_filenames if x.split('.')[0] in core_names
     ]
-
     #Read in all these alginemnts
     gene_alignments = []
-    gene_names = []
     isolates = set()
     for filename in core_filenames:
         gene_name = os.path.splitext(os.path.basename(filename))[0]
@@ -236,11 +250,14 @@ def concatenate_core_genome_alignments(core_names, output_dir):
         gene_dict = {}
         for record in alignment:
             genome_id = record.id.split(";")[0]
-            gene_dict[genome_id] = (record.id, record.seq)
+            if genome_id in gene_dict:
+                if str(record.seq).count("-") < str(gene_dict[genome_id][1]).count("-"):
+                    gene_dict[genome_id] = (record.id, record.seq)
+            else:
+                gene_dict[genome_id] = (record.id, record.seq)
             gene_length = len(record.seq)
             isolates.add(genome_id)
         gene_alignments.append((gene_name, gene_dict, gene_length))
-
     #Combine them
     isolate_aln = []
     for iso in isolates:
@@ -284,3 +301,37 @@ def generate_core_genome_alignment(G, temp_dir, output_dir, threads, aligner,
     #Concatenate them together to produce the two output files
     concatenate_core_genome_alignments(core_gene_names, output_dir)
     return
+
+def generate_summary_stats(output_dir):
+    with open(output_dir + "gene_presence_absence_roary.csv", 'r') as inhandle:
+        gene_presence_absence = inhandle.read().splitlines()[1:]
+    noSamples = len(gene_presence_absence[0].split(',')) - 14
+    #Layout categories 
+    noCore = 0
+    noSoftCore = 0
+    noShell = 0
+    noCloud = 0
+    total_genes = 0
+    #Iterate through GPA and summarise
+    for gene in gene_presence_absence:
+        proportion_present = float(gene.split(',')[4])/noSamples * 100.0
+        if proportion_present >= 99:
+            noCore += 1
+        elif proportion_present >= 95:
+            noSoftCore += 1
+        elif proportion_present >= 15:
+            noShell += 1
+        else:
+            noCloud += 1 
+        total_genes += 1
+    
+    #write output
+    with open(output_dir + "summary_statistics.txt", 'w') as outfile:
+        output = ("Core genes\t(99% <= strains <= 100%)\t" + str(noCore) +"\n"+ 
+        "Soft core genes\t(95% <= strains < 99%)\t" + str(noSoftCore) + "\n"+
+        "Shell genes\t(15% <= strains < 95%)\t" + str(noShell) + "\n"+
+        "Cloud genes\t(0% <= strains < 15%)\t" + str(noCloud) + "\n"+
+        "Total genes\t(0% <= strains <= 100%)\t" + str(total_genes)) 
+        outfile.write(output)
+    
+    return True

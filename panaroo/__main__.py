@@ -30,7 +30,8 @@ def get_options(args):
         "--input",
         dest="input_files",
         required=True,
-        help="input GFF3 files (usually output from running Prokka)",
+        help=("input GFF3 files (usually output from running Prokka). " +
+            "Can also take a file listing each gff file line by line."),
         type=argparse.FileType('rU'),
         nargs='+')
     io_opts.add_argument("-o",
@@ -196,6 +197,13 @@ def main():
     # Create temporary directory
     temp_dir = os.path.join(tempfile.mkdtemp(dir=args.output_dir), "")
 
+    # check if input is a file containing filenames
+    if len(args.input_files)==1:
+        files = []
+        for line in args.input_files[0]:
+            files.append(open(line.strip(), 'rU'))
+        args.input_files = files
+
     if args.verbose:
         print("pre-processing gff3 files...")
 
@@ -322,20 +330,29 @@ def main():
     for i, iso in enumerate(isolate_names):
         mems_to_isolates[str(i)] = iso
 
+    if args.verbose:
+        print("writing output...")
+
     # write out roary like gene_presence_absence.csv
-    # get original annotaiton IDs
+    # get original annotaiton IDs, lengts and whether or 
+    # not an internal stop codon is present
     orig_ids = {}
+    ids_len_stop = {}
     with open(args.output_dir + "gene_data.csv", 'r') as infile:
         next(infile)
         for line in infile:
             line=line.split(",")
             orig_ids[line[2]] = line[3]
+            ids_len_stop[line[2]] = (len(line[4]), "*" in line[4][1:-3])
 
     G = generate_roary_gene_presence_absence(G,
                                              mems_to_isolates=mems_to_isolates,
                                              orig_ids=orig_ids,
+                                             ids_len_stop=ids_len_stop,
                                              output_dir=args.output_dir)
-
+    #Write out presence_absence summary
+    generate_summary_stats(output_dir=args.output_dir)
+    
     # add helpful attributes and write out graph in GML format
     for node in G.nodes():
         G.node[node]['size'] = len(set(G.node[node]['members']))
@@ -357,7 +374,7 @@ def main():
                                   split_paralogs=False)
 
     # write out csv indicating the mobility of each gene
-    generate_gene_mobility(G, output_dir=args.output_dir)
+    # generate_gene_mobility(G, output_dir=args.output_dir)
 
     # write out common structural differences in a matrix format
     generate_common_struct_presence_absence(

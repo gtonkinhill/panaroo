@@ -14,8 +14,18 @@ def is_valid_folder(parser, arg):
     else:
         return arg
 
-
 def conv_list(maybe_list):
     if not isinstance(maybe_list, list):
         maybe_list = [maybe_list]
     return (maybe_list)
+
+def del_dups(seq):
+    seen = set()
+    pos = 0
+    for item in seq:
+        if item not in seen:
+            seen.add(item)
+            seq[pos] = item
+            pos += 1
+    del seq[pos:]
+    return(seq)

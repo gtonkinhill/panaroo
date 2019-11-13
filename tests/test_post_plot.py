@@ -19,7 +19,7 @@ def test_post_plot(datafolder):
 
             # generate plots
             sys.argv = ["", "-i", 
-                tmpdir + "/gene_presence_absence.csv", 
+                tmpdir + "/gene_presence_absence_roary.csv", 
                 "-o", tmpoutdir,
                 "--graph_type", "all"]
             main_plots()

@@ -52,7 +52,7 @@ def set_default_args(args):
         if args.min_trailing_support is None:
             args.min_trailing_support = 2
         if args.trailing_recursive is None:
-            args.trailing_recursive = 1
+            args.trailing_recursive = 0
         if args.min_edge_support_sv is None:
             args.min_edge_support_sv = 2
         if args.remove_by_consensus is None:

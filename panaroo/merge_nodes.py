@@ -1,5 +1,5 @@
 import itertools
-
+from panaroo.isvalid import del_dups
 
 def merge_nodes(G,
                 nodeA,
@@ -13,26 +13,30 @@ def merge_nodes(G,
                & set(G.node[nodeB]['members'])) > 0:
             raise ValueError("merging nodes with the same genome IDs!")
 
+    # take node with most support as the 'consensus'
+    if G.node[nodeA]['size'] < G.node[nodeB]['size']:
+        nodeB, nodeA = nodeA, nodeB
+
     # First create a new node and combine the attributes
     if multi_centroid:
         G.add_node(newNode,
-                   size=G.node[nodeA]['size'] + G.node[nodeB]['size'],
+                   size=len(set(G.node[nodeA]['members'] + G.node[nodeB]['members'])),
                    centroid=";".join(
-                       set(G.node[nodeA]['centroid'].split(";") +
+                       del_dups(G.node[nodeA]['centroid'].split(";") +
                            G.node[nodeB]['centroid'].split(";"))),
                    members=G.node[nodeA]['members'] + G.node[nodeB]['members'],
                    seqIDs=G.node[nodeA]['seqIDs'] + G.node[nodeB]['seqIDs'],
                    hasEnd=(G.node[nodeA]['hasEnd'] or G.node[nodeB]['hasEnd']),
                    protein=";".join(
-                       set(G.node[nodeA]['protein'].split(";") +
+                       del_dups(G.node[nodeA]['protein'].split(";") +
                            G.node[nodeB]['protein'].split(";"))),
                    dna=";".join(G.node[nodeA]['dna'].split(";") +
                                 G.node[nodeB]['dna'].split(";")),
                    annotation=";".join(
-                       set(G.node[nodeA]['annotation'].split(";") +
+                       del_dups(G.node[nodeA]['annotation'].split(";") +
                            G.node[nodeB]['annotation'].split(";"))),
                    description=";".join(
-                       set(G.node[nodeA]['description'].split(";") +
+                       del_dups(G.node[nodeA]['description'].split(";") +
                            G.node[nodeB]['description'].split(";"))),
                    lengths=G.node[nodeA]['lengths'] + G.node[nodeB]['lengths'],
                    longCentroidID=max(G.node[nodeA]['longCentroidID'], G.node[nodeB]['longCentroidID']),
@@ -45,17 +49,17 @@ def merge_nodes(G,
                        set(G.node[nodeA]['prevCentroids'].split(";") +
                            G.node[nodeB]['prevCentroids'].split(";")))
     else:
-        # take node with most support as the 'consensus'
-        if G.node[nodeA]['size'] < G.node[nodeB]['size']:
-            nodeB, nodeA = nodeA, nodeB
-
         G.add_node(newNode,
                    size=len(set(G.node[nodeA]['members'] + G.node[nodeB]['members'])),
-                   centroid=G.node[nodeA]['centroid'],
+                   centroid=";".join(
+                       del_dups(G.node[nodeA]['centroid'].split(";") +
+                           G.node[nodeB]['centroid'].split(";"))),
                    members=G.node[nodeA]['members'] + G.node[nodeB]['members'],
                    seqIDs=G.node[nodeA]['seqIDs'] + G.node[nodeB]['seqIDs'],
                    hasEnd=(G.node[nodeA]['hasEnd'] or G.node[nodeB]['hasEnd']),
-                   protein=G.node[nodeA]['protein'],
+                   protein=";".join(
+                       del_dups(G.node[nodeA]['protein'].split(";"))+
+                                G.node[nodeB]['protein'].split(";")), 
                    dna=";".join(G.node[nodeA]['dna'].split(";") +
                                 G.node[nodeB]['dna'].split(";")),
                    annotation=G.node[nodeA]['annotation'],
