@@ -5,9 +5,10 @@ def generate_annotation(annotation, graph, node_out, edge_out):
     #resolve hzi isolate name
     #read in graph and get isolate names
     g = nx.read_gml(graph)
-    #import re
+    import re
     #id2isol = dict([(re.sub(r'_spades3.10.0_careful$', '', i), str(j)) for i, j in zip(g.graph["isolateNames"], range(len(g.graph["isolateNames"])))]) #resolve hzi isolate name clash
-    id2isol = dict([(i, j) for i, j in zip(g.graph["isolateNames"], range(len(g.graph["isolateNames"])))])
+    id2isol = dict([(re.sub(r'\.velvet', '', i), str(j)) for i, j in zip(g.graph["isolateNames"], range(len(g.graph["isolateNames"])))]) #resolve hzi isolate name clash
+    #id2isol = dict([(i, j) for i, j in zip(g.graph["isolateNames"], range(len(g.graph["isolateNames"])))])
     #parse user annotation
     with open(annotation, 'r') as annot:
         #header
@@ -18,6 +19,9 @@ def generate_annotation(annotation, graph, node_out, edge_out):
             annot_dicts[i] = {}
         for l in annot:
             fields = l.strip().split("\t")
+            #check if isolate is not in the graph and ignore if this is the case
+            if fields[0] not in id2isol:
+                continue
             isol = id2isol[fields[0]]
             fields = fields[1:]
             for f in range(len(field2annot)):

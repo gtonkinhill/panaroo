@@ -17,10 +17,15 @@ def add_to_queue(g, s, nodes, visited, sink, mapping, ref_g_id, max_dist):
     for i in nodes:
         if i in visited:
             continue
-        if ref_g_id not in g.nodes[i]['genomeIDs'].split(";") and i not in visited:
+        if ref_g_id not in g.nodes[i]['genomeIDs'].split(";"):
             add.append(i)
-        else:
-            print(g.nodes[i]['geneIDs'], g.nodes[s]['geneIDs'])
+        else: 
+            #if we have discovered a refound gene we just continue
+            g2g = dict([(j.split("_")[0], j.split("_")[1]) for j in g.nodes[i]['geneIDs'].split(";")])
+            if g2g[ref_g_id] == "refound":
+                sink["sink"] = i
+                visited.add(i)
+                continue
             dist = get_dist(mapping.loc[g.nodes[s]['name'], "gene_id"],
                             mapping.loc[g.nodes[i]['name'], "gene_id"],
                             max_dist)
@@ -44,7 +49,7 @@ def create_mapping(g, ref_g_id):
     mapping = pd.DataFrame.from_dict(gene_dict, orient='index')
     mapping.columns = ["gene_id"]
     #we dont want to include refound genes in this step TODO also consider in add reference edges step
-    #mapping = mapping.loc[~mapping.loc[:, "gene_id"].str.contains("refound"), ]
+    mapping = mapping.loc[~mapping.loc[:, "gene_id"].str.contains("refound"), ]
     return mapping
 
 
@@ -77,7 +82,6 @@ def layout(graph, ref_g_id, cut_edges_out, ignore_high_var,
     g = nx.read_gml(graph)
     #look up table for name vs node id
     mapping = create_mapping(g, ref_g_id)
-    print(mapping)
     gene_order = [
         int(mapping.loc[n, "gene_id"].split("_") [2]) for n in mapping.index
     ]
@@ -114,10 +118,8 @@ def layout(graph, ref_g_id, cut_edges_out, ignore_high_var,
         #depth first search
         last_target = None
         while len(queue) != 0:
-            #print(len(queue))
             target = queue.pop(0)
             visited.add(target)
-            #print(len(visited))
             neighbors = g.neighbors(target)
             #for each reference node explore all edges that lead to non-reference nodes
             queue = queue + add_to_queue(g, nid, neighbors, visited, sink,
@@ -134,12 +136,16 @@ def layout(graph, ref_g_id, cut_edges_out, ignore_high_var,
             for e in s_t_graph.edges:
                 if ref_g_id in g.nodes[e[0]]['genomeIDs'].split(";") \
                 and ref_g_id in g.nodes[e[1]]['genomeIDs'].split(";"):
-                    n1 = mapping.loc[g.nodes[e[0]]["name"]][0]
-                    n2 = mapping.loc[g.nodes[e[1]]["name"]][0]
-                    if abs(int(n1.split("_")[2]) -
-                           int(n2.split("_")[2])) < 100:
-                        #print(n1, n2)
-                        remove.append(e)
+                    g2g1 = dict([(j.split("_")[0], j.split("_")[1]) for j in g.nodes[e[0]]['geneIDs'].split(";")])
+                    g2g2 = dict([(j.split("_")[0], j.split("_")[1]) for j in g.nodes[e[1]]['geneIDs'].split(";")])
+                    if g2g1[ref_g_id] == "refound" or g2g2[ref_g_id] == "refound":
+                        continue
+                    else:
+                        n1 = mapping.loc[g.nodes[e[0]]["name"]][0]
+                        n2 = mapping.loc[g.nodes[e[1]]["name"]][0]
+                        if abs(int(n1.split("_")[2]) -
+                               int(n2.split("_")[2])) < 100:
+                            remove.append(e)
             s_t_graph.remove_edges_from(remove)
             #print some info about that long-range connection
             #print(n)
