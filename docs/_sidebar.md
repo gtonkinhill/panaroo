@@ -19,9 +19,9 @@
 
 - Visualisation
     - [Visualising the Pangenome](/vis/cytoscape.md)
-    - [A reference genome-enabled layout](/vis/layout.md)
-    - [Creating summary plots](/vis/plots.md)
-    - [Meta-data annotation](/vis/metadata.md)
+    - [A Reference Genome-enabled Layout](/vis/layout.md)
+    - [Creating Summary Plots](/vis/plots.md)
+    - [Meta-data Annotation](/vis/metadata.md)
 
 - Panaroo Algorithm
     - [Graph Correction](/methods/graphcorrection.md)
