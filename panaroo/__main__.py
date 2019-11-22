@@ -77,7 +77,7 @@ def get_options(args):
         help=("the proportion of an accessory gene that must " +
               "be found in order to consider it a match"),
         default=0.2,
-        type=int)
+        type=float)
 
     graph = parser.add_argument_group('Graph correction')
     graph.add_argument(
