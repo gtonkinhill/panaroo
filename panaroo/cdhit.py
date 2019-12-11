@@ -174,10 +174,10 @@ def cluster_nodes_cdhit(
             outfile.write(">" + str(node) + "\n")
             if dna:
                 outfile.write(
-                    max(G.node[node]["dna"].split(";"), key=len) + "\n")
+                    max(G.nodes[node]["dna"].split(";"), key=len) + "\n")
             else:
                 outfile.write(
-                    max(G.node[node]["protein"].split(";"), key=len) + "\n")
+                    max(G.nodes[node]["protein"].split(";"), key=len) + "\n")
 
     # run cd-hit
     if dna:
@@ -239,7 +239,7 @@ def cluster_nodes_cdhit(
         ref_node = nodes[0]
         for n in nodes[1:]:
             if sub_G.degree[n] > 2:
-                if sub_G.node[n]['size'] >= sub_G.node[ref_node]['size']:
+                if sub_G.nodes[n]['size'] >= sub_G.nodes[ref_node]['size']:
                     ref_node = n
 
         # nodes in Breadth First Search order
@@ -287,7 +287,7 @@ def cluster_nodes_cdhit(
 def is_valid(G, node, cluster):
     found = True
     for n in cluster:
-        if len(set(G.node[node]['members']) & set(G.node[n]['members'])) > 0:
+        if len(set(G.nodes[node]['members']) & set(G.nodes[n]['members'])) > 0:
             found = False
     return found
 
@@ -385,12 +385,12 @@ def iterative_cdhit(
     temp_output_file.close()
     
     centroid_to_seq = {}
-    for node in G.nodes():
+    for node in G.nodess():
         if dna:
-            for sid, seq in zip(G.node[node]["centroid"].split(";"), G.node[node]["dna"].split(";")):
+            for sid, seq in zip(G.nodes[node]["centroid"].split(";"), G.nodes[node]["dna"].split(";")):
                 centroid_to_seq[sid] = seq
         else:
-            for sid, seq in zip(G.node[node]["centroid"].split(";"), G.node[node]["protein"].split(";")):
+            for sid, seq in zip(G.nodes[node]["centroid"].split(";"), G.nodes[node]["protein"].split(";")):
                 centroid_to_seq[sid] = seq
 
 
@@ -473,12 +473,12 @@ def pwdist_edlib(G, cdhit_clusters, threshold, dna=False, n_cpu=1):
 
     # Prepare sequences
     centroid_to_seq = {}
-    for node in G.nodes():
+    for node in G.nodess():
         if dna:
-            for sid, seq in zip(G.node[node]["centroid"].split(";"), G.node[node]["dna"].split(";")):
+            for sid, seq in zip(G.nodes[node]["centroid"].split(";"), G.nodes[node]["dna"].split(";")):
                 centroid_to_seq[sid] = seq
         else:
-            for sid, seq in zip(G.node[node]["centroid"].split(";"), G.node[node]["protein"].split(";")):
+            for sid, seq in zip(G.nodes[node]["centroid"].split(";"), G.nodes[node]["protein"].split(";")):
                 centroid_to_seq[sid] = seq
     
     ncentroids = len(centroid_to_seq)

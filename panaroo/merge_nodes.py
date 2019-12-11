@@ -9,70 +9,70 @@ def merge_nodes(G,
                 check_merge_mems=True):
 
     if check_merge_mems:
-        if len(set(G.node[nodeA]['members'])
-               & set(G.node[nodeB]['members'])) > 0:
+        if len(set(G.nodes[nodeA]['members'])
+               & set(G.nodes[nodeB]['members'])) > 0:
             raise ValueError("merging nodes with the same genome IDs!")
 
     # take node with most support as the 'consensus'
-    if G.node[nodeA]['size'] < G.node[nodeB]['size']:
+    if G.nodes[nodeA]['size'] < G.nodes[nodeB]['size']:
         nodeB, nodeA = nodeA, nodeB
 
     # First create a new node and combine the attributes
     if multi_centroid:
         G.add_node(newNode,
-                   size=len(set(G.node[nodeA]['members'] + G.node[nodeB]['members'])),
+                   size=len(set(G.nodes[nodeA]['members'] + G.nodes[nodeB]['members'])),
                    centroid=";".join(
-                       del_dups(G.node[nodeA]['centroid'].split(";") +
-                           G.node[nodeB]['centroid'].split(";"))),
-                   members=G.node[nodeA]['members'] + G.node[nodeB]['members'],
-                   seqIDs=G.node[nodeA]['seqIDs'] + G.node[nodeB]['seqIDs'],
-                   hasEnd=(G.node[nodeA]['hasEnd'] or G.node[nodeB]['hasEnd']),
+                       del_dups(G.nodes[nodeA]['centroid'].split(";") +
+                           G.nodes[nodeB]['centroid'].split(";"))),
+                   members=G.nodes[nodeA]['members'] + G.nodes[nodeB]['members'],
+                   seqIDs=G.nodes[nodeA]['seqIDs'] + G.nodes[nodeB]['seqIDs'],
+                   hasEnd=(G.nodes[nodeA]['hasEnd'] or G.nodes[nodeB]['hasEnd']),
                    protein=";".join(
-                       del_dups(G.node[nodeA]['protein'].split(";") +
-                           G.node[nodeB]['protein'].split(";"))),
-                   dna=";".join(G.node[nodeA]['dna'].split(";") +
-                                G.node[nodeB]['dna'].split(";")),
+                       del_dups(G.nodes[nodeA]['protein'].split(";") +
+                           G.nodes[nodeB]['protein'].split(";"))),
+                   dna=";".join(G.nodes[nodeA]['dna'].split(";") +
+                                G.nodes[nodeB]['dna'].split(";")),
                    annotation=";".join(
-                       del_dups(G.node[nodeA]['annotation'].split(";") +
-                           G.node[nodeB]['annotation'].split(";"))),
+                       del_dups(G.nodes[nodeA]['annotation'].split(";") +
+                           G.nodes[nodeB]['annotation'].split(";"))),
                    description=";".join(
-                       del_dups(G.node[nodeA]['description'].split(";") +
-                           G.node[nodeB]['description'].split(";"))),
-                   lengths=G.node[nodeA]['lengths'] + G.node[nodeB]['lengths'],
-                   longCentroidID=max(G.node[nodeA]['longCentroidID'], G.node[nodeB]['longCentroidID']),
-                   paralog=(G.node[nodeA]['paralog']
-                            or G.node[nodeB]['paralog']),
-                   mergedDNA=(G.node[nodeA]['mergedDNA']
-                              or G.node[nodeB]['mergedDNA']))
-        if "prevCentroids" in G.node[nodeA]:
-            G.node[newNode]['prevCentroids'] = ";".join(
-                       set(G.node[nodeA]['prevCentroids'].split(";") +
-                           G.node[nodeB]['prevCentroids'].split(";")))
+                       del_dups(G.nodes[nodeA]['description'].split(";") +
+                           G.nodes[nodeB]['description'].split(";"))),
+                   lengths=G.nodes[nodeA]['lengths'] + G.nodes[nodeB]['lengths'],
+                   longCentroidID=max(G.nodes[nodeA]['longCentroidID'], G.nodes[nodeB]['longCentroidID']),
+                   paralog=(G.nodes[nodeA]['paralog']
+                            or G.nodes[nodeB]['paralog']),
+                   mergedDNA=(G.nodes[nodeA]['mergedDNA']
+                              or G.nodes[nodeB]['mergedDNA']))
+        if "prevCentroids" in G.nodes[nodeA]:
+            G.nodes[newNode]['prevCentroids'] = ";".join(
+                       set(G.nodes[nodeA]['prevCentroids'].split(";") +
+                           G.nodes[nodeB]['prevCentroids'].split(";")))
     else:
         G.add_node(newNode,
-                   size=len(set(G.node[nodeA]['members'] + G.node[nodeB]['members'])),
+                   size=len(set(G.nodes[nodeA]['members'] + G.nodes[nodeB]['members'])),
                    centroid=";".join(
-                       del_dups(G.node[nodeA]['centroid'].split(";") +
-                           G.node[nodeB]['centroid'].split(";"))),
-                   members=G.node[nodeA]['members'] + G.node[nodeB]['members'],
-                   seqIDs=G.node[nodeA]['seqIDs'] + G.node[nodeB]['seqIDs'],
-                   hasEnd=(G.node[nodeA]['hasEnd'] or G.node[nodeB]['hasEnd']),
+                       del_dups(G.nodes[nodeA]['centroid'].split(";") +
+                           G.nodes[nodeB]['centroid'].split(";"))),
+                   members=G.nodes[nodeA]['members'] + G.nodes[nodeB]['members'],
+                   seqIDs=G.nodes[nodeA]['seqIDs'] + G.nodes[nodeB]['seqIDs'],
+                   hasEnd=(G.nodes[nodeA]['hasEnd'] or G.nodes[nodeB]['hasEnd']),
                    protein=";".join(
-                       del_dups(G.node[nodeA]['protein'].split(";"))+
-                                G.node[nodeB]['protein'].split(";")), 
-                   dna=";".join(G.node[nodeA]['dna'].split(";") +
-                                G.node[nodeB]['dna'].split(";")),
-                   annotation=G.node[nodeA]['annotation'],
-                   description=G.node[nodeA]['description'],
-                   paralog=(G.node[nodeA]['paralog']
-                            or G.node[nodeB]['paralog']),
-                   lengths=G.node[nodeA]['lengths'] + G.node[nodeB]['lengths'],
-                   longCentroidID=max(G.node[nodeA]['longCentroidID'], G.node[nodeB]['longCentroidID']),
+                       del_dups(G.nodes[nodeA]['protein'].split(";"))+
+                                G.nodes[nodeB]['protein'].split(";")), 
+                   dna=";".join(G.nodes[nodeA]['dna'].split(";") +
+                                G.nodes[nodeB]['dna'].split(";")),
+                   annotation=G.nodes[nodeA]['annotation'],
+                   description=G.nodes[nodeA]['description'],
+                   paralog=(G.nodes[nodeA]['paralog']
+                            or G.nodes[nodeB]['paralog']),
+                   lengths=G.nodes[nodeA]['lengths'] + G.nodes[nodeB]['lengths'],
+                   longCentroidID=max(G.nodes[nodeA]['longCentroidID'], G.nodes[nodeB]['longCentroidID']),
                    mergedDNA=True)
-        if "prevCentroids" in G.node[nodeA]:
-            G.node[newNode]['prevCentroids'] = ";".join(
-                       set(G.node[nodeA]['prevCentroids'].split(";") +
-                           G.node[nodeB]['prevCentroids'].split(";")))
+        if "prevCentroids" in G.nodes[nodeA]:
+            G.nodes[newNode]['prevCentroids'] = ";".join(
+                       set(G.nodes[nodeA]['prevCentroids'].split(";") +
+                           G.nodes[nodeB]['prevCentroids'].split(";")))
 
     # Now iterate through neighbours of each node and add them to the new node
     neigboursB = list(G.neighbors(nodeB))
@@ -101,8 +101,8 @@ def merge_nodes(G,
     # remove old nodes from Graph
     G.remove_nodes_from([nodeA, nodeB])
 
-    if len(max(G.nodes[newNode]["dna"].split(";"), key=len)) <= 0:
-        print(G.node[newNode]["dna"])
+    if len(max(G.nodess[newNode]["dna"].split(";"), key=len)) <= 0:
+        print(G.nodes[newNode]["dna"])
         raise NameError("Problem!")
 
     return G
@@ -110,7 +110,7 @@ def merge_nodes(G,
 
 def delete_node(G, node):
     # add in new edges
-    for mem in G.node[node]['members']:
+    for mem in G.nodes[node]['members']:
         mem_edges = list(
             set([e[1] for e in G.edges(node) if mem in G.edges[e]['members']]))
         if len(mem_edges)<2: continue
@@ -141,9 +141,9 @@ def remove_member_from_node(G, node, member):
                 G.add_edge(n1, n2, weight=1, members=[member])
 
     # remove member from node
-    while str(member) in G.node[node]['members']:
-        G.node[node]['members'].remove(str(member))
-    G.node[node]['seqIDs'] = [sid for sid in G.node[node]['seqIDs'] if sid.split("_")[0]!=str(member)]
-    G.node[node]['size'] -= 1
+    while str(member) in G.nodes[node]['members']:
+        G.nodes[node]['members'].remove(str(member))
+    G.nodes[node]['seqIDs'] = [sid for sid in G.nodes[node]['seqIDs'] if sid.split("_")[0]!=str(member)]
+    G.nodes[node]['size'] -= 1
 
     return G

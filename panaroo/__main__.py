@@ -234,12 +234,12 @@ def main():
     G = collapse_paralogs(G, centroid_contexts)
 
     # write out pre-filter graph in GML format
-    for node in G.nodes():
-        G.node[node]['size'] = len(set(G.node[node]['members']))
-        G.node[node]['genomeIDs'] = ";".join(conv_list(
-            G.node[node]['members']))
-        G.node[node]['geneIDs'] = ";".join(conv_list(G.node[node]['seqIDs']))
-        G.node[node]['degrees'] = G.degree[node]
+    for node in G.nodess():
+        G.nodes[node]['size'] = len(set(G.nodes[node]['members']))
+        G.nodes[node]['genomeIDs'] = ";".join(conv_list(
+            G.nodes[node]['members']))
+        G.nodes[node]['geneIDs'] = ";".join(conv_list(G.nodes[node]['seqIDs']))
+        G.nodes[node]['degrees'] = G.degree[node]
     for edge in G.edges():
         G.edges[edge[0], edge[1]]['genomeIDs'] = ";".join(
             conv_list(G.edges[edge[0], edge[1]]['members']))
@@ -354,13 +354,13 @@ def main():
     generate_summary_stats(output_dir=args.output_dir)
     
     # add helpful attributes and write out graph in GML format
-    for node in G.nodes():
-        G.node[node]['size'] = len(set(G.node[node]['members']))
+    for node in G.nodess():
+        G.nodes[node]['size'] = len(set(G.nodes[node]['members']))
 
-        G.node[node]['genomeIDs'] = ";".join(conv_list(
-            G.node[node]['members']))
-        G.node[node]['geneIDs'] = ";".join(conv_list(G.node[node]['seqIDs']))
-        G.node[node]['degrees'] = G.degree[node]
+        G.nodes[node]['genomeIDs'] = ";".join(conv_list(
+            G.nodes[node]['members']))
+        G.nodes[node]['geneIDs'] = ";".join(conv_list(G.nodes[node]['seqIDs']))
+        G.nodes[node]['degrees'] = G.degree[node]
 
     for edge in G.edges():
         G.edges[edge[0], edge[1]]['genomeIDs'] = ";".join(

@@ -41,10 +41,10 @@ def find_missing(G,
 
     # identify nodes that have been merged at the protein level
     merged_ids = {}
-    for node in G.nodes():
-        if (len(G.node[node]['centroid'].split(";")) >
-                1) or (G.node[node]['mergedDNA']):
-                for sid in G.node[node]['seqIDs']:
+    for node in G.nodess():
+        if (len(G.nodes[node]['centroid'].split(";")) >
+                1) or (G.nodes[node]['mergedDNA']):
+                for sid in G.nodes[node]['seqIDs']:
                     merged_ids[sid] = node
 
     merged_nodes = defaultdict(dict)
@@ -56,7 +56,7 @@ def find_missing(G,
                 mem = int(sid.split("_")[0])
                 if merged_ids[line[2]] in merged_nodes[mem]:
                     merged_nodes[mem][merged_ids[line[2]]] = max(
-                        G.node[merged_ids[line[2]]]["dna"].split(";"), key=len)
+                        G.nodes[merged_ids[line[2]]]["dna"].split(";"), key=len)
                 else:
                     merged_nodes[mem][merged_ids[line[2]]] = line[5]
 
@@ -66,20 +66,20 @@ def find_missing(G,
     n_searches = 0
     search_list = defaultdict(lambda: defaultdict(set))
     conflicts = defaultdict(set)
-    for node in G.nodes():
+    for node in G.nodess():
         for neigh in G.neighbors(node):
             # seen_mems = set()
-            for sid in G.node[neigh]['seqIDs']:
+            for sid in G.nodes[neigh]['seqIDs']:
                 member = sid.split("_")[0]
                 # if member in seen_mems: continue
                 # seen_mems.add(member)
                 conflicts[int(member)].add((neigh, id_to_gff[sid]))
-                if member not in G.node[node]['members']:
-                    if len(max(G.node[node]["dna"].split(";"), key=len)) <= 0:
-                        print(G.node[node]["dna"])
+                if member not in G.nodes[node]['members']:
+                    if len(max(G.nodes[node]["dna"].split(";"), key=len)) <= 0:
+                        print(G.nodes[node]["dna"])
                         raise NameError("Problem!")
                     search_list[int(member)][node].add(
-                        (max(G.node[node]["dna"].split(";"),
+                        (max(G.nodes[node]["dna"].split(";"),
                              key=len), id_to_gff[sid]))
 
                     n_searches += 1
@@ -103,12 +103,12 @@ def find_missing(G,
     hits_trans_dict = {}
     for member, hits in enumerate(all_hits):
         hits_trans_dict[member] = Parallel(n_jobs=n_cpu)(
-            delayed(translate_to_match)(hit[1], G.node[
+            delayed(translate_to_match)(hit[1], G.nodes[
                 hit[0]]["protein"].split(";")[0]) for hit in hits)
 
     # remove nodes that conflict (overlap)
-    nodes_by_size = sorted([(G.node[node]['size'], node)
-                            for node in G.nodes()],
+    nodes_by_size = sorted([(G.nodes[node]['size'], node)
+                            for node in G.nodess()],
                            reverse=True)
     nodes_by_size = [n[1] for n in nodes_by_size]
     member = 0
@@ -125,21 +125,21 @@ def find_missing(G,
             loc = node_locs[node][1]
 
             if np.sum(seq_coverage[contig_id][loc[0]:loc[1]]) >= (
-                    0.5 * (max(G.node[node]['lengths']))):
-                if str(member) in G.node[node]['members']:
+                    0.5 * (max(G.nodes[node]['lengths']))):
+                if str(member) in G.nodes[node]['members']:
                     remove_member_from_node(G, node, member)
-                    # G.node[node]['members'].remove(str(member))
-                    # G.node[node]['size'] -= 1
+                    # G.nodes[node]['members'].remove(str(member))
+                    # G.nodes[node]['size'] -= 1
                 bad_node_mem_pairs.append((node, member))
             else:
                 seq_coverage[contig_id][loc[0]:loc[1]] = True
         member += 1
 
-    for node in G.nodes():
-        if len(set(G.node[node]['members']))<=0:
+    for node in G.nodess():
+        if len(set(G.nodes[node]['members']))<=0:
             bad_nodes.add(node)
     for node in bad_nodes:
-        if node in G.nodes():
+        if node in G.nodess():
             delete_node(G, node)
 
     # remove by consensus
@@ -153,10 +153,10 @@ def find_missing(G,
                 if (node, member) in bad_node_mem_pairs: continue
                 node_hit_counter[node] += 1
         for node in G:
-            if node_hit_counter[node] > G.node[node]['size']:
+            if node_hit_counter[node] > G.nodes[node]['size']:
                 bad_nodes.add(node)
         for node in bad_nodes:
-            if node in G.nodes():
+            if node in G.nodess():
                 delete_node(G, node)
 
     print("Updating output...")
@@ -173,14 +173,14 @@ def find_missing(G,
                         if node in bad_nodes: continue
                         if (node, member) in bad_node_mem_pairs: continue
                         hit_protein = hits_trans_dict[member][i]
-                        G.node[node]['members'] += [str(member)]
-                        G.node[node]['size'] += 1
-                        G.node[node]['dna'] = ";".join(
-                            set(G.node[node]['dna'].split(";") + [dna_hit]))
+                        G.nodes[node]['members'] += [str(member)]
+                        G.nodes[node]['size'] += 1
+                        G.nodes[node]['dna'] = ";".join(
+                            set(G.nodes[node]['dna'].split(";") + [dna_hit]))
                         dna_out.write(">" + str(member) + "_refound_" +
                                     str(n_found) + "\n" + dna_hit + "\n")
-                        G.node[node]['protein'] = ";".join(
-                            set(G.node[node]['protein'].split(";") +
+                        G.nodes[node]['protein'] = ";".join(
+                            set(G.nodes[node]['protein'].split(";") +
                                 [hit_protein]))
                         prot_out.write(">" + str(member) + "_refound_" +
                                     str(n_found) + "\n" + hit_protein + "\n")
@@ -192,7 +192,7 @@ def find_missing(G,
                             hit_protein,
                             dna_hit,
                             "",""]) + "\n")
-                        G.node[node]['seqIDs'] += [
+                        G.nodes[node]['seqIDs'] += [
                             str(member) + "_refound_" + str(n_found)
                         ]
                         n_found += 1

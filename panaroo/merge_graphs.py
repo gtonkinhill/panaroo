@@ -44,9 +44,9 @@ def cluster_centroids(graphs, outdir, len_dif_percent=0.95, identity_threshold=0
     # create input for cdhit
     with open(temp_input_file.name, 'w') as outfile:
         for i, G in enumerate(graphs):
-            for node in G.nodes():
+            for node in G.nodess():
                 outfile.write(">" + str(i) + "_" + node + '\n')
-                seqs = G.node[node]["protein"].split(";")
+                seqs = G.nodes[node]["protein"].split(";")
                 seqs = [s for s in seqs if "*" not in s]
                 outfile.write(max(seqs, key=len) + "\n")
 
@@ -124,7 +124,7 @@ def simple_merge_graphs(graphs, clusters):
     merged_G = nx.compose_all(graphs)
 
     # fix up node attributes
-    for node in merged_G.nodes():
+    for node in merged_G.nodess():
         size = 0
         members = []
         lengths = []
@@ -161,24 +161,24 @@ def simple_merge_graphs(graphs, clusters):
             hasEnd = (paralog or graphs[prev[0]].node[prev[1]]['hasEnd'])
             mergedDNA = (paralog or graphs[prev[0]].node[prev[1]]['mergedDNA'])
 
-        merged_G.node[node]['size'] = size                
-        merged_G.node[node]['members'] = members
-        merged_G.node[node]['lengths'] = lengths
-        merged_G.node[node]['prevCentroids'] = ";".join(centroid)
-        merged_G.node[node]['seqIDs'] = seqIDs
-        merged_G.node[node]['hasEnd'] = hasEnd
-        merged_G.node[node]['dna'] = ";".join(dna)
-        merged_G.node[node]['protein'] = ";".join(protein)
-        merged_G.node[node]['annotation'] = ";".join(annotation)
-        merged_G.node[node]['description'] = ";".join(description)
-        merged_G.node[node]['paralog'] = paralog
-        merged_G.node[node]['mergedDNA'] = mergedDNA
-        merged_G.node[node]['centroid'] = ";".join(centroid)#merge_centroids[node]
+        merged_G.nodes[node]['size'] = size                
+        merged_G.nodes[node]['members'] = members
+        merged_G.nodes[node]['lengths'] = lengths
+        merged_G.nodes[node]['prevCentroids'] = ";".join(centroid)
+        merged_G.nodes[node]['seqIDs'] = seqIDs
+        merged_G.nodes[node]['hasEnd'] = hasEnd
+        merged_G.nodes[node]['dna'] = ";".join(dna)
+        merged_G.nodes[node]['protein'] = ";".join(protein)
+        merged_G.nodes[node]['annotation'] = ";".join(annotation)
+        merged_G.nodes[node]['description'] = ";".join(description)
+        merged_G.nodes[node]['paralog'] = paralog
+        merged_G.nodes[node]['mergedDNA'] = mergedDNA
+        merged_G.nodes[node]['centroid'] = ";".join(centroid)#merge_centroids[node]
         
     # fix longcentroid
-    for node in merged_G.node():
-        merged_G.node[node]['longCentroidID'] = max([(len(s), sid) for s,sid in zip(
-            merged_G.node[node]['dna'].split(";"), merged_G.node[node]['centroid'].split(";"))])
+    for node in merged_G.nodes():
+        merged_G.nodes[node]['longCentroidID'] = max([(len(s), sid) for s,sid in zip(
+            merged_G.nodes[node]['dna'].split(";"), merged_G.nodes[node]['centroid'].split(";"))])
 
 
     # fix up edge attributes
@@ -348,17 +348,17 @@ def main():
             output_dir=args.output_dir)
 
     # add helpful attributes and write out graph in GML format
-    for node in G.nodes():
-        G.node[node]['size'] = len(set(G.node[node]['members']))
-        G.node[node]['genomeIDs'] = ";".join(conv_list(
-            G.node[node]['members']))
-        G.node[node]['centroid'] = G.node[node]['prevCentroids']
-        del G.node[node]['prevCentroids']
-        G.node[node]['geneIDs'] = ";".join(conv_list(G.node[node]['seqIDs']))
-        G.node[node]['degrees'] = G.degree[node]
+    for node in G.nodess():
+        G.nodes[node]['size'] = len(set(G.nodes[node]['members']))
+        G.nodes[node]['genomeIDs'] = ";".join(conv_list(
+            G.nodes[node]['members']))
+        G.nodes[node]['centroid'] = G.nodes[node]['prevCentroids']
+        del G.nodes[node]['prevCentroids']
+        G.nodes[node]['geneIDs'] = ";".join(conv_list(G.nodes[node]['seqIDs']))
+        G.nodes[node]['degrees'] = G.degree[node]
         sub_graphs = list(
-            set([m.split("_")[0] for m in G.node[node]['members']]))
-        G.node[node]['subGraphs'] = ";".join(conv_list(sub_graphs))
+            set([m.split("_")[0] for m in G.nodes[node]['members']]))
+        G.nodes[node]['subGraphs'] = ";".join(conv_list(sub_graphs))
 
     for edge in G.edges():
         G.edges[edge[0], edge[1]]['genomeIDs'] = ";".join(

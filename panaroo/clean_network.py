@@ -20,7 +20,7 @@ def trim_low_support_trailing_ends(G, min_support=3, max_recursive=2):
         removed = False
         for (node, val) in G.degree():
             if val <= 1:  # trailing node
-                if G.node[node]['size'] < min_support:
+                if G.nodes[node]['size'] < min_support:
                     bad_nodes.append(node)
         for node in bad_nodes:
             G.remove_node(node)
@@ -71,7 +71,7 @@ def collapse_families(G,
                       distances_bwtn_centroids=None, 
                       centroid_to_index=None):
 
-    node_count = max(list(G.nodes())) + 10
+    node_count = max(list(G.nodess())) + 10
 
     
     if correct_mistranslations:
@@ -97,9 +97,9 @@ def collapse_families(G,
 
         # keep track of centroids for each sequence. Need this to resolve clashes
         seqid_to_index = {}
-        for node in G.nodes():
-            for sid in G.node[node]['seqIDs']:
-                seqid_to_index[sid] = centroid_to_index[G.node[node]["longCentroidID"][1]]
+        for node in G.nodess():
+            for sid in G.nodes[node]['seqIDs']:
+                seqid_to_index[sid] = centroid_to_index[G.nodes[node]["longCentroidID"][1]]
 
     elif distances_bwtn_centroids is None:
         cdhit_clusters = iterative_cdhit(G,
@@ -111,7 +111,7 @@ def collapse_families(G,
         distances_bwtn_centroids, centroid_to_index = pwdist_edlib(
             G, cdhit_clusters, family_threshold, dna=False, n_cpu=n_cpu)
     for depth in depths:
-        search_space = set(G.nodes())
+        search_space = set(G.nodess())
         while len(search_space) > 0:
             # look for nodes to merge
             temp_node_list = list(search_space)
@@ -135,7 +135,7 @@ def collapse_families(G,
                 index = []
                 neigh_array = []
                 for neigh in neighbours:
-                    for sid in G.node[neigh]['centroid'].split(";"):
+                    for sid in G.nodes[neigh]['centroid'].split(";"):
                         index.append(centroid_to_index[sid])
                         neigh_array.append(neigh)
                 index = np.array(index, dtype=int)
@@ -164,7 +164,7 @@ def collapse_families(G,
                     # check for conflicts
                     members = []
                     for n in cluster:
-                        for m in set(G.node[n]['members']):
+                        for m in set(G.nodes[n]['members']):
                             members.append(m)
 
                     if (len(members) == len(set(members))):
@@ -199,15 +199,15 @@ def collapse_families(G,
                         # build a mini graph of allowed pairwise merges
                         tempG = nx.Graph()
                         for nA, nB in itertools.combinations(cluster, 2):
-                            mem_inter = set(G.node[nA]['members']).intersection(G.node[nB]['members'])
+                            mem_inter = set(G.nodes[nA]['members']).intersection(G.nodes[nB]['members'])
                             if len(mem_inter) > 0:
-                                if distances_bwtn_centroids[centroid_to_index[G.node[nA]["longCentroidID"][1]], 
-                                    centroid_to_index[G.node[nB]["longCentroidID"][1]]]==0:
+                                if distances_bwtn_centroids[centroid_to_index[G.nodes[nA]["longCentroidID"][1]], 
+                                    centroid_to_index[G.nodes[nB]["longCentroidID"][1]]]==0:
                                     tempG.add_edge(nA, nB)
                                 else:
                                     for imem in mem_inter:
                                         tempids = []
-                                        for sid in G.node[nA]['seqIDs'] + G.node[nB]['seqIDs']:
+                                        for sid in G.nodes[nA]['seqIDs'] + G.nodes[nB]['seqIDs']:
                                             if int(sid.split("_")[0])==imem:
                                                 tempids.append(sid)
                                         shouldmerge = True
@@ -258,7 +258,7 @@ def collapse_families(G,
 def collapse_paralogs(G, centroid_contexts, max_context=5, quiet=False):
     
     # contexts [centroid] = [[node, member, contig, context], ...]
-    node_count = max(list(G.nodes())) + 10
+    node_count = max(list(G.nodess())) + 10
 
     # first sort by context length, context dist to ensure ties
     #  are broken the same way
@@ -268,14 +268,14 @@ def collapse_paralogs(G, centroid_contexts, max_context=5, quiet=False):
     # set up for context search
     centroid_to_index = {}
     ncentroids=-1
-    for node in G.nodes():
-        centroid = G.node[node]['centroid'].split(";")[0]
+    for node in G.nodess():
+        centroid = G.nodes[node]['centroid'].split(";")[0]
         if centroid not in centroid_to_index:
             ncentroids += 1
             centroid_to_index[centroid] = ncentroids
-            centroid_to_index[G.node[node]['centroid']] = ncentroids
+            centroid_to_index[G.nodes[node]['centroid']] = ncentroids
         else:
-            centroid_to_index[G.node[node]['centroid']] = centroid_to_index[centroid]
+            centroid_to_index[G.nodes[node]['centroid']] = centroid_to_index[centroid]
     ncentroids += 1
 
     for centroid in tqdm(centroid_contexts):
@@ -321,14 +321,14 @@ def collapse_paralogs(G, centroid_contexts, max_context=5, quiet=False):
                 s_max = -np.inf
                 para_context = np.zeros(ncentroids)
                 for u, node, depth in mod_bfs_edges(G, para[0], max_context):
-                    para_context[centroid_to_index[G.node[node]['centroid']]] = depth
+                    para_context[centroid_to_index[G.nodes[node]['centroid']]] = depth
                 for c, ref in enumerate(ref_paralogs):
                     if para[1] in cluster_mems[c]:
                         #dont match paralogs of the same isolate
                         continue
                     ref_context = np.zeros(ncentroids)
                     for u, node, depth in mod_bfs_edges(G, ref[0], max_context):
-                        ref_context[centroid_to_index[G.node[node]['centroid']]] = depth
+                        ref_context[centroid_to_index[G.nodes[node]['centroid']]] = depth
                     s = np.sum(1/(1+np.abs((para_context - ref_context)[(para_context*ref_context)!=0])))
                     if s>s_max:
                         s_max=s
@@ -354,13 +354,13 @@ def collapse_paralogs(G, centroid_contexts, max_context=5, quiet=False):
 
 def merge_paralogs(G):
 
-    node_count = max(list(G.nodes())) + 10
+    node_count = max(list(G.nodess())) + 10
 
     # group paralog nodes by centroid
     paralog_centroid_dict = defaultdict(list)
-    for node in G.nodes():
-        if G.node[node]['paralog']:
-            paralog_centroid_dict[G.node[node]['centroid']].append(node)
+    for node in G.nodess():
+        if G.nodes[node]['paralog']:
+            paralog_centroid_dict[G.nodes[node]['centroid']].append(node)
 
     # merge paralog nodes that share the same centroid
     for centroid in paralog_centroid_dict:
@@ -380,17 +380,17 @@ def clean_misassembly_edges(G, edge_support_threshold):
     max_weight = 0
 
     # remove edges with low support near contig ends
-    for node in G.nodes():
-        max_weight = max(max_weight, G.nodes[node]['size'])
+    for node in G.nodess():
+        max_weight = max(max_weight, G.nodess[node]['size'])
         for neigh in G.neighbors(node):
-            if G.node[neigh]['hasEnd']:
+            if G.nodes[neigh]['hasEnd']:
                 if G[node][neigh]['weight'] < edge_support_threshold:
                     bad_edges.add((node, neigh))
 
     # remove edges that have much lower support than the nodes they connect
     for edge in G.edges():
         if float(G.edges[edge]['weight']) < (0.05 * min(
-                int(G.node[edge[0]]['size']), int(G.node[edge[1]]['size']))):
+                int(G.nodes[edge[0]]['size']), int(G.nodes[edge[1]]['size']))):
             if float(G.edges[edge]['weight']) < edge_support_threshold:
                 bad_edges.add(edge)
 
@@ -407,14 +407,14 @@ def identify_possible_highly_variable(G,
                                       size_diff_threshold=0.5):
 
     # add family paralog attribute to nodes
-    for node in G.nodes():
-        G.node[node]['highVar'] = 0
+    for node in G.nodess():
+        G.nodes[node]['highVar'] = 0
 
     # find all the cycles shorter than cycle_threshold
     complete_basis = []
     for c in nx.connected_components(G):
         sub_G = G.subgraph(c)
-        basis = nx.cycle_basis(sub_G, list(sub_G.nodes())[0])
+        basis = nx.cycle_basis(sub_G, list(sub_G.nodess())[0])
         complete_basis += [
             set(b) for b in basis if len(b) <= cycle_threshold_max
         ]
@@ -440,9 +440,9 @@ def identify_possible_highly_variable(G,
 
     for b in merged_basis:
         if b[0] < cycle_threshold_min: continue
-        max_size = max([G.node[node]['size'] for node in b[1]])
+        max_size = max([G.nodes[node]['size'] for node in b[1]])
         for node in b[1]:
-            if G.node[node]['size'] < (size_diff_threshold * max_size):
-                G.node[node]['highVar'] = 1
+            if G.nodes[node]['size'] < (size_diff_threshold * max_size):
+                G.nodes[node]['highVar'] = 1
 
     return G

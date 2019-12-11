@@ -70,17 +70,17 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
         genome_id = loc[0]
         if loc[-1] == "0":
             # we're at the start of a contig
-            if prev is not None: G.node[prev]['hasEnd'] = True
+            if prev is not None: G.nodes[prev]['hasEnd'] = True
             prev = current_cluster
             if G.has_node(prev) and (prev not in paralogs):
-                G.node[prev]['size'] += 1
-                G.node[prev]['members'].append(genome_id)
-                G.node[prev]['seqIDs'].append(id)
-                G.node[prev]['hasEnd'] = True
-                G.node[current_cluster]['lengths'].append(len(cluster_centroid_data[prev]
+                G.nodes[prev]['size'] += 1
+                G.nodes[prev]['members'].append(genome_id)
+                G.nodes[prev]['seqIDs'].append(id)
+                G.nodes[prev]['hasEnd'] = True
+                G.nodes[current_cluster]['lengths'].append(len(cluster_centroid_data[prev]
                         ['dna_sequence']))
                 if all_dna:
-                    G.node[prev]['dna'] += ";" + cluster_centroid_data[prev]['dna_sequence']
+                    G.nodes[prev]['dna'] += ";" + cluster_centroid_data[prev]['dna_sequence']
             else:
                 if prev in paralogs:
                     # create a new paralog
@@ -174,13 +174,13 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                                weight=1,
                                members=[genome_id])
                 else:
-                    G.node[current_cluster]['size'] += 1
-                    G.node[current_cluster]['members'].append(genome_id)
-                    G.node[current_cluster]['seqIDs'].append(id)
-                    G.node[current_cluster]['lengths'].append(len(cluster_centroid_data[current_cluster]
+                    G.nodes[current_cluster]['size'] += 1
+                    G.nodes[current_cluster]['members'].append(genome_id)
+                    G.nodes[current_cluster]['seqIDs'].append(id)
+                    G.nodes[current_cluster]['lengths'].append(len(cluster_centroid_data[current_cluster]
                         ['dna_sequence']))
                     if all_dna:
-                        G.node[current_cluster]['dna'] += ";" + cluster_centroid_data[current_cluster]['dna_sequence']
+                        G.nodes[current_cluster]['dna'] += ";" + cluster_centroid_data[current_cluster]['dna_sequence']
                     if G.has_edge(prev, current_cluster):
                         G[prev][current_cluster]['weight'] += 1
                         G[prev][current_cluster]['members'].append(genome_id)

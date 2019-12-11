@@ -9,8 +9,8 @@ def plot_isolates_per_gene_hist(G):
 
     node_gene_nos = []
 
-    for node in G.nodes():
-        node_gene_nos.append(len(G.node[node]["members"]))
+    for node in G.nodess():
+        node_gene_nos.append(len(G.nodes[node]["members"]))
 
     fig = plt.figure()
     axis1 = fig.add_subplot(111)

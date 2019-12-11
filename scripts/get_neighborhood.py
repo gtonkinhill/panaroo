@@ -3,7 +3,7 @@ import networkx as nx
 
 def index_neighbors(g):
     g2g2n = {}
-    for n, attr in g.nodes(data=True):
+    for n, attr in G.nodess(data=True):
         genomes = attr["genomeIDs"].split(";")
         genome_dict = dict([(genome, True) for genome in genomes])
         for neighbor in g.neighbors(n):
@@ -97,7 +97,7 @@ def get_neighbors(name, g2g2n, graph, expand_no):
 
 
 def get_target(g, gene):
-    for n, attr in g.nodes(data=True):
+    for n, attr in G.nodess(data=True):
         if attr["name"] == gene:
             return n
 

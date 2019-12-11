@@ -17,17 +17,17 @@ def add_to_queue(g, s, nodes, visited, sink, mapping, ref_g_id, max_dist):
     for i in nodes:
         if i in visited:
             continue
-        if ref_g_id not in g.nodes[i]['genomeIDs'].split(";"):
+        if ref_g_id not in G.nodess[i]['genomeIDs'].split(";"):
             add.append(i)
         else: 
             #if we have discovered a refound gene we just continue
-            g2g = dict([(j.split("_")[0], j.split("_")[1]) for j in g.nodes[i]['geneIDs'].split(";")])
+            g2g = dict([(j.split("_")[0], j.split("_")[1]) for j in G.nodess[i]['geneIDs'].split(";")])
             if g2g[ref_g_id] == "refound":
                 sink["sink"] = i
                 visited.add(i)
                 continue
-            dist = get_dist(mapping.loc[g.nodes[s]['name'], "gene_id"],
-                            mapping.loc[g.nodes[i]['name'], "gene_id"],
+            dist = get_dist(mapping.loc[G.nodess[s]['name'], "gene_id"],
+                            mapping.loc[G.nodess[i]['name'], "gene_id"],
                             max_dist)
             if dist > 100:
                 sink["sink"] = i
@@ -40,10 +40,10 @@ def create_mapping(g, ref_g_id):
     gene_dict = {}
     for n in list(g):
         gene_ids = [(i.split("_")[0], i)
-                    for i in g.nodes[n]['geneIDs'].split(";")]
+                    for i in G.nodess[n]['geneIDs'].split(";")]
         gene_ids = list(filter(lambda x: ref_g_id == x[0], gene_ids))
         if len(gene_ids) != 0:
-            gene_dict[g.nodes[n]['name']] = gene_ids[0][1]
+            gene_dict[G.nodess[n]['name']] = gene_ids[0][1]
         elif len(gene_ids) > 1:
             sys.exit("a problem occurred with node")
     mapping = pd.DataFrame.from_dict(gene_dict, orient='index')
@@ -54,7 +54,7 @@ def create_mapping(g, ref_g_id):
 
 
 def add_ref_edges(g, mapping):
-    name_dict = dict([(g.nodes[n]['name'], n) for n in list(g)])
+    name_dict = dict([(G.nodess[n]['name'], n) for n in list(g)])
     for n in mapping.index:
         mapping.loc[n, "seq"] = int(mapping.loc[n, "gene_id"].split("_")[2])
     mapping.sort_values("seq", inplace=True)
@@ -70,7 +70,7 @@ def add_ref_edges(g, mapping):
 
 def remove_var_edges(g):
     for n in g:
-        if g.nodes[n]["highVar"] == 1 and ref_g_id not in g.nodes[n]['genomeIDs'].split(";") :
+        if G.nodess[n]["highVar"] == 1 and ref_g_id not in G.nodess[n]['genomeIDs'].split(";") :
             var_nodes.append(n)
     var_nodes = []
     g.remove_nodes_from(var_nodes)
@@ -92,7 +92,7 @@ def layout(graph, ref_g_id, cut_edges_out, ignore_high_var,
         g = add_ref_edges(g, mapping)
         #write gml with reference edges to disk to be used in cytoscape instead of the original final_graph.gml
         nx.write_gml(g, "with_ref_" + graph)
-    name_dict = dict([(g.nodes[n]['name'], n) for n in list(g)])
+    name_dict = dict([(G.nodess[n]['name'], n) for n in list(g)])
     #set capacity for edges for the min cut algorithm as the weight of that edge
     for e in g.edges:
         try:
@@ -134,15 +134,15 @@ def layout(graph, ref_g_id, cut_edges_out, ignore_high_var,
             #the induced graph could contain reference edges which need to be removed
             remove = []
             for e in s_t_graph.edges:
-                if ref_g_id in g.nodes[e[0]]['genomeIDs'].split(";") \
-                and ref_g_id in g.nodes[e[1]]['genomeIDs'].split(";"):
-                    g2g1 = dict([(j.split("_")[0], j.split("_")[1]) for j in g.nodes[e[0]]['geneIDs'].split(";")])
-                    g2g2 = dict([(j.split("_")[0], j.split("_")[1]) for j in g.nodes[e[1]]['geneIDs'].split(";")])
+                if ref_g_id in G.nodess[e[0]]['genomeIDs'].split(";") \
+                and ref_g_id in G.nodess[e[1]]['genomeIDs'].split(";"):
+                    g2g1 = dict([(j.split("_")[0], j.split("_")[1]) for j in G.nodess[e[0]]['geneIDs'].split(";")])
+                    g2g2 = dict([(j.split("_")[0], j.split("_")[1]) for j in G.nodess[e[1]]['geneIDs'].split(";")])
                     if g2g1[ref_g_id] == "refound" or g2g2[ref_g_id] == "refound":
                         continue
                     else:
-                        n1 = mapping.loc[g.nodes[e[0]]["name"]][0]
-                        n2 = mapping.loc[g.nodes[e[1]]["name"]][0]
+                        n1 = mapping.loc[G.nodess[e[0]]["name"]][0]
+                        n2 = mapping.loc[G.nodess[e[1]]["name"]][0]
                         if abs(int(n1.split("_")[2]) -
                                int(n2.split("_")[2])) < 100:
                             remove.append(e)
@@ -161,7 +161,7 @@ def layout(graph, ref_g_id, cut_edges_out, ignore_high_var,
             #cardinality cut TODO make this an option
             #cut = cuts.minimum_edge_cut(s_t_graph, nid, sink["sink"])
             for e in cut:
-                print(g.nodes[e[0]]['name'], g.nodes[e[1]]['name'])
+                print(G.nodess[e[0]]['name'], G.nodess[e[1]]['name'])
                 cut_edges.append(e)
             #delete cut edges from the graph
             if len(cut) == 0:
@@ -183,13 +183,13 @@ def layout(graph, ref_g_id, cut_edges_out, ignore_high_var,
             f.write("%s (interacts with) %s\t1\n" %(e[0], e[1]))
             f.write("%s (interacts with) %s\t1\n" %(e[1], e[0]))
     #DEBUG to compress the graph 
-    #for n in g.nodes:
-    #    gene_ids = [(i.split("_")[0], i) for i in  g.nodes[n]['geneIDs'].split(";")]
+    #for n in G.nodess:
+    #    gene_ids = [(i.split("_")[0], i) for i in  G.nodess[n]['geneIDs'].split(";")]
     #    gene_ids = list(filter(lambda x: ref_g_id == x[0],gene_ids))
     #    if len(gene_ids) == 1:
-    #        g.nodes[n]['geneIDs'] = ""
+    #        G.nodess[n]['geneIDs'] = ""
     #    else:
-    #        g.nodes[n]['geneIDs'] = gene_ids[0][1]
+    #        G.nodess[n]['geneIDs'] = gene_ids[0][1]
 
 if __name__ == "__main__":
     import argparse

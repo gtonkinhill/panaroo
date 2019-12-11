@@ -52,34 +52,34 @@ def generate_roary_gene_presence_absence(G, mems_to_isolates, orig_ids, ids_len_
             count = 0
             for node in component:
                 count += 1
-                len_mode = max(G.node[node]['lengths'], key=G.node[node]['lengths'].count)
+                len_mode = max(G.nodes[node]['lengths'], key=G.nodes[node]['lengths'].count)
                 name = '_'.join(
-                    G.node[node]['annotation'].strip().strip(';').split(';'))
+                    G.nodes[node]['annotation'].strip().strip(';').split(';'))
                 name = ''.join(e for e in name if e.isalnum() or e == "_")
                 if name not in used_gene_names:
                     entry = [name]
                     used_gene_names.add(name)
-                    G.node[node]['name'] = name
+                    G.nodes[node]['name'] = name
                 else:
-                    G.node[node]['name'] = "group_" + str(unique_id_count)
-                    entry = [G.node[node]['name']]
+                    G.nodes[node]['name'] = "group_" + str(unique_id_count)
+                    entry = [G.nodes[node]['name']]
                     unique_id_count += 1
-                entry.append(G.node[node]['annotation'])
-                entry.append(G.node[node]['description'])
-                entry.append(len(G.node[node]['seqIDs']))
-                entry.append(G.node[node]['size'])
-                entry.append((1.0 * len(G.node[node]['seqIDs'])) /
-                             G.node[node]['size'])
+                entry.append(G.nodes[node]['annotation'])
+                entry.append(G.nodes[node]['description'])
+                entry.append(len(G.nodes[node]['seqIDs']))
+                entry.append(G.nodes[node]['size'])
+                entry.append((1.0 * len(G.nodes[node]['seqIDs'])) /
+                             G.nodes[node]['size'])
                 entry.append(frag)
                 entry.append(count)
                 entry += ["", "", ""]
-                entry.append(np.min(G.node[node]['lengths']))
-                entry.append(np.max(G.node[node]['lengths']))
-                entry.append(np.mean(G.node[node]['lengths']))
+                entry.append(np.min(G.nodes[node]['lengths']))
+                entry.append(np.max(G.nodes[node]['lengths']))
+                entry.append(np.mean(G.nodes[node]['lengths']))
                 pres_abs = [""] * len(isolates)
                 pres_abs_ext  = [""] * len(isolates)
                 entry_size = 0
-                for seq in G.node[node]['seqIDs']:
+                for seq in G.nodes[node]['seqIDs']:
                     sample_id = mems_to_index["_".join(seq.split("_")[:-2])]
                     if pres_abs[sample_id]=="": #ensures we only take the first one
                         if seq in orig_ids:
@@ -127,14 +127,14 @@ def generate_pan_genome_reference(G, output_dir, split_paralogs=False):
     centroids = set()
     records = []
 
-    for node in G.nodes():
-        if not split_paralogs and G.node[node]['centroid'].split(";")[0] in centroids:
+    for node in G.nodess():
+        if not split_paralogs and G.nodes[node]['centroid'].split(";")[0] in centroids:
             continue
         records.append(
-            SeqRecord(Seq(G.node[node]['dna'].split(";")[0], generic_dna),
-                      id=G.node[node]['centroid'].split(";")[0],
+            SeqRecord(Seq(G.nodes[node]['dna'].split(";")[0], generic_dna),
+                      id=G.nodes[node]['centroid'].split(";")[0],
                       description=""))
-        centroids.add(G.node[node]['centroid'].split(";")[0])
+        centroids.add(G.nodes[node]['centroid'].split(";")[0])
 
     with open(output_dir + "pan_genome_reference.fa", 'w') as outfile:
         SeqIO.write(records, outfile, "fasta")
@@ -147,15 +147,15 @@ def generate_pan_genome_reference(G, output_dir, split_paralogs=False):
 
 #     with open(output_dir + "gene_mobility.csv", 'w') as outfile:
 #         outfile.write("gene_id,annotation,count,degree,entropy\n")
-#         for node in G.nodes():
+#         for node in G.nodess():
 #             entropy = 0
 #             for edge in G.edges(node):
 #                 p = G[edge[0]][edge[1]]['weight'] / (1.0 *
-#                                                      G.node[node]['size'])
+#                                                      G.nodes[node]['size'])
 #                 entropy -= p * np.log(p)
 #             outfile.write(",".join([
-#                 G.node[node]['name'], G.node[node]['annotation'],
-#                 str(G.node[node]['size']),
+#                 G.nodes[node]['name'], G.nodes[node]['annotation'],
+#                 str(G.nodes[node]['size']),
 #                 str(G.degree[node]), "{:.5f}".format(entropy)
 #             ]) + "\n")
 
@@ -173,7 +173,7 @@ def generate_common_struct_presence_absence(G,
         members.append(mem)
 
     struct_variants = {}
-    for node in G.nodes():
+    for node in G.nodess():
         if G.degree[node] < 3: continue  #skip as linear
         for path in iter.combinations(G.edges(node), 2):
             in_both = (set(G[path[0][0]][path[0][1]]['members'])
@@ -184,8 +184,8 @@ def generate_common_struct_presence_absence(G,
     header = []
     for variant in struct_variants:
         header.append("-".join([
-            G.node[variant[1]]['name'], G.node[variant[0]]['name'],
-            G.node[variant[2]]['name']
+            G.nodes[variant[1]]['name'], G.nodes[variant[0]]['name'],
+            G.nodes[variant[2]]['name']
         ]))
 
     with open(output_dir + "struct_presence_absence.Rtab", 'w') as Rtab_outfile:
@@ -211,8 +211,8 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
         None
     #Multithread writing gene sequences to disk (temp directory) so aligners can find them
     unaligned_sequence_files = Parallel(n_jobs=threads)(
-        delayed(output_sequence)(G.node[x], isolates, temp_dir, output_dir)
-        for x in tqdm(G.nodes()))
+        delayed(output_sequence)(G.nodes[x], isolates, temp_dir, output_dir)
+        for x in tqdm(G.nodess()))
     #Get Biopython command calls for each output gene sequences
     commands = [
         get_alignment_commands(fastafile, output_dir, aligner, threads)
@@ -227,8 +227,8 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
 def get_core_gene_nodes(G, threshold, num_isolates):
     #Get the core genes based on percent threshold
     core_nodes = []
-    for node in G.nodes():
-        if float(G.node[node]["size"]) / float(num_isolates) > threshold:
+    for node in G.nodess():
+        if float(G.nodes[node]["size"]) / float(num_isolates) > threshold:
             core_nodes.append(node)
     return core_nodes
 
@@ -285,10 +285,10 @@ def generate_core_genome_alignment(G, temp_dir, output_dir, threads, aligner,
         None
     #Get core nodes
     core_genes = get_core_gene_nodes(G, threshold, num_isolates)
-    core_gene_names = [G.node[x]["name"] for x in core_genes]
+    core_gene_names = [G.nodes[x]["name"] for x in core_genes]
     #Output core node sequences
     unaligned_sequence_files = Parallel(n_jobs=threads)(
-        delayed(output_sequence)(G.node[x], isolates, temp_dir, output_dir)
+        delayed(output_sequence)(G.nodes[x], isolates, temp_dir, output_dir)
         for x in tqdm(core_genes))
     #Get alignment commands
     commands = [
