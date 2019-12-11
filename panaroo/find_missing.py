@@ -41,7 +41,7 @@ def find_missing(G,
 
     # identify nodes that have been merged at the protein level
     merged_ids = {}
-    for node in G.nodess():
+    for node in G.nodes():
         if (len(G.nodes[node]['centroid'].split(";")) >
                 1) or (G.nodes[node]['mergedDNA']):
                 for sid in G.nodes[node]['seqIDs']:
@@ -66,7 +66,7 @@ def find_missing(G,
     n_searches = 0
     search_list = defaultdict(lambda: defaultdict(set))
     conflicts = defaultdict(set)
-    for node in G.nodess():
+    for node in G.nodes():
         for neigh in G.neighbors(node):
             # seen_mems = set()
             for sid in G.nodes[neigh]['seqIDs']:
@@ -108,7 +108,7 @@ def find_missing(G,
 
     # remove nodes that conflict (overlap)
     nodes_by_size = sorted([(G.nodes[node]['size'], node)
-                            for node in G.nodess()],
+                            for node in G.nodes()],
                            reverse=True)
     nodes_by_size = [n[1] for n in nodes_by_size]
     member = 0
@@ -135,11 +135,11 @@ def find_missing(G,
                 seq_coverage[contig_id][loc[0]:loc[1]] = True
         member += 1
 
-    for node in G.nodess():
+    for node in G.nodes():
         if len(set(G.nodes[node]['members']))<=0:
             bad_nodes.add(node)
     for node in bad_nodes:
-        if node in G.nodess():
+        if node in G.nodes():
             delete_node(G, node)
 
     # remove by consensus
@@ -156,7 +156,7 @@ def find_missing(G,
             if node_hit_counter[node] > G.nodes[node]['size']:
                 bad_nodes.add(node)
         for node in bad_nodes:
-            if node in G.nodess():
+            if node in G.nodes():
                 delete_node(G, node)
 
     print("Updating output...")

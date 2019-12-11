@@ -385,7 +385,7 @@ def iterative_cdhit(
     temp_output_file.close()
     
     centroid_to_seq = {}
-    for node in G.nodess():
+    for node in G.nodes():
         if dna:
             for sid, seq in zip(G.nodes[node]["centroid"].split(";"), G.nodes[node]["dna"].split(";")):
                 centroid_to_seq[sid] = seq
@@ -473,7 +473,7 @@ def pwdist_edlib(G, cdhit_clusters, threshold, dna=False, n_cpu=1):
 
     # Prepare sequences
     centroid_to_seq = {}
-    for node in G.nodess():
+    for node in G.nodes():
         if dna:
             for sid, seq in zip(G.nodes[node]["centroid"].split(";"), G.nodes[node]["dna"].split(";")):
                 centroid_to_seq[sid] = seq

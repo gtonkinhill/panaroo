@@ -127,7 +127,7 @@ def generate_pan_genome_reference(G, output_dir, split_paralogs=False):
     centroids = set()
     records = []
 
-    for node in G.nodess():
+    for node in G.nodes():
         if not split_paralogs and G.nodes[node]['centroid'].split(";")[0] in centroids:
             continue
         records.append(
@@ -147,7 +147,7 @@ def generate_pan_genome_reference(G, output_dir, split_paralogs=False):
 
 #     with open(output_dir + "gene_mobility.csv", 'w') as outfile:
 #         outfile.write("gene_id,annotation,count,degree,entropy\n")
-#         for node in G.nodess():
+#         for node in G.nodes():
 #             entropy = 0
 #             for edge in G.edges(node):
 #                 p = G[edge[0]][edge[1]]['weight'] / (1.0 *
@@ -173,7 +173,7 @@ def generate_common_struct_presence_absence(G,
         members.append(mem)
 
     struct_variants = {}
-    for node in G.nodess():
+    for node in G.nodes():
         if G.degree[node] < 3: continue  #skip as linear
         for path in iter.combinations(G.edges(node), 2):
             in_both = (set(G[path[0][0]][path[0][1]]['members'])
@@ -212,7 +212,7 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
     #Multithread writing gene sequences to disk (temp directory) so aligners can find them
     unaligned_sequence_files = Parallel(n_jobs=threads)(
         delayed(output_sequence)(G.nodes[x], isolates, temp_dir, output_dir)
-        for x in tqdm(G.nodess()))
+        for x in tqdm(G.nodes()))
     #Get Biopython command calls for each output gene sequences
     commands = [
         get_alignment_commands(fastafile, output_dir, aligner, threads)
@@ -227,7 +227,7 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
 def get_core_gene_nodes(G, threshold, num_isolates):
     #Get the core genes based on percent threshold
     core_nodes = []
-    for node in G.nodess():
+    for node in G.nodes():
         if float(G.nodes[node]["size"]) / float(num_isolates) > threshold:
             core_nodes.append(node)
     return core_nodes

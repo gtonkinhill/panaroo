@@ -30,9 +30,9 @@ def generate_annotation(annotation, graph, node_out, edge_out):
     #set up node dictionary for each annotation column
     for annot in annot_dicts:
         annot_node_dicts[annot] = {} 
-    for n in G.nodess:
-        name = G.nodess[n]['name']
-        for m in G.nodess[n]["members"]:
+    for n in G.nodes:
+        name = G.nodes[n]['name']
+        for m in G.nodes[n]["members"]:
             if m not in annot_dicts[annot]:
                 continue
             for annot in annot_node_dicts:
@@ -41,7 +41,7 @@ def generate_annotation(annotation, graph, node_out, edge_out):
                 else:
                     annot_node_dicts[annot][name].add(annot_dicts[annot][m])
     #get all nodes
-    nodes = [G.nodess[n]['name'] for n in G.nodess]
+    nodes = [G.nodes[n]['name'] for n in G.nodes]
     with open(node_out, 'w') as no:
         no.write("shared name\t")
         no.write("\t".join(list(annot_node_dicts.keys())) + "\n")

@@ -101,7 +101,7 @@ def merge_nodes(G,
     # remove old nodes from Graph
     G.remove_nodes_from([nodeA, nodeB])
 
-    if len(max(G.nodess[newNode]["dna"].split(";"), key=len)) <= 0:
+    if len(max(G.nodes[newNode]["dna"].split(";"), key=len)) <= 0:
         print(G.nodes[newNode]["dna"])
         raise NameError("Problem!")
 

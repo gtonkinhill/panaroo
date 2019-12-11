@@ -71,7 +71,7 @@ def collapse_families(G,
                       distances_bwtn_centroids=None, 
                       centroid_to_index=None):
 
-    node_count = max(list(G.nodess())) + 10
+    node_count = max(list(G.nodes())) + 10
 
     
     if correct_mistranslations:
@@ -97,7 +97,7 @@ def collapse_families(G,
 
         # keep track of centroids for each sequence. Need this to resolve clashes
         seqid_to_index = {}
-        for node in G.nodess():
+        for node in G.nodes():
             for sid in G.nodes[node]['seqIDs']:
                 seqid_to_index[sid] = centroid_to_index[G.nodes[node]["longCentroidID"][1]]
 
@@ -111,7 +111,7 @@ def collapse_families(G,
         distances_bwtn_centroids, centroid_to_index = pwdist_edlib(
             G, cdhit_clusters, family_threshold, dna=False, n_cpu=n_cpu)
     for depth in depths:
-        search_space = set(G.nodess())
+        search_space = set(G.nodes())
         while len(search_space) > 0:
             # look for nodes to merge
             temp_node_list = list(search_space)
@@ -258,7 +258,7 @@ def collapse_families(G,
 def collapse_paralogs(G, centroid_contexts, max_context=5, quiet=False):
     
     # contexts [centroid] = [[node, member, contig, context], ...]
-    node_count = max(list(G.nodess())) + 10
+    node_count = max(list(G.nodes())) + 10
 
     # first sort by context length, context dist to ensure ties
     #  are broken the same way
@@ -268,7 +268,7 @@ def collapse_paralogs(G, centroid_contexts, max_context=5, quiet=False):
     # set up for context search
     centroid_to_index = {}
     ncentroids=-1
-    for node in G.nodess():
+    for node in G.nodes():
         centroid = G.nodes[node]['centroid'].split(";")[0]
         if centroid not in centroid_to_index:
             ncentroids += 1
@@ -354,11 +354,11 @@ def collapse_paralogs(G, centroid_contexts, max_context=5, quiet=False):
 
 def merge_paralogs(G):
 
-    node_count = max(list(G.nodess())) + 10
+    node_count = max(list(G.nodes())) + 10
 
     # group paralog nodes by centroid
     paralog_centroid_dict = defaultdict(list)
-    for node in G.nodess():
+    for node in G.nodes():
         if G.nodes[node]['paralog']:
             paralog_centroid_dict[G.nodes[node]['centroid']].append(node)
 
@@ -380,8 +380,8 @@ def clean_misassembly_edges(G, edge_support_threshold):
     max_weight = 0
 
     # remove edges with low support near contig ends
-    for node in G.nodess():
-        max_weight = max(max_weight, G.nodess[node]['size'])
+    for node in G.nodes():
+        max_weight = max(max_weight, G.nodes[node]['size'])
         for neigh in G.neighbors(node):
             if G.nodes[neigh]['hasEnd']:
                 if G[node][neigh]['weight'] < edge_support_threshold:
@@ -407,14 +407,14 @@ def identify_possible_highly_variable(G,
                                       size_diff_threshold=0.5):
 
     # add family paralog attribute to nodes
-    for node in G.nodess():
+    for node in G.nodes():
         G.nodes[node]['highVar'] = 0
 
     # find all the cycles shorter than cycle_threshold
     complete_basis = []
     for c in nx.connected_components(G):
         sub_G = G.subgraph(c)
-        basis = nx.cycle_basis(sub_G, list(sub_G.nodess())[0])
+        basis = nx.cycle_basis(sub_G, list(sub_G.nodes())[0])
         complete_basis += [
             set(b) for b in basis if len(b) <= cycle_threshold_max
         ]

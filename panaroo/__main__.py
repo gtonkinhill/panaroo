@@ -234,7 +234,7 @@ def main():
     G = collapse_paralogs(G, centroid_contexts)
 
     # write out pre-filter graph in GML format
-    for node in G.nodess():
+    for node in G.nodes():
         G.nodes[node]['size'] = len(set(G.nodes[node]['members']))
         G.nodes[node]['genomeIDs'] = ";".join(conv_list(
             G.nodes[node]['members']))
@@ -354,7 +354,7 @@ def main():
     generate_summary_stats(output_dir=args.output_dir)
     
     # add helpful attributes and write out graph in GML format
-    for node in G.nodess():
+    for node in G.nodes():
         G.nodes[node]['size'] = len(set(G.nodes[node]['members']))
 
         G.nodes[node]['genomeIDs'] = ";".join(conv_list(

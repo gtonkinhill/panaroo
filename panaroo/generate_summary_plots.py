@@ -9,7 +9,7 @@ def plot_isolates_per_gene_hist(G):
 
     node_gene_nos = []
 
-    for node in G.nodess():
+    for node in G.nodes():
         node_gene_nos.append(len(G.nodes[node]["members"]))
 
     fig = plt.figure()

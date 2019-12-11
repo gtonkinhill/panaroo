@@ -44,7 +44,7 @@ def cluster_centroids(graphs, outdir, len_dif_percent=0.95, identity_threshold=0
     # create input for cdhit
     with open(temp_input_file.name, 'w') as outfile:
         for i, G in enumerate(graphs):
-            for node in G.nodess():
+            for node in G.nodes():
                 outfile.write(">" + str(i) + "_" + node + '\n')
                 seqs = G.nodes[node]["protein"].split(";")
                 seqs = [s for s in seqs if "*" not in s]
@@ -124,7 +124,7 @@ def simple_merge_graphs(graphs, clusters):
     merged_G = nx.compose_all(graphs)
 
     # fix up node attributes
-    for node in merged_G.nodess():
+    for node in merged_G.nodes():
         size = 0
         members = []
         lengths = []
@@ -348,7 +348,7 @@ def main():
             output_dir=args.output_dir)
 
     # add helpful attributes and write out graph in GML format
-    for node in G.nodess():
+    for node in G.nodes():
         G.nodes[node]['size'] = len(set(G.nodes[node]['members']))
         G.nodes[node]['genomeIDs'] = ";".join(conv_list(
             G.nodes[node]['members']))
