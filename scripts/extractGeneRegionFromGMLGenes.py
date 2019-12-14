@@ -164,11 +164,11 @@ if __name__ == "__main__":
     ]  #Will be filled with the ids for gene 1 for strand determination
 
     for node in geneGraph.nodes():  #Iterate through the nodes in the graph
-        if geneGraph.node[node]["name"] == gene1 or geneGraph.node[node][
+        if geneGraph.nodes[node]["name"] == gene1 or geneGraph.nodes[node][
                 "name"] == gene2:
-            geneSequences.append(geneGraph.node[node]["seqIDs"])
-        if geneGraph.node[node]["name"] == gene1:
-            gene1Sequences.append(geneGraph.node[node]["seqIDs"])
+            geneSequences.append(geneGraph.nodes[node]["seqIDs"])
+        if geneGraph.nodes[node]["name"] == gene1:
+            gene1Sequences.append(geneGraph.nodes[node]["seqIDs"])
 
     geneSeqIDs = [item for sublist in geneSequences
                   for item in sublist]  #Flatten the seqIDs into a single list

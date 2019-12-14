@@ -107,7 +107,6 @@ def merge_nodes(G,
 
     return G
 
-
 def delete_node(G, node):
     # add in new edges
     for mem in G.nodes[node]['members']:
@@ -125,7 +124,6 @@ def delete_node(G, node):
     G.remove_node(node)
 
     return G
-
 
 def remove_member_from_node(G, node, member):
 

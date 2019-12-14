@@ -254,7 +254,6 @@ def collapse_families(G,
 
     return G, distances_bwtn_centroids, centroid_to_index
 
-
 def collapse_paralogs(G, centroid_contexts, max_context=5, quiet=False):
     
     # contexts [centroid] = [[node, member, contig, context], ...]
@@ -350,7 +349,6 @@ def collapse_paralogs(G, centroid_contexts, max_context=5, quiet=False):
                 node_count += 1
 
     return(G)
-
 
 def merge_paralogs(G):
 

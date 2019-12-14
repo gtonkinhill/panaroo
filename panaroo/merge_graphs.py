@@ -139,27 +139,27 @@ def simple_merge_graphs(graphs, clusters):
         mergedDNA = False
 
         for prev in reverse_mapping[node]:
-            size += graphs[prev[0]].node[prev[1]]['size']
+            size += graphs[prev[0]].nodes[prev[1]]['size']
             members += [
                 str(prev[0]) + "_" + str(m)
-                for m in make_list(graphs[prev[0]].node[prev[1]]['members'])
+                for m in make_list(graphs[prev[0]].nodes[prev[1]]['members'])
             ]
-            lengths += make_list(graphs[prev[0]].node[prev[1]]['lengths'])
+            lengths += make_list(graphs[prev[0]].nodes[prev[1]]['lengths'])
             centroid +=  [
                 str(prev[0]) + "_" + str(m)
-                for m in make_list(graphs[prev[0]].node[prev[1]]['centroid'].split(";"))
+                for m in make_list(graphs[prev[0]].nodes[prev[1]]['centroid'].split(";"))
             ]
             seqIDs += [
                 str(prev[0]) + "_" + d
-                for d in make_list(graphs[prev[0]].node[prev[1]]['seqIDs'])
+                for d in make_list(graphs[prev[0]].nodes[prev[1]]['seqIDs'])
             ]
-            protein += make_list(graphs[prev[0]].node[prev[1]]['protein'])
-            dna += make_list(graphs[prev[0]].node[prev[1]]['dna'])
-            annotation += make_list(graphs[prev[0]].node[prev[1]]['annotation'])
-            description += make_list(graphs[prev[0]].node[prev[1]]['description'])
-            paralog = (paralog or graphs[prev[0]].node[prev[1]]['paralog'])
-            hasEnd = (paralog or graphs[prev[0]].node[prev[1]]['hasEnd'])
-            mergedDNA = (paralog or graphs[prev[0]].node[prev[1]]['mergedDNA'])
+            protein += make_list(graphs[prev[0]].nodes[prev[1]]['protein'])
+            dna += make_list(graphs[prev[0]].nodes[prev[1]]['dna'])
+            annotation += make_list(graphs[prev[0]].nodes[prev[1]]['annotation'])
+            description += make_list(graphs[prev[0]].nodes[prev[1]]['description'])
+            paralog = (paralog or graphs[prev[0]].nodes[prev[1]]['paralog'])
+            hasEnd = (paralog or graphs[prev[0]].nodes[prev[1]]['hasEnd'])
+            mergedDNA = (paralog or graphs[prev[0]].nodes[prev[1]]['mergedDNA'])
 
         merged_G.nodes[node]['size'] = size                
         merged_G.nodes[node]['members'] = members

@@ -127,7 +127,7 @@ def find_missing(G,
             if np.sum(seq_coverage[contig_id][loc[0]:loc[1]]) >= (
                     0.5 * (max(G.nodes[node]['lengths']))):
                 if str(member) in G.nodes[node]['members']:
-                    remove_member_from_node(G, node, member)
+                        remove_member_from_node(G, node, member)
                     # G.nodes[node]['members'].remove(str(member))
                     # G.nodes[node]['size'] -= 1
                 bad_node_mem_pairs.append((node, member))
@@ -200,7 +200,6 @@ def find_missing(G,
     print("Number of refound genes: ", n_found)
 
     return (G)
-
 
 def search_gff(node_search_dict,
                conflicts,
@@ -419,7 +418,6 @@ def search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh, refind):
     seq = seq.strip('N')
 
     return seq, loc
-
 
 def translate_to_match(hit, target_prot):
 
