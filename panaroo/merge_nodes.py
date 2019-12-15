@@ -18,20 +18,24 @@ def merge_nodes(G,
         nodeB, nodeA = nodeA, nodeB
 
     # First create a new node and combine the attributes
+    if len(G.nodes[nodeA]['dna'][G.nodes[nodeA]['maxLenId']]) > len(
+        G.nodes[nodeB]['dna'][G.nodes[nodeB]['maxLenId']]):
+            maxLenId = G.nodes[nodeA]['maxLenId']
+    else:
+        maxLenId = len(G.nodes[nodeA]['dna']) + G.nodes[nodeB]['maxLenId']
+
     if multi_centroid:
         G.add_node(newNode,
                    size=len(set(G.nodes[nodeA]['members'] + G.nodes[nodeB]['members'])),
-                   centroid=";".join(
-                       del_dups(G.nodes[nodeA]['centroid'].split(";") +
-                           G.nodes[nodeB]['centroid'].split(";"))),
+                   centroid=del_dups(G.nodes[nodeA]['centroid'] +
+                            G.nodes[nodeB]['centroid']),
+                   maxLenId = maxLenId,
                    members=G.nodes[nodeA]['members'] + G.nodes[nodeB]['members'],
                    seqIDs=G.nodes[nodeA]['seqIDs'] + G.nodes[nodeB]['seqIDs'],
                    hasEnd=(G.nodes[nodeA]['hasEnd'] or G.nodes[nodeB]['hasEnd']),
-                   protein=";".join(
-                       del_dups(G.nodes[nodeA]['protein'].split(";") +
-                           G.nodes[nodeB]['protein'].split(";"))),
-                   dna=";".join(G.nodes[nodeA]['dna'].split(";") +
-                                G.nodes[nodeB]['dna'].split(";")),
+                   protein=del_dups(G.nodes[nodeA]['protein'] +
+                            G.nodes[nodeB]['protein']),
+                   dna=G.nodes[nodeA]['dna'] + G.nodes[nodeB]['dna'],
                    annotation=";".join(
                        del_dups(G.nodes[nodeA]['annotation'].split(";") +
                            G.nodes[nodeB]['annotation'].split(";"))),
@@ -51,17 +55,15 @@ def merge_nodes(G,
     else:
         G.add_node(newNode,
                    size=len(set(G.nodes[nodeA]['members'] + G.nodes[nodeB]['members'])),
-                   centroid=";".join(
-                       del_dups(G.nodes[nodeA]['centroid'].split(";") +
-                           G.nodes[nodeB]['centroid'].split(";"))),
+                   centroid=del_dups(G.nodes[nodeA]['centroid'] +
+                           G.nodes[nodeB]['centroid']),
+                   maxLenId = maxLenId,
                    members=G.nodes[nodeA]['members'] + G.nodes[nodeB]['members'],
                    seqIDs=G.nodes[nodeA]['seqIDs'] + G.nodes[nodeB]['seqIDs'],
                    hasEnd=(G.nodes[nodeA]['hasEnd'] or G.nodes[nodeB]['hasEnd']),
-                   protein=";".join(
-                       del_dups(G.nodes[nodeA]['protein'].split(";"))+
-                                G.nodes[nodeB]['protein'].split(";")), 
-                   dna=";".join(G.nodes[nodeA]['dna'].split(";") +
-                                G.nodes[nodeB]['dna'].split(";")),
+                   protein=del_dups(G.nodes[nodeA]['protein']+
+                                G.nodes[nodeB]['protein']), 
+                   dna=G.nodes[nodeA]['dna'] + G.nodes[nodeB]['dna'],
                    annotation=G.nodes[nodeA]['annotation'],
                    description=G.nodes[nodeA]['description'],
                    paralog=(G.nodes[nodeA]['paralog']
@@ -101,7 +103,7 @@ def merge_nodes(G,
     # remove old nodes from Graph
     G.remove_nodes_from([nodeA, nodeB])
 
-    if len(max(G.nodes[newNode]["dna"].split(";"), key=len)) <= 0:
+    if len(max(G.nodes[newNode]["dna"], key=len)) <= 0:
         print(G.nodes[newNode]["dna"])
         raise NameError("Problem!")
 

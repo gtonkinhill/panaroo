@@ -356,7 +356,9 @@ def main():
     # add helpful attributes and write out graph in GML format
     for node in G.nodes():
         G.nodes[node]['size'] = len(set(G.nodes[node]['members']))
-
+        G.nodes[node]['centroid'] = ";".join(G.nodes[node]['centroid'])
+        G.nodes[node]['dna'] = ";".join(G.nodes[node]['dna'])
+        G.nodes[node]['protein'] = ";".join(G.nodes[node]['protein'])
         G.nodes[node]['genomeIDs'] = ";".join(conv_list(
             G.nodes[node]['members']))
         G.nodes[node]['geneIDs'] = ";".join(conv_list(G.nodes[node]['seqIDs']))

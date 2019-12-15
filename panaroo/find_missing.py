@@ -5,6 +5,7 @@ import numpy as np
 from Bio.Seq import translate, reverse_complement, Seq
 from Bio import SeqIO
 from panaroo.cdhit import align_dna_cdhit
+from panaroo.isvalid import del_dups
 from joblib import Parallel, delayed
 import os
 import gffutils as gff
@@ -42,7 +43,7 @@ def find_missing(G,
     # identify nodes that have been merged at the protein level
     merged_ids = {}
     for node in G.nodes():
-        if (len(G.nodes[node]['centroid'].split(";")) >
+        if (len(G.nodes[node]['centroid']) >
                 1) or (G.nodes[node]['mergedDNA']):
                 for sid in G.nodes[node]['seqIDs']:
                     merged_ids[sid] = node
@@ -55,8 +56,8 @@ def find_missing(G,
             if line[2] in merged_ids:
                 mem = int(sid.split("_")[0])
                 if merged_ids[line[2]] in merged_nodes[mem]:
-                    merged_nodes[mem][merged_ids[line[2]]] = max(
-                        G.nodes[merged_ids[line[2]]]["dna"].split(";"), key=len)
+                    merged_nodes[mem][merged_ids[line[2]]] = G.nodes[merged_ids[line[2]]]["dna"][
+                        G.nodes[merged_ids[line[2]]]['maxLenId']]
                 else:
                     merged_nodes[mem][merged_ids[line[2]]] = line[5]
 
@@ -75,12 +76,11 @@ def find_missing(G,
                 # seen_mems.add(member)
                 conflicts[int(member)].add((neigh, id_to_gff[sid]))
                 if member not in G.nodes[node]['members']:
-                    if len(max(G.nodes[node]["dna"].split(";"), key=len)) <= 0:
+                    if len(G.nodes[node]["dna"][G.nodes[node]['maxLenId']]) <= 0:
                         print(G.nodes[node]["dna"])
                         raise NameError("Problem!")
                     search_list[int(member)][node].add(
-                        (max(G.nodes[node]["dna"].split(";"),
-                             key=len), id_to_gff[sid]))
+                        (G.nodes[node]["dna"][G.nodes[node]['maxLenId']], id_to_gff[sid]))
 
                     n_searches += 1
 
@@ -104,7 +104,7 @@ def find_missing(G,
     for member, hits in enumerate(all_hits):
         hits_trans_dict[member] = Parallel(n_jobs=n_cpu)(
             delayed(translate_to_match)(hit[1], G.nodes[
-                hit[0]]["protein"].split(";")[0]) for hit in hits)
+                hit[0]]["protein"][0]) for hit in hits)
 
     # remove nodes that conflict (overlap)
     nodes_by_size = sorted([(G.nodes[node]['size'], node)
@@ -175,13 +175,11 @@ def find_missing(G,
                         hit_protein = hits_trans_dict[member][i]
                         G.nodes[node]['members'] += [str(member)]
                         G.nodes[node]['size'] += 1
-                        G.nodes[node]['dna'] = ";".join(
-                            set(G.nodes[node]['dna'].split(";") + [dna_hit]))
+                        G.nodes[node]['dna'] = del_dups(G.nodes[node]['dna'] + [dna_hit])
                         dna_out.write(">" + str(member) + "_refound_" +
                                     str(n_found) + "\n" + dna_hit + "\n")
-                        G.nodes[node]['protein'] = ";".join(
-                            set(G.nodes[node]['protein'].split(";") +
-                                [hit_protein]))
+                        G.nodes[node]['protein'] = del_dups(G.nodes[node]['protein'] +
+                                [hit_protein])
                         prot_out.write(">" + str(member) + "_refound_" +
                                     str(n_found) + "\n" + hit_protein + "\n")
                         data_out.write(",".join([

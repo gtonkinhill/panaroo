@@ -6,9 +6,10 @@ from collections import defaultdict, deque
 from panaroo.cdhit import is_valid
 from itertools import chain, combinations
 import numpy as np
-from scipy.sparse import csr_matrix
-from scipy.sparse.csgraph import connected_components
+from scipy.sparse import csr_matrix, csc_matrix
+from scipy.sparse.csgraph import connected_components, shortest_path
 from tqdm import tqdm
+# import graph_tool.all as gt
 
 # Genes at the end of contigs are more likely to be false positives thus
 # we can remove those with low support
@@ -135,7 +136,7 @@ def collapse_families(G,
                 index = []
                 neigh_array = []
                 for neigh in neighbours:
-                    for sid in G.nodes[neigh]['centroid'].split(";"):
+                    for sid in G.nodes[neigh]['centroid']:
                         index.append(centroid_to_index[sid])
                         neigh_array.append(neigh)
                 index = np.array(index, dtype=int)
@@ -254,7 +255,7 @@ def collapse_families(G,
 
     return G, distances_bwtn_centroids, centroid_to_index
 
-def collapse_paralogs(G, centroid_contexts, max_context=5, quiet=False):
+def collapse_paralogs(G, centroid_contexts, max_context=5, quiet=False): 
     
     # contexts [centroid] = [[node, member, contig, context], ...]
     node_count = max(list(G.nodes())) + 10
@@ -268,13 +269,13 @@ def collapse_paralogs(G, centroid_contexts, max_context=5, quiet=False):
     centroid_to_index = {}
     ncentroids=-1
     for node in G.nodes():
-        centroid = G.nodes[node]['centroid'].split(";")[0]
+        centroid = G.nodes[node]['centroid'][0]
         if centroid not in centroid_to_index:
             ncentroids += 1
             centroid_to_index[centroid] = ncentroids
-            centroid_to_index[G.nodes[node]['centroid']] = ncentroids
+            centroid_to_index[G.nodes[node]['centroid'][0]] = ncentroids
         else:
-            centroid_to_index[G.nodes[node]['centroid']] = centroid_to_index[centroid]
+            centroid_to_index[G.nodes[node]['centroid'][0]] = centroid_to_index[centroid]
     ncentroids += 1
 
     for centroid in tqdm(centroid_contexts):
@@ -292,7 +293,18 @@ def collapse_paralogs(G, centroid_contexts, max_context=5, quiet=False):
             cluster_dict[c].add(ref[0])
             cluster_mems[c].add(ref[1])
 
+        # print("here1")
+        # row,col,data = zip(*((u,v,1) for u,v in G.edges()))
+        # spG = csc_matrix((data + data, (row + col, col + row)), 
+        #     shape=(node_count+2, node_count+2))
+        # ids  = [ref[0] for ref in ref_paralogs] + [para[0] for para in centroid_contexts[centroid]]
+        # spath = shortest_path(csgraph=spG, directed=False, indices=np.array(ids))
+        # Gt = gt.Graph()
+        # Gt.add_edge_list(G.edges())
+        # print("here2")
+
         for para in centroid_contexts[centroid]:
+            # print("here3")
             d_max = np.inf
             s_max = -np.inf
             best_cluster = None
@@ -301,11 +313,13 @@ def collapse_paralogs(G, centroid_contexts, max_context=5, quiet=False):
                 # this is the reference so skip
                 continue
 
-            # first attempt by shortest path
+            # first attempt by shortest path            
             for c, ref in enumerate(ref_paralogs):
                 if para[1] in cluster_mems[c]:
                     #dont match paralogs of the same isolate
                     continue
+                # d = spath[para[0], ref[0]]
+                # d = gt.shortest_distance(Gt, para[0], ref[0])
                 try:
                     d = nx.shortest_path_length(G, ref[0], para[0])
                 except nx.NetworkXNoPath:
@@ -320,14 +334,14 @@ def collapse_paralogs(G, centroid_contexts, max_context=5, quiet=False):
                 s_max = -np.inf
                 para_context = np.zeros(ncentroids)
                 for u, node, depth in mod_bfs_edges(G, para[0], max_context):
-                    para_context[centroid_to_index[G.nodes[node]['centroid']]] = depth
+                    para_context[centroid_to_index[G.nodes[node]['centroid'][0]]] = depth
                 for c, ref in enumerate(ref_paralogs):
                     if para[1] in cluster_mems[c]:
                         #dont match paralogs of the same isolate
                         continue
                     ref_context = np.zeros(ncentroids)
                     for u, node, depth in mod_bfs_edges(G, ref[0], max_context):
-                        ref_context[centroid_to_index[G.nodes[node]['centroid']]] = depth
+                        ref_context[centroid_to_index[G.nodes[node]['centroid'][0]]] = depth
                     s = np.sum(1/(1+np.abs((para_context - ref_context)[(para_context*ref_context)!=0])))
                     if s>s_max:
                         s_max=s
@@ -339,14 +353,13 @@ def collapse_paralogs(G, centroid_contexts, max_context=5, quiet=False):
         # merge
         for cluster in cluster_dict:
             if len(cluster_dict[cluster])<2: continue
-            temp_c = cluster_dict[cluster].copy()
+            temp_c = list(cluster_dict[cluster].copy())
             node_count += 1
-            G = merge_nodes(G, temp_c.pop(), temp_c.pop(),
-                            node_count)
+            G = merge_nodes(G, temp_c.pop(), temp_c.pop(), node_count)            
             while (len(temp_c) > 0):
-                G = merge_nodes(G, node_count, temp_c.pop(),
-                                node_count + 1)
+                G = merge_nodes(G, node_count, temp_c.pop(), node_count + 1)    
                 node_count += 1
+                
 
     return(G)
 
@@ -358,7 +371,7 @@ def merge_paralogs(G):
     paralog_centroid_dict = defaultdict(list)
     for node in G.nodes():
         if G.nodes[node]['paralog']:
-            paralog_centroid_dict[G.nodes[node]['centroid']].append(node)
+            paralog_centroid_dict[G.nodes[node]['centroid'][0]].append(node)
 
     # merge paralog nodes that share the same centroid
     for centroid in paralog_centroid_dict:

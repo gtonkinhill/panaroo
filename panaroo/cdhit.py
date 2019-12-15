@@ -174,10 +174,10 @@ def cluster_nodes_cdhit(
             outfile.write(">" + str(node) + "\n")
             if dna:
                 outfile.write(
-                    max(G.nodes[node]["dna"].split(";"), key=len) + "\n")
+                    G.nodes[node]["dna"][G.nodes[node]['maxLenId']])
             else:
                 outfile.write(
-                    max(G.nodes[node]["protein"].split(";"), key=len) + "\n")
+                    G.nodes[node]["protein"][G.nodes[node]['maxLenId']])
 
     # run cd-hit
     if dna:
@@ -387,10 +387,10 @@ def iterative_cdhit(
     centroid_to_seq = {}
     for node in G.nodes():
         if dna:
-            for sid, seq in zip(G.nodes[node]["centroid"].split(";"), G.nodes[node]["dna"].split(";")):
+            for sid, seq in zip(G.nodes[node]["centroid"], G.nodes[node]["dna"]):
                 centroid_to_seq[sid] = seq
         else:
-            for sid, seq in zip(G.nodes[node]["centroid"].split(";"), G.nodes[node]["protein"].split(";")):
+            for sid, seq in zip(G.nodes[node]["centroid"], G.nodes[node]["protein"]):
                 centroid_to_seq[sid] = seq
 
 
@@ -475,10 +475,10 @@ def pwdist_edlib(G, cdhit_clusters, threshold, dna=False, n_cpu=1):
     centroid_to_seq = {}
     for node in G.nodes():
         if dna:
-            for sid, seq in zip(G.nodes[node]["centroid"].split(";"), G.nodes[node]["dna"].split(";")):
+            for sid, seq in zip(G.nodes[node]["centroid"], G.nodes[node]["dna"]):
                 centroid_to_seq[sid] = seq
         else:
-            for sid, seq in zip(G.nodes[node]["centroid"].split(";"), G.nodes[node]["protein"].split(";")):
+            for sid, seq in zip(G.nodes[node]["centroid"], G.nodes[node]["protein"]):
                 centroid_to_seq[sid] = seq
     
     ncentroids = len(centroid_to_seq)

@@ -128,13 +128,13 @@ def generate_pan_genome_reference(G, output_dir, split_paralogs=False):
     records = []
 
     for node in G.nodes():
-        if not split_paralogs and G.nodes[node]['centroid'].split(";")[0] in centroids:
+        if not split_paralogs and G.nodes[node]['centroid'][0] in centroids:
             continue
         records.append(
-            SeqRecord(Seq(G.nodes[node]['dna'].split(";")[0], generic_dna),
-                      id=G.nodes[node]['centroid'].split(";")[0],
+            SeqRecord(Seq(G.nodes[node]['dna'][0], generic_dna),
+                      id=G.nodes[node]['centroid'][0],
                       description=""))
-        centroids.add(G.nodes[node]['centroid'].split(";")[0])
+        centroids.add(G.nodes[node]['centroid'][0])
 
     with open(output_dir + "pan_genome_reference.fa", 'w') as outfile:
         SeqIO.write(records, outfile, "fasta")

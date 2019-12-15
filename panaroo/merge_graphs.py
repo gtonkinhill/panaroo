@@ -46,7 +46,7 @@ def cluster_centroids(graphs, outdir, len_dif_percent=0.95, identity_threshold=0
         for i, G in enumerate(graphs):
             for node in G.nodes():
                 outfile.write(">" + str(i) + "_" + node + '\n')
-                seqs = G.nodes[node]["protein"].split(";")
+                seqs = G.nodes[node]["protein"]
                 seqs = [s for s in seqs if "*" not in s]
                 outfile.write(max(seqs, key=len) + "\n")
 
@@ -147,7 +147,7 @@ def simple_merge_graphs(graphs, clusters):
             lengths += make_list(graphs[prev[0]].nodes[prev[1]]['lengths'])
             centroid +=  [
                 str(prev[0]) + "_" + str(m)
-                for m in make_list(graphs[prev[0]].nodes[prev[1]]['centroid'].split(";"))
+                for m in make_list(graphs[prev[0]].nodes[prev[1]]['centroid'])
             ]
             seqIDs += [
                 str(prev[0]) + "_" + d
@@ -167,18 +167,18 @@ def simple_merge_graphs(graphs, clusters):
         merged_G.nodes[node]['prevCentroids'] = ";".join(centroid)
         merged_G.nodes[node]['seqIDs'] = seqIDs
         merged_G.nodes[node]['hasEnd'] = hasEnd
-        merged_G.nodes[node]['dna'] = ";".join(dna)
-        merged_G.nodes[node]['protein'] = ";".join(protein)
+        merged_G.nodes[node]['dna'] = dna
+        merged_G.nodes[node]['protein'] = protein
         merged_G.nodes[node]['annotation'] = ";".join(annotation)
         merged_G.nodes[node]['description'] = ";".join(description)
         merged_G.nodes[node]['paralog'] = paralog
         merged_G.nodes[node]['mergedDNA'] = mergedDNA
-        merged_G.nodes[node]['centroid'] = ";".join(centroid)#merge_centroids[node]
+        merged_G.nodes[node]['centroid'] = centroid
         
     # fix longcentroid
     for node in merged_G.nodes():
         merged_G.nodes[node]['longCentroidID'] = max([(len(s), sid) for s,sid in zip(
-            merged_G.nodes[node]['dna'].split(";"), merged_G.nodes[node]['centroid'].split(";"))])
+            merged_G.nodes[node]['dna'], merged_G.nodes[node]['centroid'])])
 
 
     # fix up edge attributes
