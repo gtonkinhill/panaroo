@@ -30,7 +30,6 @@ def find_missing(G,
 
     # Iterate over each genome file checking to see if any missing accessory genes
     #  can be found.
-    n_cpu = 1
 
     # generate mapping between internal nodes and gff ids
     id_to_gff = {}
