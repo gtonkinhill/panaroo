@@ -9,8 +9,8 @@ def merge_nodes(G,
                 check_merge_mems=True):
 
     if check_merge_mems:
-        if len(set(G.nodes[nodeA]['members'])
-               & set(G.nodes[nodeB]['members'])) > 0:
+        if len(G.nodes[nodeA]['members']
+               & G.nodes[nodeB]['members']) > 0:
             raise ValueError("merging nodes with the same genome IDs!")
 
     # take node with most support as the 'consensus'
@@ -26,12 +26,12 @@ def merge_nodes(G,
 
     if multi_centroid:
         G.add_node(newNode,
-                   size=len(set(G.nodes[nodeA]['members'] + G.nodes[nodeB]['members'])),
+                   size=len(G.nodes[nodeA]['members'] | G.nodes[nodeB]['members']),
                    centroid=del_dups(G.nodes[nodeA]['centroid'] +
                             G.nodes[nodeB]['centroid']),
                    maxLenId = maxLenId,
-                   members=G.nodes[nodeA]['members'] + G.nodes[nodeB]['members'],
-                   seqIDs=G.nodes[nodeA]['seqIDs'] + G.nodes[nodeB]['seqIDs'],
+                   members=G.nodes[nodeA]['members'] | G.nodes[nodeB]['members'],
+                   seqIDs=G.nodes[nodeA]['seqIDs'] | G.nodes[nodeB]['seqIDs'],
                    hasEnd=(G.nodes[nodeA]['hasEnd'] or G.nodes[nodeB]['hasEnd']),
                    protein=del_dups(G.nodes[nodeA]['protein'] +
                             G.nodes[nodeB]['protein']),
@@ -54,12 +54,12 @@ def merge_nodes(G,
                            G.nodes[nodeB]['prevCentroids'].split(";")))
     else:
         G.add_node(newNode,
-                   size=len(set(G.nodes[nodeA]['members'] + G.nodes[nodeB]['members'])),
+                   size=len(G.nodes[nodeA]['members'] | G.nodes[nodeB]['members']),
                    centroid=del_dups(G.nodes[nodeA]['centroid'] +
                            G.nodes[nodeB]['centroid']),
                    maxLenId = maxLenId,
-                   members=G.nodes[nodeA]['members'] + G.nodes[nodeB]['members'],
-                   seqIDs=G.nodes[nodeA]['seqIDs'] + G.nodes[nodeB]['seqIDs'],
+                   members=G.nodes[nodeA]['members'] | G.nodes[nodeB]['members'],
+                   seqIDs=G.nodes[nodeA]['seqIDs'] | G.nodes[nodeB]['seqIDs'],
                    hasEnd=(G.nodes[nodeA]['hasEnd'] or G.nodes[nodeB]['hasEnd']),
                    protein=del_dups(G.nodes[nodeA]['protein']+
                                 G.nodes[nodeB]['protein']), 
@@ -85,7 +85,7 @@ def merge_nodes(G,
                        neighbor,
                        weight=G[nodeA][neighbor]['weight'] +
                        G[nodeB][neighbor]['weight'],
-                       members=G[nodeA][neighbor]['members'] +
+                       members=G[nodeA][neighbor]['members'] |
                        G[nodeB][neighbor]['members'])
             neigboursB.remove(neighbor)
         else:
@@ -117,10 +117,10 @@ def delete_node(G, node):
         if len(mem_edges)<2: continue
         for n1, n2 in itertools.combinations(mem_edges, 2):
             if G.has_edge(n1, n2):
-                G[n1][n2]['members'] += [mem]
+                G[n1][n2]['members'] |= set([mem])
                 G[n1][n2]['weight'] += 1
             else:
-                G.add_edge(n1, n2, weight=1, members=[mem])
+                G.add_edge(n1, n2, weight=1, members=set([mem]))
 
     # now remove node
     G.remove_node(node)
@@ -135,15 +135,15 @@ def remove_member_from_node(G, node, member):
     if len(mem_edges)>1:
         for n1, n2 in itertools.combinations(mem_edges, 2):
             if G.has_edge(n1, n2):
-                G[n1][n2]['members'] += [member]
+                G[n1][n2]['members'] |= [member]
                 G[n1][n2]['weight'] += 1
             else:
-                G.add_edge(n1, n2, weight=1, members=[member])
+                G.add_edge(n1, n2, weight=1, members=set([member]))
 
     # remove member from node
     while str(member) in G.nodes[node]['members']:
         G.nodes[node]['members'].remove(str(member))
-    G.nodes[node]['seqIDs'] = [sid for sid in G.nodes[node]['seqIDs'] if sid.split("_")[0]!=str(member)]
+    G.nodes[node]['seqIDs'] = set([sid for sid in G.nodes[node]['seqIDs'] if sid.split("_")[0]!=str(member)])
     G.nodes[node]['size'] -= 1
 
     return G

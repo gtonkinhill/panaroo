@@ -176,8 +176,8 @@ def generate_common_struct_presence_absence(G,
     for node in G.nodes():
         if G.degree[node] < 3: continue  #skip as linear
         for path in iter.combinations(G.edges(node), 2):
-            in_both = (set(G[path[0][0]][path[0][1]]['members'])
-                       & set(G[path[1][0]][path[1][1]]['members']))
+            in_both = (G[path[0][0]][path[0][1]]['members']
+                       & G[path[1][0]][path[1][1]]['members'])
             if len(in_both) >= min_variant_support:
                 struct_variants[(path[0][0], path[0][1], path[1][1])] = in_both
 

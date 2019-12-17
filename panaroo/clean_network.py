@@ -165,7 +165,7 @@ def collapse_families(G,
                     # check for conflicts
                     members = []
                     for n in cluster:
-                        for m in set(G.nodes[n]['members']):
+                        for m in G.nodes[n]['members']:
                             members.append(m)
 
                     if (len(members) == len(set(members))):
@@ -200,7 +200,7 @@ def collapse_families(G,
                         # build a mini graph of allowed pairwise merges
                         tempG = nx.Graph()
                         for nA, nB in itertools.combinations(cluster, 2):
-                            mem_inter = set(G.nodes[nA]['members']).intersection(G.nodes[nB]['members'])
+                            mem_inter = G.nodes[nA]['members'].intersection(G.nodes[nB]['members'])
                             if len(mem_inter) > 0:
                                 if distances_bwtn_centroids[centroid_to_index[G.nodes[nA]["longCentroidID"][1]], 
                                     centroid_to_index[G.nodes[nB]["longCentroidID"][1]]]==0:
@@ -208,7 +208,7 @@ def collapse_families(G,
                                 else:
                                     for imem in mem_inter:
                                         tempids = []
-                                        for sid in G.nodes[nA]['seqIDs'] + G.nodes[nB]['seqIDs']:
+                                        for sid in G.nodes[nA]['seqIDs'] | G.nodes[nB]['seqIDs']:
                                             if int(sid.split("_")[0])==imem:
                                                 tempids.append(sid)
                                         shouldmerge = True

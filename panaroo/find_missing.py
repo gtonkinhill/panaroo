@@ -15,6 +15,7 @@ from .merge_nodes import delete_node, remove_member_from_node
 from tqdm import tqdm
 import re
 
+# @profile
 def find_missing(G,
                  gff_file_handles,
                  dna_seq_file,
@@ -29,6 +30,7 @@ def find_missing(G,
 
     # Iterate over each genome file checking to see if any missing accessory genes
     #  can be found.
+    n_cpu = 1
 
     # generate mapping between internal nodes and gff ids
     id_to_gff = {}
@@ -136,7 +138,7 @@ def find_missing(G,
         member += 1
 
     for node in G.nodes():
-        if len(set(G.nodes[node]['members']))<=0:
+        if len(G.nodes[node]['members'])<=0:
             bad_nodes.add(node)
     for node in bad_nodes:
         if node in G.nodes():
@@ -173,7 +175,7 @@ def find_missing(G,
                         if node in bad_nodes: continue
                         if (node, member) in bad_node_mem_pairs: continue
                         hit_protein = hits_trans_dict[member][i]
-                        G.nodes[node]['members'] += [str(member)]
+                        G.nodes[node]['members'].add(str(member))
                         G.nodes[node]['size'] += 1
                         G.nodes[node]['dna'] = del_dups(G.nodes[node]['dna'] + [dna_hit])
                         dna_out.write(">" + str(member) + "_refound_" +
@@ -190,9 +192,9 @@ def find_missing(G,
                             hit_protein,
                             dna_hit,
                             "",""]) + "\n")
-                        G.nodes[node]['seqIDs'] += [
+                        G.nodes[node]['seqIDs'] |= set([
                             str(member) + "_refound_" + str(n_found)
-                        ]
+                        ])
                         n_found += 1
 
     print("Number of refound genes: ", n_found)

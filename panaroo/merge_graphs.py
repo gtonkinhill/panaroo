@@ -140,19 +140,19 @@ def simple_merge_graphs(graphs, clusters):
 
         for prev in reverse_mapping[node]:
             size += graphs[prev[0]].nodes[prev[1]]['size']
-            members += [
+            members |= set([
                 str(prev[0]) + "_" + str(m)
                 for m in make_list(graphs[prev[0]].nodes[prev[1]]['members'])
-            ]
+            ])
             lengths += make_list(graphs[prev[0]].nodes[prev[1]]['lengths'])
             centroid +=  [
                 str(prev[0]) + "_" + str(m)
                 for m in make_list(graphs[prev[0]].nodes[prev[1]]['centroid'])
             ]
-            seqIDs += [
+            seqIDs |= set([
                 str(prev[0]) + "_" + d
                 for d in make_list(graphs[prev[0]].nodes[prev[1]]['seqIDs'])
-            ]
+            ])
             protein += make_list(graphs[prev[0]].nodes[prev[1]]['protein'])
             dna += make_list(graphs[prev[0]].nodes[prev[1]]['dna'])
             annotation += make_list(graphs[prev[0]].nodes[prev[1]]['annotation'])
@@ -162,10 +162,10 @@ def simple_merge_graphs(graphs, clusters):
             mergedDNA = (paralog or graphs[prev[0]].nodes[prev[1]]['mergedDNA'])
 
         merged_G.nodes[node]['size'] = size                
-        merged_G.nodes[node]['members'] = members
+        merged_G.nodes[node]['members'] = set(members)
         merged_G.nodes[node]['lengths'] = lengths
         merged_G.nodes[node]['prevCentroids'] = ";".join(centroid)
-        merged_G.nodes[node]['seqIDs'] = seqIDs
+        merged_G.nodes[node]['seqIDs'] = set(seqIDs)
         merged_G.nodes[node]['hasEnd'] = hasEnd
         merged_G.nodes[node]['dna'] = dna
         merged_G.nodes[node]['protein'] = protein
@@ -184,14 +184,14 @@ def simple_merge_graphs(graphs, clusters):
     # fix up edge attributes
     for edge in merged_G.edges():
         merged_G[edge[0]][edge[1]]['weight'] = 0
-        merged_G[edge[0]][edge[1]]['members'] = []
+        merged_G[edge[0]][edge[1]]['members'] = set()
 
         for prev1 in reverse_mapping[edge[0]]:
             for prev2 in reverse_mapping[edge[1]]:
                 if prev1[0] == prev2[0]:  #same graph
                     if graphs[prev1[0]].has_edge(prev1[1], prev2[1]):
                         merged_G[edge[0]][edge[1]]['weight'] += 1
-                        merged_G[edge[0]][edge[1]]['members'] += [
+                        merged_G[edge[0]][edge[1]]['members'] |= [
                             str(prev1[0]) + "_" + str(m) for m in graphs[
                                 prev1[0]][prev1[1]][prev2[1]]['members']
                         ]
@@ -349,12 +349,12 @@ def main():
 
     # add helpful attributes and write out graph in GML format
     for node in G.nodes():
-        G.nodes[node]['size'] = len(set(G.nodes[node]['members']))
-        G.nodes[node]['genomeIDs'] = ";".join(conv_list(
-            G.nodes[node]['members']))
+        G.nodes[node]['size'] = len(G.nodes[node]['members'])
+        G.nodes[node]['genomeIDs'] = ";".join(
+            G.nodes[node]['members'])
         G.nodes[node]['centroid'] = G.nodes[node]['prevCentroids']
         del G.nodes[node]['prevCentroids']
-        G.nodes[node]['geneIDs'] = ";".join(conv_list(G.nodes[node]['seqIDs']))
+        G.nodes[node]['geneIDs'] = ";".join(G.nodes[node]['seqIDs'])
         G.nodes[node]['degrees'] = G.degree[node]
         sub_graphs = list(
             set([m.split("_")[0] for m in G.nodes[node]['members']]))
@@ -362,7 +362,7 @@ def main():
 
     for edge in G.edges():
         G.edges[edge[0], edge[1]]['genomeIDs'] = ";".join(
-            conv_list(G.edges[edge[0], edge[1]]['members']))
+            G.edges[edge[0], edge[1]]['members'])
         sub_graphs = list(
             set([
                 m.split("_")[0] for m in G.edges[edge[0], edge[1]]['members']

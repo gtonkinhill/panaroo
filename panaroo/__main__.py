@@ -187,7 +187,7 @@ def get_options(args):
     args = set_default_args(args)
     return (args)
 
-
+# @profile
 def main():
     args = get_options(sys.argv[1:])
     # Check cd-hit is installed
@@ -235,15 +235,15 @@ def main():
 
     # write out pre-filter graph in GML format
     for node in G.nodes():
-        G.nodes[node]['size'] = len(set(G.nodes[node]['members']))
-        G.nodes[node]['genomeIDs'] = ";".join(conv_list(
-            G.nodes[node]['members']))
-        G.nodes[node]['geneIDs'] = ";".join(conv_list(G.nodes[node]['seqIDs']))
+        G.nodes[node]['size'] = len(G.nodes[node]['members'])
+        G.nodes[node]['genomeIDs'] = ";".join(
+            G.nodes[node]['members'])
+        G.nodes[node]['geneIDs'] = ";".join(G.nodes[node]['seqIDs'])
         G.nodes[node]['degrees'] = G.degree[node]
     for edge in G.edges():
         G.edges[edge[0], edge[1]]['genomeIDs'] = ";".join(
-            conv_list(G.edges[edge[0], edge[1]]['members']))
-    nx.write_gml(G, args.output_dir + "pre_filt_graph.gml")
+            G.edges[edge[0], edge[1]]['members'])
+    nx.write_gml(G, args.output_dir + "pre_filt_graph.gml", stringizer=custom_stringizer)
 
 
     if args.verbose:
@@ -359,16 +359,16 @@ def main():
         G.nodes[node]['centroid'] = ";".join(G.nodes[node]['centroid'])
         G.nodes[node]['dna'] = ";".join(G.nodes[node]['dna'])
         G.nodes[node]['protein'] = ";".join(G.nodes[node]['protein'])
-        G.nodes[node]['genomeIDs'] = ";".join(conv_list(
-            G.nodes[node]['members']))
-        G.nodes[node]['geneIDs'] = ";".join(conv_list(G.nodes[node]['seqIDs']))
+        G.nodes[node]['genomeIDs'] = ";".join(
+            G.nodes[node]['members'])
+        G.nodes[node]['geneIDs'] = ";".join(G.nodes[node]['seqIDs'])
         G.nodes[node]['degrees'] = G.degree[node]
 
     for edge in G.edges():
         G.edges[edge[0], edge[1]]['genomeIDs'] = ";".join(
-            conv_list(G.edges[edge[0], edge[1]]['members']))
+            G.edges[edge[0], edge[1]]['members'])
 
-    nx.write_gml(G, args.output_dir + "final_graph.gml")
+    nx.write_gml(G, args.output_dir + "final_graph.gml", stringizer=custom_stringizer)
 
     # write pan genome reference fasta file
     generate_pan_genome_reference(G,

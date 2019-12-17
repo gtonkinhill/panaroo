@@ -287,7 +287,7 @@ def cluster_nodes_cdhit(
 def is_valid(G, node, cluster):
     found = True
     for n in cluster:
-        if len(set(G.nodes[node]['members']) & set(G.nodes[n]['members'])) > 0:
+        if len(G.nodes[node]['members'] & G.nodes[n]['members']) > 0:
             found = False
     return found
 
