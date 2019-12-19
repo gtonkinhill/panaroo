@@ -2,7 +2,7 @@
 
 Panaroo produces output that can be provided to [Pyseer](https://pyseer.readthedocs.io/en/master/) to perform pangenome association analyses. To demonstrate this we provide an example analysis of antibiotic resistance in *Neisseria gonorrhoeae*.
 
-We look at the association between gene presence/absence and antibiotic resistance in a large [European sample](https://www-sciencedirect-com.ezp.lib.cam.ac.uk/science/article/pii/S1473309918302251?via%3Dihub) of 1054 isolates.
+We look at the association between gene presence/absence and antibiotic resistance in a large [European sample](https://doi.org/10.1016/S1473-3099(18)30225-1) of 1054 isolates.
 
 
 ### Annotation
