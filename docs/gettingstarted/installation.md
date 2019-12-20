@@ -13,6 +13,12 @@ Install cd-hit using either conda or by following the instructions at https://gi
 Download or clone the repository and install by running
 
 ```
+pip3 install git+https://github.com/gtonkinhill/panaroo
+```
+        
+or alternatively
+
+```
 git clone https://github.com/gtonkinhill/panaroo
 cd panaroo
 python3 setup.py install

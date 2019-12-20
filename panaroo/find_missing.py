@@ -184,7 +184,7 @@ def find_missing(G,
                         prot_out.write(">" + str(member) + "_refound_" +
                                     str(n_found) + "\n" + hit_protein + "\n")
                         data_out.write(",".join([
-                            os.path.splitext(os.path.basename(gff_file_handles[member].name))[0],
+                            os.path.splitext(os.path.basename(gff_file_handles[member]))[0],
                             "",
                             str(member) + "_refound_" + str(n_found),
                             str(member) + "_refound_" + str(n_found),
@@ -202,7 +202,7 @@ def find_missing(G,
 
 def search_gff(node_search_dict,
                conflicts,
-               gff_handle,
+               gff_handle_name,
                merged_nodes,
                search_radius=10000,
                prop_match=0.2,
@@ -210,14 +210,13 @@ def search_gff(node_search_dict,
                merge_id_thresh=0.7,
                n_cpu=1):
 
+    gff_handle = open(gff_handle_name, "rU")
+
     # sort sets to fix order
     conflicts = sorted(conflicts)
     for node in node_search_dict:
         node_search_dict[node] = sorted(node_search_dict[node])
 
-
-    # reset file handle to the beginning
-    gff_handle.seek(0)
     split = gff_handle.read().split("##FASTA\n")
     node_locs = {}
 
@@ -307,6 +306,8 @@ def search_gff(node_search_dict,
         hits.append((node, best_hit))
         if (best_loc is not None) and (best_hit != ""):
             node_locs[node] = best_loc
+
+    gff_handle.close()
 
     return [hits, node_locs, max_seq_len]
 

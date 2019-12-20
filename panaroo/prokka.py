@@ -66,8 +66,9 @@ def clean_gff_string(gff_string):
     return cleaned_gff
 
 
-def get_gene_sequences(gff_file, file_number):
+def get_gene_sequences(gff_file_name, file_number):
     #Get name and separate the prokka GFF into separate GFF and FASTA files
+    gff_file = open(gff_file_name, 'rU')
     sequence_dictionary = OrderedDict()
 
     #Split file and parse
@@ -138,6 +139,8 @@ def get_gene_sequences(gff_file, file_number):
             sequence_dictionary[clustering_id] = scaffold_genes[scaffold][
                 gene_index][1]
 
+    gff_file.close()
+
     return sequence_dictionary, translate_sequences(sequence_dictionary)
 
 
@@ -174,7 +177,7 @@ def output_files(dna_dictionary, protien_list, prot_handle, dna_handle,
                                  description=clusteringid)
         clustering_id_records.append(clean_record)
     SeqIO.write(clustering_id_records, dna_handle, 'fasta')
-    gff_name = os.path.splitext(os.path.basename(gff_filename.name))[0]
+    gff_name = os.path.splitext(os.path.basename(gff_filename))[0]
 
     #Combine everything to a csv and output it
     for protien in protien_list:

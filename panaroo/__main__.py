@@ -32,7 +32,7 @@ def get_options(args):
         required=True,
         help=("input GFF3 files (usually output from running Prokka). " +
             "Can also take a file listing each gff file line by line."),
-        type=argparse.FileType('rU'),
+        type=str,
         nargs='+')
     io_opts.add_argument("-o",
                          "--out_dir",
@@ -96,7 +96,7 @@ def get_options(args):
     graph.add_argument(
         "--trailing_recursive",
         dest="trailing_recursive",
-        help=("number of times to perform recursive triming of low support " +
+        help=("number of times to perform recursive trimming of low support " +
               "nodes near the end of contigs"),
         type=int)
     graph.add_argument(
@@ -187,7 +187,6 @@ def get_options(args):
     args = set_default_args(args)
     return (args)
 
-@profile
 def main():
     args = get_options(sys.argv[1:])
     # Check cd-hit is installed
@@ -200,8 +199,9 @@ def main():
     # check if input is a file containing filenames
     if len(args.input_files)==1:
         files = []
-        for line in args.input_files[0]:
-            files.append(open(line.strip(), 'rU'))
+        with open(args.input_files[0], 'r') as infile:
+            for line in infile:
+                files.append(line.strip())
         args.input_files = files
 
     if args.verbose:
@@ -269,7 +269,7 @@ def main():
                           quiet=(not args.verbose))
 
     if args.verbose:
-        print("triming contig ends...")
+        print("trimming contig ends...")
 
     # re-trim low support trailing ends
     G = trim_low_support_trailing_ends(G,
@@ -323,7 +323,7 @@ def main():
         G = merge_paralogs(G)
 
     isolate_names = [
-        os.path.splitext(os.path.basename(x.name))[0] for x in args.input_files
+        os.path.splitext(os.path.basename(x))[0] for x in args.input_files
     ]
     G.graph['isolateNames'] = isolate_names
     mems_to_isolates = {}
@@ -352,31 +352,11 @@ def main():
                                              output_dir=args.output_dir)
     #Write out presence_absence summary
     generate_summary_stats(output_dir=args.output_dir)
-    
-    # add helpful attributes and write out graph in GML format
-    for node in G.nodes():
-        G.nodes[node]['size'] = len(G.nodes[node]['members'])
-        G.nodes[node]['centroid'] = ";".join(G.nodes[node]['centroid'])
-        G.nodes[node]['dna'] = ";".join(G.nodes[node]['dna'])
-        G.nodes[node]['protein'] = ";".join(G.nodes[node]['protein'])
-        G.nodes[node]['genomeIDs'] = ";".join(
-            G.nodes[node]['members'])
-        G.nodes[node]['geneIDs'] = ";".join(G.nodes[node]['seqIDs'])
-        G.nodes[node]['degrees'] = G.degree[node]
-
-    for edge in G.edges():
-        G.edges[edge[0], edge[1]]['genomeIDs'] = ";".join(
-            G.edges[edge[0], edge[1]]['members'])
-
-    nx.write_gml(G, args.output_dir + "final_graph.gml", stringizer=custom_stringizer)
 
     # write pan genome reference fasta file
     generate_pan_genome_reference(G,
                                   output_dir=args.output_dir,
                                   split_paralogs=False)
-
-    # write out csv indicating the mobility of each gene
-    # generate_gene_mobility(G, output_dir=args.output_dir)
 
     # write out common structural differences in a matrix format
     generate_common_struct_presence_absence(
@@ -384,6 +364,26 @@ def main():
         output_dir=args.output_dir,
         mems_to_isolates=mems_to_isolates,
         min_variant_support=args.min_edge_support_sv)
+    
+    # add helpful attributes and write out graph in GML format
+    for node in G.nodes():
+        G.nodes[node]['size'] = len(G.nodes[node]['members'])
+        G.nodes[node]['centroid'] = ";".join(G.nodes[node]['centroid'])
+        G.nodes[node]['dna'] = ";".join(conv_list(G.nodes[node]['dna']))
+        G.nodes[node]['protein'] = ";".join(conv_list(G.nodes[node]['protein']))
+        G.nodes[node]['genomeIDs'] = ";".join(
+            G.nodes[node]['members'])
+        G.nodes[node]['geneIDs'] = ";".join(G.nodes[node]['seqIDs'])
+        G.nodes[node]['degrees'] = G.degree[node]
+        G.nodes[node]['members'] = list(G.nodes[node]['members'])
+        G.nodes[node]['seqIDs'] = list(G.nodes[node]['seqIDs'])
+
+    for edge in G.edges():
+        G.edges[edge[0], edge[1]]['genomeIDs'] = ";".join(
+            G.edges[edge[0], edge[1]]['members'])
+        G.edges[edge[0], edge[1]]['members'] = list(G.edges[edge[0], edge[1]]['members'])
+
+    nx.write_gml(G, args.output_dir + "final_graph.gml")
 
     #Write out core/pan-genome alignments
     if args.aln == "pan":

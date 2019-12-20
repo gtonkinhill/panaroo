@@ -8,6 +8,7 @@ from tqdm import tqdm
 from joblib import Parallel, delayed
 from collections import defaultdict, Counter
 import math
+import numpy as np
 
 from .isvalid import *
 from .__init__ import __version__
@@ -46,7 +47,7 @@ def cluster_centroids(graphs, outdir, len_dif_percent=0.95, identity_threshold=0
         for i, G in enumerate(graphs):
             for node in G.nodes():
                 outfile.write(">" + str(i) + "_" + node + '\n')
-                seqs = G.nodes[node]["protein"]
+                seqs = G.nodes[node]["protein"].split(";")
                 seqs = [s for s in seqs if "*" not in s]
                 outfile.write(max(seqs, key=len) + "\n")
 
@@ -126,10 +127,10 @@ def simple_merge_graphs(graphs, clusters):
     # fix up node attributes
     for node in merged_G.nodes():
         size = 0
-        members = []
+        members = set()
         lengths = []
         centroid = []
-        seqIDs = []
+        seqIDs = set()
         protein = []
         dna = []
         annotation = []
@@ -153,8 +154,8 @@ def simple_merge_graphs(graphs, clusters):
                 str(prev[0]) + "_" + d
                 for d in make_list(graphs[prev[0]].nodes[prev[1]]['seqIDs'])
             ])
-            protein += make_list(graphs[prev[0]].nodes[prev[1]]['protein'])
-            dna += make_list(graphs[prev[0]].nodes[prev[1]]['dna'])
+            protein += make_list(graphs[prev[0]].nodes[prev[1]]['protein'].split(";"))
+            dna += make_list(graphs[prev[0]].nodes[prev[1]]['dna'].split(";"))
             annotation += make_list(graphs[prev[0]].nodes[prev[1]]['annotation'])
             description += make_list(graphs[prev[0]].nodes[prev[1]]['description'])
             paralog = (paralog or graphs[prev[0]].nodes[prev[1]]['paralog'])
@@ -179,7 +180,8 @@ def simple_merge_graphs(graphs, clusters):
     for node in merged_G.nodes():
         merged_G.nodes[node]['longCentroidID'] = max([(len(s), sid) for s,sid in zip(
             merged_G.nodes[node]['dna'], merged_G.nodes[node]['centroid'])])
-
+        merged_G.nodes[node]['maxLenId'] = max([(len(s), index) for s,index in zip(
+            merged_G.nodes[node]['dna'], range(len(merged_G.nodes[node]['dna'])))])[1]
 
     # fix up edge attributes
     for edge in merged_G.edges():
@@ -191,10 +193,10 @@ def simple_merge_graphs(graphs, clusters):
                 if prev1[0] == prev2[0]:  #same graph
                     if graphs[prev1[0]].has_edge(prev1[1], prev2[1]):
                         merged_G[edge[0]][edge[1]]['weight'] += 1
-                        merged_G[edge[0]][edge[1]]['members'] |= [
+                        merged_G[edge[0]][edge[1]]['members'] |= set([
                             str(prev1[0]) + "_" + str(m) for m in graphs[
                                 prev1[0]][prev1[1]][prev2[1]]['members']
-                        ]
+                        ])
 
     return merged_G, centroid_context
 
