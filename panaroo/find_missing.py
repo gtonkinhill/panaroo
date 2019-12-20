@@ -113,7 +113,7 @@ def find_missing(G,
                            reverse=True)
     nodes_by_size = [n[1] for n in nodes_by_size]
     member = 0
-    bad_node_mem_pairs = []
+    bad_node_mem_pairs = set()
     bad_nodes = set()
     for node_locs, max_seq_length in zip(all_node_locs, max_seq_lengths):
         seq_coverage = defaultdict(lambda: np.zeros(max_seq_length + 2,
@@ -131,7 +131,7 @@ def find_missing(G,
                         remove_member_from_node(G, node, member)
                     # G.nodes[node]['members'].remove(str(member))
                     # G.nodes[node]['size'] -= 1
-                bad_node_mem_pairs.append((node, member))
+                bad_node_mem_pairs.add((node, member))
             else:
                 seq_coverage[contig_id][loc[0]:loc[1]] = True
         member += 1

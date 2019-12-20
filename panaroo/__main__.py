@@ -187,7 +187,7 @@ def get_options(args):
     args = set_default_args(args)
     return (args)
 
-# @profile
+@profile
 def main():
     args = get_options(sys.argv[1:])
     # Check cd-hit is installed
@@ -355,7 +355,7 @@ def main():
     
     # add helpful attributes and write out graph in GML format
     for node in G.nodes():
-        G.nodes[node]['size'] = len(set(G.nodes[node]['members']))
+        G.nodes[node]['size'] = len(G.nodes[node]['members'])
         G.nodes[node]['centroid'] = ";".join(G.nodes[node]['centroid'])
         G.nodes[node]['dna'] = ";".join(G.nodes[node]['dna'])
         G.nodes[node]['protein'] = ";".join(G.nodes[node]['protein'])
