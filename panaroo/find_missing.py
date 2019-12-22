@@ -46,7 +46,7 @@ def find_missing(G,
     for node in G.nodes():
         if (len(G.nodes[node]['centroid']) >
                 1) or (G.nodes[node]['mergedDNA']):
-                for sid in G.nodes[node]['seqIDs']:
+                for sid in sorted(G.nodes[node]['seqIDs']):
                     merged_ids[sid] = node
 
     merged_nodes = defaultdict(dict)
@@ -71,7 +71,7 @@ def find_missing(G,
     for node in G.nodes():
         for neigh in G.neighbors(node):
             # seen_mems = set()
-            for sid in G.nodes[neigh]['seqIDs']:
+            for sid in sorted(G.nodes[neigh]['seqIDs']):
                 member = sid.split("_")[0]
                 # if member in seen_mems: continue
                 # seen_mems.add(member)
