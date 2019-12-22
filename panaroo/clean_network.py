@@ -137,9 +137,6 @@ def collapse_families(G,
                 neigh_array = []
                 for neigh in neighbours:
                     for sid in G.nodes[neigh]['centroid']:
-                        if sid not in centroid_to_index:
-                            print(centroid_to_index)
-                            print(sid)
                         index.append(centroid_to_index[sid])
                         neigh_array.append(neigh)
                 index = np.array(index, dtype=int)
@@ -296,18 +293,7 @@ def collapse_paralogs(G, centroid_contexts, max_context=5, quiet=False):
             cluster_dict[c].add(ref[0])
             cluster_mems[c].add(ref[1])
 
-        # print("here1")
-        # row,col,data = zip(*((u,v,1) for u,v in G.edges()))
-        # spG = csc_matrix((data + data, (row + col, col + row)), 
-        #     shape=(node_count+2, node_count+2))
-        # ids  = [ref[0] for ref in ref_paralogs] + [para[0] for para in centroid_contexts[centroid]]
-        # spath = shortest_path(csgraph=spG, directed=False, indices=np.array(ids))
-        # Gt = gt.Graph()
-        # Gt.add_edge_list(G.edges())
-        # print("here2")
-
         for para in centroid_contexts[centroid]:
-            # print("here3")
             d_max = np.inf
             s_max = -np.inf
             best_cluster = None
