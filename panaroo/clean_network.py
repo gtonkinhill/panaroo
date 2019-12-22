@@ -137,6 +137,9 @@ def collapse_families(G,
                 neigh_array = []
                 for neigh in neighbours:
                     for sid in G.nodes[neigh]['centroid']:
+                        if sid not in centroid_to_index:
+                            print(centroid_to_index)
+                            print(sid)
                         index.append(centroid_to_index[sid])
                         neigh_array.append(neigh)
                 index = np.array(index, dtype=int)
