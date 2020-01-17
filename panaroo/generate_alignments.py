@@ -4,6 +4,7 @@ from joblib import Parallel, delayed
 from tqdm import tqdm
 
 from Bio import SeqIO
+from Bio import AlignIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
@@ -12,6 +13,8 @@ from Bio.Align.Applications import MafftCommandline
 from Bio.Align.Applications import ClustalOmegaCommandline
 import Bio.Application
 
+from Bio import codonalign
+from Bio.Alphabet import IUPAC
 
 def output_sequence(node, isolate_list, temp_directory, outdir):
     #Get the name of the sequences for the gene of interest
@@ -19,6 +22,26 @@ def output_sequence(node, isolate_list, temp_directory, outdir):
     output_sequences = []
     #Look for gene sequences among all genes (from disk)
     for seq in SeqIO.parse(outdir + "combined_DNA_CDS.fasta", 'fasta'):
+        isolate_num = int(seq.id.split('_')[0])
+        isolate_name = isolate_list[isolate_num].replace(";",
+                                                         "") + ";" + seq.id
+        if seq.id in sequence_ids:
+            output_sequences.append(
+                SeqRecord(seq.seq, id=isolate_name, description=""))
+    #Put gene of interest sequences in a generator, with corrected isolate names
+    output_sequences = (x for x in output_sequences)
+    #set filename to gene name
+    outname = temp_directory + node["name"] + ".fasta"
+    #Write them to disk
+    SeqIO.write(output_sequences, outname, 'fasta')
+    return outname
+
+def output_protein(node, isolate_list, temp_directory, outdir):
+    #Get the name of the sequences for the gene of interest
+    sequence_ids = node["seqIDs"]
+    output_sequences = []
+    #Look for gene sequences among all genes (from disk)
+    for seq in SeqIO.parse(outdir + "combined_protein_CDS.fasta", 'fasta'):
         isolate_num = int(seq.id.split('_')[0])
         isolate_name = isolate_list[isolate_num].replace(";",
                                                          "") + ";" + seq.id
@@ -67,6 +90,39 @@ def get_alignment_commands(fastafile_name, outdir, aligner, threads):
                 threads=threads)
     return (command, fastafile_name)
 
+def get_protein_commands(fastafile_name, outdir, aligner, threads):
+    geneName = fastafile_name.split('/')[-1].split('.')[0]
+    if aligner == "prank":
+        command = PrankCommandline(d=fastafile_name,
+                                   o=geneName,
+                                   f=8,
+                                   protein=True)
+    elif (threads > 3):
+        if aligner == "mafft":
+            command = MafftCommandline(input=fastafile_name,
+                                       auto=True,
+                                       amino=True)
+        elif aligner == "clustal":
+            command = ClustalOmegaCommandline(
+                infile=fastafile_name,
+                outfile=outdir + "aligned_protein_sequences/" + geneName +
+                ".aln.fas",
+                seqtype="Protein")
+    elif (threads <= 3):
+        if aligner == "mafft":
+            command = MafftCommandline(input=fastafile_name,
+                                       auto=True,
+                                       thread=threads,
+                                       amino=True)
+        elif aligner == "clustal":
+            command = ClustalOmegaCommandline(
+                infile=fastafile_name,
+                outfile=outdir + "aligned_protein_sequences/" + geneName +
+                ".aln.fas",
+                seqtype="Protein",
+                threads=threads)
+    return (command, fastafile_name)
+
 
 def align_sequences(command, outdir, aligner):
     if aligner == "mafft":
@@ -101,6 +157,32 @@ def multi_align_sequences(commands, outdir, threads, aligner):
 
     return True
 
+def reverse_translate_sequences(protein_sequence_files, dna_sequence_files, outdir, threads):
+    #Read in files (multithreaded)
+    protein_alignments = Parallel(n_jobs=threads, prefer="threads")(
+            delayed(AlignIO.read)(x, "fasta", alphabet=IUPAC.unambiguous_dna) 
+            for x in protein_sequence_files)
+    
+    dna_sequences = Parallel(n_jobs=threads, prefer="threads")(
+            delayed(SeqIO.parse)(x, "fasta", alphabet=IUPAC.protien) 
+            for x in dna_sequence_files)
+    #build codon alignments
+    codon_alignments = Parallel(n_jobs=threads, prefer="threads")(
+            delayed(codonalign.build)
+            (protein_alignments[index], dna_sequences[index]) 
+            for index in range(len(protein_alignments)))
+    #output codon alignments
+    outnames = [x.split("/")[-1] for x in protein_sequence_files]
+        
+    write_success_failures = Parallel(n_jobs=threads, prefer="threads")(
+            delayed(AlignIO.write)
+            (codon_alignments[x], 
+             outdir + "aligned_gene_sequences/" + outnames[x], 'fasta')
+            for x in range(len(codon_alignments)))
+    
+    alignments = os.listdir(outdir + "aligned_gene_sequences/")
+    
+    return alignments
 
 def write_alignment_header(alignment_list, outdir):
     out_entries = []

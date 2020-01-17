@@ -203,24 +203,66 @@ def generate_common_struct_presence_absence(G,
 
 
 def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
-                                  isolates):
+                                  codons, isolates):
     #Make a folder for the output alignments
     try:
         os.mkdir(output_dir + "aligned_gene_sequences")
     except FileExistsError:
         None
-    #Multithread writing gene sequences to disk (temp directory) so aligners can find them
-    unaligned_sequence_files = Parallel(n_jobs=threads)(
-        delayed(output_sequence)(G.nodes[x], isolates, temp_dir, output_dir)
-        for x in tqdm(G.nodes()))
-    #Get Biopython command calls for each output gene sequences
-    commands = [
-        get_alignment_commands(fastafile, output_dir, aligner, threads)
-        for fastafile in unaligned_sequence_files
-    ]
-    #Run these commands in a multi-threaded way
-    multi_align_sequences(commands, output_dir + "aligned_gene_sequences/",
-                          threads, aligner)
+    if codons == True:
+        #Make alternate protein/DNA directories
+        try:
+            os.mkdir(output_dir + "aligned_protein_sequences")
+        except FileExistsError:
+            None
+        try:
+            os.mkdir(output_dir + "unaligned_dna_sequences")
+        except FileExistsError:
+            None
+        #Multithread writing protien and dna sequences to disk (temp directory) so aligners can find them
+        unaligned_protein_files = Parallel(n_jobs=threads)(
+            delayed(output_protein)(G.nodes[x], isolates, temp_dir, output_dir)
+            for x in tqdm(G.nodes()))
+        
+        unaligned_dna_files = Parallel(n_jobs=threads)(
+            delayed(output_sequence)(G.nodes[x], isolates, 
+                   output_dir + "unaligned_dna_sequences", output_dir)
+                    for x in tqdm(G.nodes()))
+        #Get Biopython command calls for each output gene sequences
+        commands = [
+            get_protein_commands(fastafile, output_dir, aligner, threads)
+            for fastafile in unaligned_protein_files
+        ]
+        #Run these commands in a multi-threaded way
+        multi_align_sequences(commands, output_dir + "aligned_protein_sequences/",
+                              threads, aligner)
+        
+        #Get the list of aligned protien files
+        protein_sequences = os.listdir(output_dir + "aligned_protein_sequences/")
+        
+        #Check all alignments completed
+        if len(protein_sequences) != len(unaligned_dna_files):
+            raise RuntimeError("Some alignments failed to complete!")
+        
+        
+        #Reverse translate and output codon alignments
+        codon_alignments = reverse_translate_sequences(protein_sequences, 
+                                                       unaligned_dna_files, 
+                                                       output_dir, 
+                                                       threads)
+    else:
+        #Multithread writing gene sequences to disk (temp directory) so aligners can find them
+        unaligned_sequence_files = Parallel(n_jobs=threads)(
+            delayed(output_sequence)(G.nodes[x], isolates, temp_dir, output_dir)
+            for x in tqdm(G.nodes()))
+        #Get Biopython command calls for each output gene sequences
+        commands = [
+            get_alignment_commands(fastafile, output_dir, aligner, threads)
+            for fastafile in unaligned_sequence_files
+        ]
+        #Run these commands in a multi-threaded way
+        multi_align_sequences(commands, output_dir + "aligned_gene_sequences/",
+                              threads, aligner)
     return
 
 
@@ -277,7 +319,7 @@ def concatenate_core_genome_alignments(core_names, output_dir):
 
 
 def generate_core_genome_alignment(G, temp_dir, output_dir, threads, aligner,
-                                   isolates, threshold, num_isolates):
+                                   isolates, threshold, codons, num_isolates):
     #Make a folder for the output alignments TODO: decide whether or not to keep these
     try:
         os.mkdir(output_dir + "aligned_gene_sequences")
@@ -286,18 +328,62 @@ def generate_core_genome_alignment(G, temp_dir, output_dir, threads, aligner,
     #Get core nodes
     core_genes = get_core_gene_nodes(G, threshold, num_isolates)
     core_gene_names = [G.nodes[x]["name"] for x in core_genes]
-    #Output core node sequences
-    unaligned_sequence_files = Parallel(n_jobs=threads)(
-        delayed(output_sequence)(G.nodes[x], isolates, temp_dir, output_dir)
-        for x in tqdm(core_genes))
-    #Get alignment commands
-    commands = [
-        get_alignment_commands(fastafile, output_dir, aligner, threads)
-        for fastafile in unaligned_sequence_files
-    ]
-    #Run alignment commands
-    multi_align_sequences(commands, output_dir + "aligned_gene_sequences/",
-                          threads, aligner)
+    
+    if codons == True:
+        #Make alternate protein/DNA directories
+        try:
+            os.mkdir(output_dir + "aligned_protein_sequences")
+        except FileExistsError:
+            None
+        try:
+            os.mkdir(output_dir + "unaligned_dna_sequences")
+        except FileExistsError:
+            None
+                #Multithread writing protien and dna sequences to disk (temp directory) so aligners can find them
+        unaligned_protein_files = Parallel(n_jobs=threads)(
+            delayed(output_protein)(G.nodes[x], isolates, temp_dir, output_dir)
+            for x in tqdm(core_genes))
+        
+        unaligned_dna_files = Parallel(n_jobs=threads)(
+            delayed(output_sequence)(G.nodes[x], isolates, 
+                   output_dir + "unaligned_dna_sequences", output_dir)
+                    for x in tqdm(core_genes))
+        #Get Biopython command calls for each output gene sequences
+        commands = [
+            get_protein_commands(fastafile, output_dir, aligner, threads)
+            for fastafile in unaligned_protein_files
+        ]
+        #Run these commands in a multi-threaded way
+        multi_align_sequences(commands, output_dir + "aligned_protein_sequences/",
+                              threads, aligner)
+        
+        #Get the list of aligned protien files
+        protein_sequences = os.listdir(output_dir + "aligned_protein_sequences/")
+        
+        #Check all alignments completed
+        if len(protein_sequences) != len(unaligned_dna_files):
+            raise RuntimeError("Some alignments failed to complete!")
+        
+        
+        #Reverse translate and output codon alignments
+        codon_alignments = reverse_translate_sequences(protein_sequences, 
+                                                       unaligned_dna_files, 
+                                                       output_dir, 
+                                                       threads)
+    else:
+        #Output core node sequences
+        unaligned_sequence_files = Parallel(n_jobs=threads)(
+            delayed(output_sequence)(G.nodes[x], isolates, temp_dir, output_dir)
+            for x in tqdm(core_genes))
+        #Get alignment commands
+        commands = [
+            get_alignment_commands(fastafile, output_dir, aligner, threads)
+            for fastafile in unaligned_sequence_files
+        ]
+        #Run alignment commands
+        multi_align_sequences(commands, output_dir + "aligned_gene_sequences/",
+                              threads, aligner)
+    
     #Concatenate them together to produce the two output files
     concatenate_core_genome_alignments(core_gene_names, output_dir)
     return
