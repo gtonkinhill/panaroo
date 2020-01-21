@@ -206,19 +206,19 @@ def collapse_families(G,
                                     centroid_to_index[G.nodes[nB]["longCentroidID"][1]]]==0:
                                     tempG.add_edge(nA, nB)
                                 else:
+                                    shouldmerge = True
                                     for imem in mem_inter:
                                         tempids = []
                                         for sid in sorted(G.nodes[nA]['seqIDs'] | G.nodes[nB]['seqIDs']):
                                             if int(sid.split("_")[0])==imem:
                                                 tempids.append(sid)
-                                        shouldmerge = True
                                         for sidA, sidB in itertools.combinations(tempids, 2):
                                             if abs(int(sidA.split("_")[2])-int(sidB.split("_")[2])) >= len(tempids):
                                                 shouldmerge = False
                                             if distances_bwtn_centroids[seqid_to_index[sidA],seqid_to_index[sidB]]==1: 
                                                 shouldmerge=False
-                                        if shouldmerge:
-                                            tempG.add_edge(nA, nB)
+                                    if shouldmerge:
+                                        tempG.add_edge(nA, nB)
                             else:
                                 tempG.add_edge(nA, nB)
 
