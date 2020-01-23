@@ -1,7 +1,7 @@
 import networkx as nx
 from panaroo.cdhit import *
 from panaroo.merge_nodes import merge_nodes
-from panaroo.isvalid import del_dups
+from panaroo.isvalid import del_dups, max_clique
 from collections import defaultdict, deque
 from panaroo.cdhit import is_valid
 from itertools import chain, combinations
@@ -53,14 +53,14 @@ def mod_bfs_edges(G, source, depth_limit=None):
         except StopIteration:
             queue.popleft()
 
-def max_clique(G):
-    max_clique = []
-    max_len = 0
-    for clique in nx.find_cliques(G):
-        if len(clique)>max_len:
-            max_len = len(clique)
-            max_clique = clique
-    return max_clique
+# def max_clique(G):
+#     max_clique = []
+#     max_len = 0
+#     for clique in nx.find_cliques(G):
+#         if len(clique)>max_len:
+#             max_len = len(clique)
+#             max_clique = clique
+#     return max_clique
 
 def collapse_families(G,
                       outdir,
@@ -95,13 +95,6 @@ def collapse_families(G,
             accurate=False)
         distances_bwtn_centroids, centroid_to_index = pwdist_edlib(
             G, cdhit_clusters, dna_error_threshold, dna=True, n_cpu=n_cpu)
-
-        # keep track of centroids for each sequence. Need this to resolve clashes
-        seqid_to_index = {}
-        for node in G.nodes():
-            for sid in G.nodes[node]['seqIDs']:
-                seqid_to_index[sid] = centroid_to_index[G.nodes[node]["longCentroidID"][1]]
-
     elif distances_bwtn_centroids is None:
         cdhit_clusters = iterative_cdhit(G,
                                          outdir,
@@ -111,6 +104,13 @@ def collapse_families(G,
                                          dna=False)
         distances_bwtn_centroids, centroid_to_index = pwdist_edlib(
             G, cdhit_clusters, family_threshold, dna=False, n_cpu=n_cpu)
+
+    # keep track of centroids for each sequence. Need this to resolve clashes
+    seqid_to_index = {}
+    for node in G.nodes():
+        for sid in G.nodes[node]['seqIDs']:
+            seqid_to_index[sid] = centroid_to_index[G.nodes[node]["longCentroidID"][1]]
+    
     for depth in depths:
         search_space = set(G.nodes())
         while len(search_space) > 0:
@@ -202,29 +202,44 @@ def collapse_families(G,
                         for nA, nB in itertools.combinations(cluster, 2):
                             mem_inter = sorted(G.nodes[nA]['members'].intersection(G.nodes[nB]['members']))
                             if len(mem_inter) > 0:
-                                if distances_bwtn_centroids[centroid_to_index[G.nodes[nA]["longCentroidID"][1]], 
-                                    centroid_to_index[G.nodes[nB]["longCentroidID"][1]]]==0:
+                                # if distances_bwtn_centroids[centroid_to_index[G.nodes[nA]["longCentroidID"][1]], 
+                                #     centroid_to_index[G.nodes[nB]["longCentroidID"][1]]]==0:
+                                #     tempG.add_edge(nA, nB)
+                                # else:
+                                shouldmerge = True
+                                for imem in mem_inter:
+                                    contig_ids = set()
+                                    loc_ids = []
+                                    index_ids = []
+                                    for sid in G.nodes[nA]['seqIDs'] | G.nodes[nB]['seqIDs']:
+                                        ssid = sid.split("_")
+                                        if ssid[0]==imem:
+                                            index_ids.append(seqid_to_index[sid])
+                                            contig_ids.add(ssid[1])
+                                            loc_ids.append(int(ssid[2]))
+
+                                    # if len(contig_ids) > 1: 
+                                    #     shouldmerge = False
+                                    #     break
+                                    # loc_ids = np.array(loc_ids)
+                                    # if np.max(np.abs(loc_ids - np.min(loc_ids))) > len(loc_ids):
+                                    #     shouldmerge = False
+                                    #     break
+
+                                    index_ids = np.array(index_ids)
+                                    if np.sum(distances_bwtn_centroids[index_ids][:, index_ids])>0:
+                                        shouldmerge=False
+                                        break
+
+                                if shouldmerge:
                                     tempG.add_edge(nA, nB)
-                                else:
-                                    shouldmerge = True
-                                    for imem in mem_inter:
-                                        tempids = []
-                                        for sid in sorted(G.nodes[nA]['seqIDs'] | G.nodes[nB]['seqIDs']):
-                                            if int(sid.split("_")[0])==imem:
-                                                tempids.append(sid)
-                                        for sidA, sidB in itertools.combinations(tempids, 2):
-                                            if abs(int(sidA.split("_")[2])-int(sidB.split("_")[2])) >= len(tempids):
-                                                shouldmerge = False
-                                            if distances_bwtn_centroids[seqid_to_index[sidA],seqid_to_index[sidB]]==1: 
-                                                shouldmerge=False
-                                    if shouldmerge:
-                                        tempG.add_edge(nA, nB)
                             else:
                                 tempG.add_edge(nA, nB)
 
                         # merge from largest clique to smallest
                         clique = max_clique(tempG)
                         while len(clique)>1:
+
                             node_count += 1
                             for neig in clique:
                                 removed_nodes.add(neig)
