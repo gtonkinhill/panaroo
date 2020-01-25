@@ -2,7 +2,7 @@
 import argparse
 import sys, os
 import re
-
+# import Levenshtein as lev
 
 def read_gene_data(inputfile):
 
@@ -11,11 +11,12 @@ def read_gene_data(inputfile):
         next(infile)
         for line in infile:
             line=line.strip().split(",")
-            gene_data[line[3]] = (len(line[4]), line[-1])
+            gene_data[line[3]] = (len(line[4]), line[-2])
     return (gene_data)
 
 def count_differences(gene_data, pa_file, lendiff=0.8, col_skip=0, sep=",", method="panaroo"):
     anno_conflicts = 0
+    record_anno_conflicts = []
     with open(pa_file, 'r') as infile:
         next(infile)
         for line in infile:
@@ -54,7 +55,20 @@ def count_differences(gene_data, pa_file, lendiff=0.8, col_skip=0, sep=",", meth
                     continue
                 annotations.add(gene_data[g][1])
 
-            anno_conflicts += max(0, len(annotations)-1)
+            annotations = set([re.sub('[0-9|_]', '', i.lower()) for i in annotations])
+            if len(annotations)>1:
+                record_anno_conflicts.append(list(annotations))
+                anno_conflicts += len(annotations) - 1
+
+            # annotations = sorted(list(annotations))
+            # if len(annotations)>1:
+            #     for a in annotations[1:]:
+            #         if lev.ratio(annotations[0].lower(), a.lower()) < lev_thresh:
+            #             anno_conflicts += 1
+            #             record_anno_conflicts.append([annotations[0].lower(), a.lower()])
+
+    for a in record_anno_conflicts:
+        print(a)
 
     return anno_conflicts
 

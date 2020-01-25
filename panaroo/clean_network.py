@@ -62,7 +62,35 @@ def mod_bfs_edges(G, source, depth_limit=None):
 #             max_clique = clique
 #     return max_clique
 
+def single_linkage(G, distances_bwtn_centroids, centroid_to_index, neighbours):
+    index = []
+    neigh_array = []
+    for neigh in neighbours:
+        for sid in G.nodes[neigh]['centroid']:
+            index.append(centroid_to_index[sid])
+            neigh_array.append(neigh)
+    index = np.array(index, dtype=int)
+    neigh_array = np.array(neigh_array)
+
+    n_components, labels = connected_components(
+        csgraph=distances_bwtn_centroids[index][:, index],
+        directed=False,
+        return_labels=True)
+    # labels = labels[index]
+    for neigh in neighbours:
+        l = list(set(labels[neigh_array == neigh]))
+        if len(l)>1:
+            for i in l[1:]:
+                labels[labels==i] = l[0]
+
+    clusters = [
+        del_dups(list(neigh_array[labels == i])) for i in np.unique(labels)
+    ]
+
+    return(clusters)
+
 def collapse_families(G,
+                      seqid_to_centroid,
                       outdir,
                       family_threshold=0.7,
                       dna_error_threshold=0.99,
@@ -109,7 +137,10 @@ def collapse_families(G,
     seqid_to_index = {}
     for node in G.nodes():
         for sid in G.nodes[node]['seqIDs']:
-            seqid_to_index[sid] = centroid_to_index[G.nodes[node]["longCentroidID"][1]]
+            if "refound" in sid:
+                seqid_to_index[sid] = centroid_to_index[G.nodes[node]["longCentroidID"][1]]
+            else:
+                seqid_to_index[sid] = centroid_to_index[seqid_to_centroid[sid]]
     
     for depth in depths:
         search_space = set(G.nodes())
@@ -239,29 +270,31 @@ def collapse_families(G,
                         # merge from largest clique to smallest
                         clique = max_clique(tempG)
                         while len(clique)>1:
-
-                            node_count += 1
-                            for neig in clique:
-                                removed_nodes.add(neig)
-                                if neig in search_space:
-                                    search_space.remove(neig)
-                            
-                            temp_c = clique.copy()
-                            G = merge_nodes(G,
-                                            temp_c.pop(),
-                                            temp_c.pop(),
-                                            node_count,
-                                            multi_centroid=(not correct_mistranslations),
-                                            check_merge_mems=False)
-                            while (len(temp_c) > 0):
+                            clique_clusters = single_linkage(G, distances_bwtn_centroids, centroid_to_index, clique)
+                            for clust in clique_clusters:
+                                if len(clust)<=1: continue
+                                node_count += 1
+                                for neig in clust:
+                                    removed_nodes.add(neig)
+                                    if neig in search_space:
+                                        search_space.remove(neig)
+                                
+                                temp_c = clust.copy()
                                 G = merge_nodes(G,
-                                                node_count,
                                                 temp_c.pop(),
-                                                node_count + 1,
+                                                temp_c.pop(),
+                                                node_count,
                                                 multi_centroid=(not correct_mistranslations),
                                                 check_merge_mems=False)
-                                node_count += 1
-                            search_space.add(node_count)
+                                while (len(temp_c) > 0):
+                                    G = merge_nodes(G,
+                                                    node_count,
+                                                    temp_c.pop(),
+                                                    node_count + 1,
+                                                    multi_centroid=(not correct_mistranslations),
+                                                    check_merge_mems=False)
+                                    node_count += 1
+                                search_space.add(node_count)
                             tempG.remove_nodes_from(clique)
                             clique = max_clique(tempG)
                 

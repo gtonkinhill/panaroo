@@ -47,6 +47,6 @@ def test_merge(datafolder):
             delimiter="\t", skip_header=1)
         
         assert pa.shape == (120 , 9)
-        assert np.sum(pa[:,1:])==638
+        assert np.sum(pa[:,1:])==478
 
     return

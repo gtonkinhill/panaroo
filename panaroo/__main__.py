@@ -222,7 +222,7 @@ def main():
         print("generating initial network...")
 
     # generate network from clusters and adjacency information
-    G, centroid_contexts = generate_network(cluster_file=cd_hit_out + ".clstr",
+    G, centroid_contexts, seqid_to_centroid = generate_network(cluster_file=cd_hit_out + ".clstr",
                          data_file=args.output_dir + "gene_data.csv",
                          prot_seq_file=args.output_dir +
                          "combined_protein_CDS.fasta",
@@ -251,6 +251,7 @@ def main():
 
     # clean up translation errors
     G = collapse_families(G,
+                          seqid_to_centroid=seqid_to_centroid,
                           outdir=temp_dir,
                           dna_error_threshold=0.98,
                           correct_mistranslations=True,
@@ -262,6 +263,7 @@ def main():
 
     # collapse gene families
     G, distances_bwtn_centroids, centroid_to_index = collapse_families(G,
+                          seqid_to_centroid=seqid_to_centroid,
                           outdir=temp_dir,
                           family_threshold=args.family_threshold,
                           correct_mistranslations=False,
@@ -305,6 +307,7 @@ def main():
 
     # merge again in case refinding has resolved issues
     G = collapse_families(G,
+                          seqid_to_centroid=seqid_to_centroid,
                           outdir=temp_dir,
                           family_threshold=args.family_threshold,
                           correct_mistranslations=False,

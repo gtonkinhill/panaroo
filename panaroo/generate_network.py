@@ -10,6 +10,7 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
 
     # associate sequences with their clusters
     seq_to_cluster = {}
+    seqid_to_centroid = {}
     cluster_centroids = {}
     cluster_members = defaultdict(list)
     with open(cluster_file, 'rU') as infile:
@@ -66,6 +67,7 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
 
     for i, id in enumerate(seq_ids):
         current_cluster = seq_to_cluster[id]
+        seqid_to_centroid[id] = cluster_centroids[current_cluster]
         loc = id.split("_")
         genome_id = loc[0]
         if loc[-1] == "0":
@@ -194,4 +196,4 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                                    members=set([genome_id]))
                 prev = current_cluster
 
-    return G, centroid_context
+    return G, centroid_context, seqid_to_centroid
