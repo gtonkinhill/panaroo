@@ -233,6 +233,10 @@ def collapse_families(G,
                                     #     shouldmerge = False
                                     #     break
 
+                                    if len(set(G.nodes[nA]['centroid']).intersection(set(G.nodes[nB]['centroid'])))>0:
+                                        shouldmerge=False
+                                        break
+
                                     index_ids = np.array(index_ids)
                                     if np.sum(distances_bwtn_centroids[index_ids][:, index_ids])>0:
                                         shouldmerge=False
