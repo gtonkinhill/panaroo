@@ -92,10 +92,7 @@ def simple_merge_graphs(graphs, clusters):
     mapping = defaultdict(dict)
     nnodes = 0
     reverse_mapping = defaultdict(list)
-    # centroid_contexts = defaultdict(list)
-
-    # centroid_context[cluster_centroids[current_cluster]].append([prev, genome_id])
-
+    
     merge_centroids = {}
     centroid_context = defaultdict(list)
     for c, cluster in enumerate(clusters):
@@ -286,6 +283,8 @@ def main():
 
     # Create temporary directory
     temp_dir = os.path.join(tempfile.mkdtemp(dir=args.output_dir), "")
+
+    print("Merging graphs is still under active development and may change frequently!")
 
     # Load graphs
     print("Loading graphs...")

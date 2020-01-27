@@ -1,4 +1,4 @@
-import os
+import os, sys
 try:
     try:
         from cStringIO import StringIO
@@ -222,9 +222,38 @@ def custom_stringizer(value):
     return buf.getvalue()
 
 
-import networkx as nx
-from networkx.algorithms.approximation import ramsey
 # Author: Nicholas Mancuso (nick.mancuso@gmail.com)
+from networkx.utils import arbitrary_element
+
+def ramsey_R2(G):
+    """Approximately computes the Ramsey number `R(2;s,t)` for graph.
+
+    Parameters
+    ----------
+    G : NetworkX graph
+        Undirected graph
+
+    Returns
+    -------
+    max_pair : (set, set) tuple
+        Maximum clique, Maximum independent set.
+    """
+    if not G:
+        return set(), set()
+
+    node = arbitrary_element(G)
+    nbrs = set(nx.all_neighbors(G, node))
+    nbrs.discard(node)
+    nnbrs = nx.non_neighbors(G, node)
+    c_1, i_1 = ramsey_R2(G.subgraph(nbrs).copy())
+    c_2, i_2 = ramsey_R2(G.subgraph(nnbrs).copy())
+
+    c_1.add(node)
+    i_2.add(node)
+    # Choose the larger of the two cliques and the larger of the two
+    # independent sets, according to cardinality.
+    return max(c_1, c_2, key=len), max(i_1, i_2, key=len)
+
 
 def max_clique(G):
     """Find the Maximum Clique
@@ -264,6 +293,9 @@ def max_clique(G):
         BIT Numerical Mathematics, 32(2), 180–196. Springer.
         doi:10.1007/BF01994876
     """
+    sys.setrecursionlimit(int(10e6))
+
+
     if G is None:
         raise ValueError("Expected NetworkX graph!")
 
@@ -297,12 +329,12 @@ def clique_removal(G):
         BIT Numerical Mathematics, 32(2), 180–196. Springer.
     """
     graph = G.copy()
-    c_i, i_i = ramsey.ramsey_R2(graph)
+    c_i, i_i = ramsey_R2(graph)
     cliques = [c_i]
     isets = [i_i]
     while graph:
         graph.remove_nodes_from(c_i)
-        c_i, i_i = ramsey.ramsey_R2(graph)
+        c_i, i_i = ramsey_R2(graph)
         if c_i:
             cliques.append(c_i)
         if i_i:
