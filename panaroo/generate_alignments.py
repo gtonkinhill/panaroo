@@ -29,6 +29,9 @@ def output_sequence(node, isolate_list, temp_directory, outdir):
     output_sequences = (x for x in output_sequences)
     #set filename to gene name
     outname = temp_directory + node["name"] + ".fasta"
+    #check to see if filename is too long
+    if len(outname) >= 248:
+        outname = outname[:248] + ".fasta"
     #Write them to disk
     SeqIO.write(output_sequences, outname, 'fasta')
     return outname
