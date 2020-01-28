@@ -9,6 +9,7 @@ import numpy as np
 from scipy.sparse import csr_matrix, csc_matrix
 from scipy.sparse.csgraph import connected_components, shortest_path
 from tqdm import tqdm
+import sys
 # import graph_tool.all as gt
 
 # Genes at the end of contigs are more likely to be false positives thus
@@ -248,6 +249,7 @@ def collapse_families(G,
                                 tempG.add_edge(nA, nB)
 
                         # merge from largest clique to smallest
+                        sys.setrecursionlimit(max(len(tempG.nodes),10000))
                         clique = max_clique(tempG)
                         while len(clique)>1:
                             clique_clusters = single_linkage(G, distances_bwtn_centroids, centroid_to_index, clique)
