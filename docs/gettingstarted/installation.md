@@ -4,7 +4,9 @@ Conda is the simplest way to install Panaroo and all its dependencies.
 
 ### Conda
 
-
+```
+conda install -c bioconda panaroo
+```
 
 ### Manual
 
