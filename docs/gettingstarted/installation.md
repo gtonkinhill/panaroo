@@ -8,6 +8,12 @@ Conda is the simplest way to install Panaroo and all its dependencies.
 conda install -c bioconda panaroo
 ```
 
+For some systems this can install a single threaded version of the cd-hit dependency. In that case the following version can sometimes resolve the issue.
+
+```
+conda install -c bioconda/label/cf201901 panaroo
+```
+
 ### Manual
 
 Install cd-hit using either conda or by following the instructions at https://github.com/weizhongli/cdhit
