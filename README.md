@@ -8,10 +8,6 @@ An updated pipeline for pan-genome investigation
 <img src="https://github.com/gtonkinhill/panaroo/blob/master/panaroo.png" alt="alt text" width="500">
 </p>
 
-## Beta
-
-***Panaroo is currently in beta testing and may change frequently in backwards incompatible ways.***
-
 ## Documentation
 
 Documentation for Panaroo can be found [here](https://gtonkinhill.github.io/panaroo)
