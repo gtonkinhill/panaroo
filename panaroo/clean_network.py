@@ -89,7 +89,6 @@ def single_linkage(G, distances_bwtn_centroids, centroid_to_index, neighbours):
     ]
 
     return(clusters)
-
 def collapse_families(G,
                       seqid_to_centroid,
                       outdir,
@@ -142,6 +141,9 @@ def collapse_families(G,
                 seqid_to_index[sid] = centroid_to_index[G.nodes[node]["longCentroidID"][1]]
             else:
                 seqid_to_index[sid] = centroid_to_index[seqid_to_centroid[sid]]
+
+    nonzero_dist = distances_bwtn_centroids.nonzero()
+    nonzero_dist = set([(i,j) for i,j in zip(nonzero_dist[0], nonzero_dist[1])])
     
     for depth in depths:
         search_space = set(G.nodes())
@@ -208,40 +210,49 @@ def collapse_families(G,
                         # build a mini graph of allowed pairwise merges
                         tempG = nx.Graph()
                         for nA, nB in itertools.combinations(cluster, 2):
-                            mem_inter = sorted(G.nodes[nA]['members'].intersection(G.nodes[nB]['members']))
+                            mem_inter = G.nodes[nA]['members'].intersection(G.nodes[nB]['members'])
                             if len(mem_inter) > 0:
-                                # if distances_bwtn_centroids[centroid_to_index[G.nodes[nA]["longCentroidID"][1]], 
-                                #     centroid_to_index[G.nodes[nB]["longCentroidID"][1]]]==0:
-                                #     tempG.add_edge(nA, nB)
-                                # else:
+                                
                                 shouldmerge = True
-                                for imem in mem_inter:
-                                    contig_ids = set()
-                                    loc_ids = []
-                                    index_ids = []
-                                    for sid in G.nodes[nA]['seqIDs'] | G.nodes[nB]['seqIDs']:
+                                if len(set(G.nodes[nA]['centroid']).intersection(set(G.nodes[nB]['centroid'])))>0:
+                                        shouldmerge=False
+                                        
+                                if shouldmerge:
+                                    idsA = defaultdict(list)
+                                    for sid in G.nodes[nA]['seqIDs']:
                                         ssid = sid.split("_")
-                                        if ssid[0]==imem:
-                                            index_ids.append(seqid_to_index[sid])
-                                            contig_ids.add(ssid[1])
-                                            loc_ids.append(int(ssid[2]))
+                                        if ssid[0] in mem_inter:
+                                            idsA[ssid[0]].append(sid)
 
-                                    # if len(contig_ids) > 1: 
-                                    #     shouldmerge = False
-                                    #     break
-                                    # loc_ids = np.array(loc_ids)
-                                    # if np.max(np.abs(loc_ids - np.min(loc_ids))) > len(loc_ids):
-                                    #     shouldmerge = False
-                                    #     break
+                                    idsB = defaultdict(list)
+                                    for sid in G.nodes[nB]['seqIDs']:
+                                        ssid = sid.split("_")
+                                        if ssid[0] in mem_inter:
+                                            idsB[ssid[0]].append(sid)
 
-                                    if len(set(G.nodes[nA]['centroid']).intersection(set(G.nodes[nB]['centroid'])))>0:
-                                        shouldmerge=False
-                                        break
+                                    for imem in mem_inter:
+                                        cids = set()
+                                        for sid in idsA[imem] + idsB[imem]:
+                                            cids.add(seqid_to_index[sid])
+                                        cids = list(cids)
+                                        for k, sidA in enumerate(cids):
+                                            for sidB in cids:
+                                                    if (sidA, sidB) in nonzero_dist:
+                                                        shouldmerge=False
+                                                        break
+                                            if not shouldmerge: break
+                                        if not shouldmerge: break
 
-                                    index_ids = np.array(index_ids)
-                                    if np.sum(distances_bwtn_centroids[index_ids][:, index_ids])>0:
-                                        shouldmerge=False
-                                        break
+                                    # for imem in mem_inter:
+                                    #     for sidA in idsA[imem]:
+                                    #         for sidB in idsB[imem]:
+                                    #                 if distances_bwtn_centroids[seqid_to_index[sidA], 
+                                    #                                             seqid_to_index[sidB]]>0:
+                                    #                     shouldmerge=False
+                                    #                     break
+                                    #         if not shouldmerge: break
+                                    #     if not shouldmerge: break
+ 
 
                                 if shouldmerge:
                                     tempG.add_edge(nA, nB)
@@ -284,6 +295,7 @@ def collapse_families(G,
                     search_space.remove(node)
 
     return G, distances_bwtn_centroids, centroid_to_index
+
 
 def collapse_paralogs(G, centroid_contexts, max_context=5, quiet=False): 
     
