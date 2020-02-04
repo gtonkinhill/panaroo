@@ -14,6 +14,7 @@ from .generate_network import generate_network
 from .generate_output import *
 from .clean_network import *
 from .find_missing import find_missing
+from .generate_alignments import check_aligner_install
 
 from .__init__ import __version__
 
@@ -191,6 +192,9 @@ def main():
     args = get_options(sys.argv[1:])
     # Check cd-hit is installed
     check_cdhit_version()
+    #Make sure aligner is installed if alignment requested
+    if args.aln != None:
+        check_aligner_install(args.alr)
     # make sure trailing forward slash is present
     args.output_dir = os.path.join(args.output_dir, "")
     # Create temporary directory
