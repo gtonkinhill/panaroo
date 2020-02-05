@@ -429,19 +429,20 @@ def merge_paralogs(G):
 
     # merge paralog nodes that share the same centroid
     for temp_c in merge_clusters:
-        node_count += 1
-        G = merge_nodes(G,
-                        temp_c.pop(),
-                        temp_c.pop(),
-                        node_count,
-                        check_merge_mems=False)
-        while (len(temp_c) > 0):
-            G = merge_nodes(G,
-                            node_count,
-                            temp_c.pop(),
-                            node_count + 1,
-                            check_merge_mems=False)
+        if len(temp_c) > 0:
             node_count += 1
+            G = merge_nodes(G,
+                            temp_c.pop(),
+                            temp_c.pop(),
+                            node_count,
+                            check_merge_mems=False)
+            while (len(temp_c) > 0):
+                G = merge_nodes(G,
+                                node_count,
+                                temp_c.pop(),
+                                node_count + 1,
+                                check_merge_mems=False)
+                node_count += 1
 
     return (G)
 
