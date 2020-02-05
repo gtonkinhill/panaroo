@@ -81,7 +81,7 @@ def output_sequence(node, isolate_list, temp_directory, outdir):
         outname = temp_directory + node["name"] + ".fasta"
     else:
         #If only one sequence, output it to aliged directory and break
-        outname = "./aligned_gene_sequences/" + node["name"] + ".fasta"
+        outname = outdir + "/aligned_gene_sequences/" + node["name"] + ".fasta"
         SeqIO.write(output_sequences, outname, 'fasta')
         return None
     #check to see if filename is too long

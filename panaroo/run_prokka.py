@@ -19,14 +19,13 @@ def get_options():
                                      prog='run_prokka')
 
     io_opts = parser.add_argument_group('Input/output')
-    io_opts.add_argument(
-        "-i",
-        "--input",
-        dest="input_files",
-        required=True,
-        help="input fasta files",
-        type=argparse.FileType('rU'),
-        nargs='+')
+    io_opts.add_argument("-i",
+                         "--input",
+                         dest="input_files",
+                         required=True,
+                         help="input fasta files",
+                         type=argparse.FileType('rU'),
+                         nargs='+')
     io_opts.add_argument("-o",
                          "--out_dir",
                          dest="output_dir",
@@ -111,8 +110,8 @@ def run_prokka_mod(input_file, out_folder, train_file, force, add_cmds):
     with open(temp_dir + "/prodigal", 'w') as outfile:
         outfile.write("#!/bin/bash\n")
         outfile.write("(>&2 echo 'running prokka mod!')\n")
-        outfile.write(path_to_prodigal + " -t " +
-                      os.path.abspath(train_file) + " $*\n" )
+        outfile.write(path_to_prodigal + " -t " + os.path.abspath(train_file) +
+                      " $*\n")
 
     cmd = 'export PATH="' + temp_dir + ':$PATH"; chmod 777 ' + temp_dir + '/*; '
 

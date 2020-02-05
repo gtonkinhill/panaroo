@@ -126,7 +126,7 @@ def plot_ngenes(input_gffs, outdir):
 
     with open(outdir + "ngenes.txt", "w") as genes_out:
         genes_out.write("sample\tno_genes\n")
-        for i,j in zip(file_names, ngenes):
+        for i, j in zip(file_names, ngenes):
             genes_out.write("%s\t%s\n" % (i, j))
     # generate static plot
     plt.style.use('ggplot')
@@ -159,7 +159,7 @@ def plot_ngenes(input_gffs, outdir):
                                   tickfont=dict(size=10, color='black')))
 
     fig = go.Figure(data=data, layout=layout)
-    offline.plot(fig, filename= outdir + "ngenes_boxplot.html", auto_open=False)
+    offline.plot(fig, filename=outdir + "ngenes_boxplot.html", auto_open=False)
 
     return
 
@@ -185,7 +185,7 @@ def plot_ncontigs(input_gffs, outdir):
     # generate static plot
     with open(outdir + "ncontigs.txt", "w") as contig_out:
         contig_out.write("sample\tno_contigs\n")
-        for i,j in zip(file_names, ncontigs):
+        for i, j in zip(file_names, ncontigs):
             contig_out.write("%s\t%s\n" % (i, j))
     plt.style.use('ggplot')
     fig = plt.figure()
@@ -217,7 +217,9 @@ def plot_ncontigs(input_gffs, outdir):
                                   tickfont=dict(size=10, color='black')))
 
     fig = go.Figure(data=data, layout=layout)
-    offline.plot(fig, filename=outdir + "ncontigs_boxplot.html", auto_open=False)
+    offline.plot(fig,
+                 filename=outdir + "ncontigs_boxplot.html",
+                 auto_open=False)
 
     return
 

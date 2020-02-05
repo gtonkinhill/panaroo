@@ -7,6 +7,7 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
+
 def run_pirate(input_files, out_dir, ncpus=1, verbose=False):
 
     # create directory for input files
@@ -21,11 +22,8 @@ def run_pirate(input_files, out_dir, ncpus=1, verbose=False):
         copyfile(f, input_file_dir + base)
 
     # run panX
-    cmd = ("PIRATE" +
-        " -i " + input_file_dir +
-        " -o " + input_file_dir +
-        " -t " + str(ncpus)
-        )
+    cmd = ("PIRATE" + " -i " + input_file_dir + " -o " + input_file_dir +
+           " -t " + str(ncpus))
 
     if verbose:
         print("running cmd: ", cmd)
@@ -33,6 +31,7 @@ def run_pirate(input_files, out_dir, ncpus=1, verbose=False):
     subprocess.run(cmd, shell=True, check=True)
 
     return
+
 
 #Clean other "##" starting lines from gff file, as it confuses parsers
 def clean_gff_string(gff_string):
@@ -46,12 +45,13 @@ def clean_gff_string(gff_string):
     cleaned_gff = "\n".join(splitlines)
     return cleaned_gff
 
+
 def post_process_fmt(input_files, pirate_dir, out_dir):
 
     file_id_maps = {}
     for f in input_files:
         #Split file and parse
-        gff_file=open(f, 'r')
+        gff_file = open(f, 'r')
         lines = gff_file.read()
         split = lines.split('##FASTA')
 
@@ -60,32 +60,34 @@ def post_process_fmt(input_files, pirate_dir, out_dir):
             raise RuntimeError("Error reading prokka input!")
 
         parsed_gff = gff.create_db(clean_gff_string(split[0]),
-                                dbfn=":memory:",
-                                force=True,
-                                keep_order=True,
-                                from_string=True)
+                                   dbfn=":memory:",
+                                   force=True,
+                                   keep_order=True,
+                                   from_string=True)
 
-        gene_count=1
+        gene_count = 1
         count_to_id = {}
         for entry in parsed_gff.all_features(featuretype=()):
             if "CDS" not in entry.featuretype: continue
             count_to_id[gene_count] = entry.id
             gene_count += 1
 
-        file_id_maps[os.path.splitext(os.path.basename(f))[0].replace("-", "_")] = count_to_id
+        file_id_maps[os.path.splitext(os.path.basename(f))[0].replace(
+            "-", "_")] = count_to_id
 
         gff_file.close()
 
     with open(pirate_dir + "PIRATE.gene_families.ordered.tsv", 'r') as infile:
-        with open(out_dir + "pirate_gene_presence_absence.csv", 'w') as outfile:
+        with open(out_dir + "pirate_gene_presence_absence.csv",
+                  'w') as outfile:
             line = next(infile)
             line = line.strip().split("\t")
             outfile.write("\t".join([line[0]] + line[22:]) + "\n")
-            
+
             for line in infile:
                 line = line.strip().split("\t")
                 for i in range(22, len(line)):
-                    if line[i]=="": continue
+                    if line[i] == "": continue
                     # currently take the first as we do in panaroo for this format. May want to redo.
                     line[i] = line[i].split(";")[0]
                     sample = "_".join(line[i].split("_")[:-1])
@@ -96,15 +98,16 @@ def post_process_fmt(input_files, pirate_dir, out_dir):
     return
 
 
-
 def main():
-    parser = argparse.ArgumentParser(description="""Runs PIRATE on GFF3 files and reformats output matrix.""")
+    parser = argparse.ArgumentParser(
+        description="""Runs PIRATE on GFF3 files and reformats output matrix."""
+    )
     parser.add_argument("-o",
-                         "--out_dir",
-                         dest="output_dir",
-                         required=True,
-                         help="location of an output directory",
-                         type=str)
+                        "--out_dir",
+                        dest="output_dir",
+                        required=True,
+                        help="location of an output directory",
+                        type=str)
 
     parser.add_argument(
         "-i",
@@ -126,13 +129,16 @@ def main():
 
     args.output_dir = os.path.join(args.output_dir, "")
 
-    run_pirate(args.input_files, args.output_dir, 
-        ncpus=args.n_cpu, verbose=False)
+    run_pirate(args.input_files,
+               args.output_dir,
+               ncpus=args.n_cpu,
+               verbose=False)
 
-    post_process_fmt(args.input_files, 
-        args.output_dir + "pirate_run/", args.output_dir)
+    post_process_fmt(args.input_files, args.output_dir + "pirate_run/",
+                     args.output_dir)
 
     return
+
 
 if __name__ == '__main__':
     main()

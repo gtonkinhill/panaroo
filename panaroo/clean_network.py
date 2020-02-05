@@ -10,7 +10,6 @@ from scipy.sparse import csr_matrix, csc_matrix
 from scipy.sparse.csgraph import connected_components, shortest_path
 from tqdm import tqdm
 import sys
-# import graph_tool.all as gt
 
 # Genes at the end of contigs are more likely to be false positives thus
 # we can remove those with low support
@@ -54,15 +53,6 @@ def mod_bfs_edges(G, source, depth_limit=None):
         except StopIteration:
             queue.popleft()
 
-# def max_clique(G):
-#     max_clique = []
-#     max_len = 0
-#     for clique in nx.find_cliques(G):
-#         if len(clique)>max_len:
-#             max_len = len(clique)
-#             max_clique = clique
-#     return max_clique
-
 def single_linkage(G, distances_bwtn_centroids, centroid_to_index, neighbours):
     index = []
     neigh_array = []
@@ -89,6 +79,7 @@ def single_linkage(G, distances_bwtn_centroids, centroid_to_index, neighbours):
     ]
 
     return(clusters)
+
 def collapse_families(G,
                       seqid_to_centroid,
                       outdir,
@@ -201,8 +192,6 @@ def collapse_families(G,
                             node_count += 1
                         search_space.add(node_count)
                     else:
-                        # if correct_mistranslations:
-
                         # merge if the centroids don't conflict and the nodes are adjacent in the conflicting genome
                         # this corresponds to a mistranslation/frame shift/premature stop where one gene has been split 
                         # into two in a subset of genomes
@@ -231,29 +220,14 @@ def collapse_families(G,
                                             idsB[ssid[0]].append(sid)
 
                                     for imem in mem_inter:
-                                        cids = set()
-                                        for sid in idsA[imem] + idsB[imem]:
-                                            cids.add(seqid_to_index[sid])
-                                        cids = list(cids)
-                                        for k, sidA in enumerate(cids):
-                                            for sidB in cids:
-                                                    if (sidA, sidB) in nonzero_dist:
+                                        for sidA in set([seqid_to_index[sid] for sid in idsA[imem]]):
+                                            for sidB in set([seqid_to_index[sid] for sid in idsB[imem]]):
+                                                    if ((sidA, sidB) in nonzero_dist) or ((sidB, sidA) in nonzero_dist):
                                                         shouldmerge=False
                                                         break
                                             if not shouldmerge: break
                                         if not shouldmerge: break
-
-                                    # for imem in mem_inter:
-                                    #     for sidA in idsA[imem]:
-                                    #         for sidB in idsB[imem]:
-                                    #                 if distances_bwtn_centroids[seqid_to_index[sidA], 
-                                    #                                             seqid_to_index[sidB]]>0:
-                                    #                     shouldmerge=False
-                                    #                     break
-                                    #         if not shouldmerge: break
-                                    #     if not shouldmerge: break
  
-
                                 if shouldmerge:
                                     tempG.add_edge(nA, nB)
                             else:
@@ -299,7 +273,6 @@ def collapse_families(G,
 
 def collapse_paralogs(G, centroid_contexts, max_context=5, quiet=False): 
     
-    # contexts [centroid] = [[node, member, contig, context], ...]
     node_count = max(list(G.nodes())) + 10
 
     # first sort by context length, context dist to ensure ties
@@ -322,7 +295,6 @@ def collapse_paralogs(G, centroid_contexts, max_context=5, quiet=False):
 
     for centroid in tqdm(centroid_contexts):
         # calculate distance
-        # d = 1 - 1/(abs(contextA-contextB))
         member_paralogs = defaultdict(list)
         for para in centroid_contexts[centroid]:
             member_paralogs[para[1]].append(para)

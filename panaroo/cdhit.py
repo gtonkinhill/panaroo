@@ -44,19 +44,19 @@ def check_cdhit_version(cdhit_exec='cd-hit'):
 
 
 def run_cdhit(
-        input_file,
-        output_file,
-        id=0.95,
-        n_cpu=1,
-        s=0.0,  # length difference cutoff (%), default 0.0
-        aL=0.0,  # alignment coverage for the longer sequence
-        AL=99999999,  # alignment coverage control for the longer sequence
-        aS=0.0,  # alignment coverage for the shorter sequence
-        AS=99999999,  # alignment coverage control for the shorter sequence
-        accurate=True,  # use the slower but more accurate options
-        use_local=False,  #whether to use local or global sequence alignment
-        word_length=None,
-        quiet=False):
+    input_file,
+    output_file,
+    id=0.95,
+    n_cpu=1,
+    s=0.0,  # length difference cutoff (%), default 0.0
+    aL=0.0,  # alignment coverage for the longer sequence
+    AL=99999999,  # alignment coverage control for the longer sequence
+    aS=0.0,  # alignment coverage for the shorter sequence
+    AS=99999999,  # alignment coverage control for the shorter sequence
+    accurate=True,  # use the slower but more accurate options
+    use_local=False,  #whether to use local or global sequence alignment
+    word_length=None,
+    quiet=False):
 
     cmd = "cd-hit"
     cmd += " -T " + str(n_cpu)
@@ -90,22 +90,22 @@ def run_cdhit(
 
 
 def run_cdhit_est(
-        input_file,
-        output_file,
-        id=0.99,
-        n_cpu=1,
-        s=0.0,  # length difference cutoff (%), default 0.0
-        aL=0.0,  # alignment coverage for the longer sequence
-        AL=99999999,  # alignment coverage control for the longer sequence
-        aS=0.0,  # alignment coverage for the shorter sequence
-        AS=99999999,  # alignment coverage control for the shorter sequence
-        accurate=True,  # use the slower but more accurate options
-        use_local=False,  #whether to use local or global sequence alignment
-        strand=1,  # default do both +/+ & +/- alignments if set to 0, only +/+
-        print_aln=False,  # print alignment overlap in cluster file
-        word_length=None,
-        mask=True,
-        quiet=False):
+    input_file,
+    output_file,
+    id=0.99,
+    n_cpu=1,
+    s=0.0,  # length difference cutoff (%), default 0.0
+    aL=0.0,  # alignment coverage for the longer sequence
+    AL=99999999,  # alignment coverage control for the longer sequence
+    aS=0.0,  # alignment coverage for the shorter sequence
+    AS=99999999,  # alignment coverage control for the shorter sequence
+    accurate=True,  # use the slower but more accurate options
+    use_local=False,  #whether to use local or global sequence alignment
+    strand=1,  # default do both +/+ & +/- alignments if set to 0, only +/+
+    print_aln=False,  # print alignment overlap in cluster file
+    word_length=None,
+    mask=True,
+    quiet=False):
 
     cmd = "cd-hit-est"
     cmd += " -T " + str(n_cpu)
@@ -146,22 +146,22 @@ def run_cdhit_est(
 
 
 def cluster_nodes_cdhit(
-        G,
-        nodes,
-        outdir,
-        id=0.95,
-        dna=False,
-        s=0.0,  # length difference cutoff (%), default 0.0
-        aL=0.0,  # alignment coverage for the longer sequence
-        AL=99999999,  # alignment coverage control for the longer sequence
-        aS=0.0,  # alignment coverage for the shorter sequence
-        AS=99999999,  # alignment coverage control for the shorter sequence
-        accurate=True,  # use the slower but more accurate options
-        use_local=False,  #whether to use local or global sequence alignment
-        strand=1,  # default do both +/+ & +/- alignments if set to 0, only +/+
-        quiet=False,
-        prevent_para=True,
-        n_cpu=1):
+    G,
+    nodes,
+    outdir,
+    id=0.95,
+    dna=False,
+    s=0.0,  # length difference cutoff (%), default 0.0
+    aL=0.0,  # alignment coverage for the longer sequence
+    AL=99999999,  # alignment coverage control for the longer sequence
+    aS=0.0,  # alignment coverage for the shorter sequence
+    AS=99999999,  # alignment coverage control for the shorter sequence
+    accurate=True,  # use the slower but more accurate options
+    use_local=False,  #whether to use local or global sequence alignment
+    strand=1,  # default do both +/+ & +/- alignments if set to 0, only +/+
+    quiet=False,
+    prevent_para=True,
+    n_cpu=1):
 
     # create the files we will need
     temp_input_file = tempfile.NamedTemporaryFile(delete=False, dir=outdir)
@@ -173,8 +173,7 @@ def cluster_nodes_cdhit(
         for node in nodes:
             outfile.write(">" + str(node) + "\n")
             if dna:
-                outfile.write(
-                    G.nodes[node]["dna"][G.nodes[node]['maxLenId']])
+                outfile.write(G.nodes[node]["dna"][G.nodes[node]['maxLenId']])
             else:
                 outfile.write(
                     G.nodes[node]["protein"][G.nodes[node]['maxLenId']])
@@ -293,21 +292,21 @@ def is_valid(G, node, cluster):
 
 
 def align_dna_cdhit(
-        query,
-        target,
-        temp_dir,
-        id=0.99,
-        n_cpu=1,
-        s=0.0,  # length difference cutoff (%), default 0.0
-        aL=0.0,  # alignment coverage for the longer sequence
-        AL=99999999,  # alignment coverage control for the longer sequence
-        aS=0.0,  # alignment coverage for the shorter sequence
-        AS=99999999,  # alignment coverage control for the shorter sequence
-        accurate=True,  # use the slower but more accurate options
-        use_local=False,  #whether to use local or global sequence alignment
-        strand=1,  # default do both +/+ & +/- alignments if set to 0, only +/+
-        mask=True,
-        quiet=False):
+    query,
+    target,
+    temp_dir,
+    id=0.99,
+    n_cpu=1,
+    s=0.0,  # length difference cutoff (%), default 0.0
+    aL=0.0,  # alignment coverage for the longer sequence
+    AL=99999999,  # alignment coverage control for the longer sequence
+    aS=0.0,  # alignment coverage for the shorter sequence
+    AS=99999999,  # alignment coverage control for the shorter sequence
+    accurate=True,  # use the slower but more accurate options
+    use_local=False,  #whether to use local or global sequence alignment
+    strand=1,  # default do both +/+ & +/- alignments if set to 0, only +/+
+    mask=True,
+    quiet=False):
 
     # create the files we will need
     temp_input_file = tempfile.NamedTemporaryFile(delete=False, dir=temp_dir)
@@ -362,45 +361,45 @@ def align_dna_cdhit(
 
 
 def iterative_cdhit(
-        G,
-        outdir,
-        dna=False,
-        s=0.0,  # length difference cutoff (%), default 0.0
-        aL=0.0,  # alignment coverage for the longer sequence
-        AL=99999999,  # alignment coverage control for the longer sequence
-        aS=0.0,  # alignment coverage for the shorter sequence
-        AS=99999999,  # alignment coverage control for the shorter sequence
-        accurate=True,  # use the slower but more accurate options
-        use_local=False,  #whether to use local or global sequence alignment
-        strand=1,  # default do both +/+ & +/- alignments if set to 0, only +/+
-        quiet=False,
-        word_length=None,
-        thresholds=[0.99, 0.95, 0.90, 0.85, 0.8, 0.75, 0.7],
-        n_cpu=1):
+    G,
+    outdir,
+    dna=False,
+    s=0.0,  # length difference cutoff (%), default 0.0
+    aL=0.0,  # alignment coverage for the longer sequence
+    AL=99999999,  # alignment coverage control for the longer sequence
+    aS=0.0,  # alignment coverage for the shorter sequence
+    AS=99999999,  # alignment coverage control for the shorter sequence
+    accurate=True,  # use the slower but more accurate options
+    use_local=False,  #whether to use local or global sequence alignment
+    strand=1,  # default do both +/+ & +/- alignments if set to 0, only +/+
+    quiet=False,
+    word_length=None,
+    thresholds=[0.99, 0.95, 0.90, 0.85, 0.8, 0.75, 0.7],
+    n_cpu=1):
 
     # create the files we will need
     temp_input_file = tempfile.NamedTemporaryFile(delete=False, dir=outdir)
     temp_input_file.close()
     temp_output_file = tempfile.NamedTemporaryFile(delete=False, dir=outdir)
     temp_output_file.close()
-    
+
     centroid_to_seq = {}
     for node in G.nodes():
         if dna:
-            for sid, seq in zip(G.nodes[node]["centroid"], G.nodes[node]["dna"]):
+            for sid, seq in zip(G.nodes[node]["centroid"],
+                                G.nodes[node]["dna"]):
                 centroid_to_seq[sid] = seq
         else:
-            for sid, seq in zip(G.nodes[node]["centroid"], G.nodes[node]["protein"]):
+            for sid, seq in zip(G.nodes[node]["centroid"],
+                                G.nodes[node]["protein"]):
                 centroid_to_seq[sid] = seq
-
 
     clusters = []
     with open(temp_input_file.name, 'w') as outfile:
         for centroid in centroid_to_seq:
             clusters.append([centroid])
             outfile.write(">" + str(centroid) + "\n")
-            outfile.write(centroid_to_seq[centroid]+ "\n")
-
+            outfile.write(centroid_to_seq[centroid] + "\n")
 
     for cid in thresholds:
         # run cd-hit
@@ -475,12 +474,14 @@ def pwdist_edlib(G, cdhit_clusters, threshold, dna=False, n_cpu=1):
     centroid_to_seq = {}
     for node in G.nodes():
         if dna:
-            for sid, seq in zip(G.nodes[node]["centroid"], G.nodes[node]["dna"]):
+            for sid, seq in zip(G.nodes[node]["centroid"],
+                                G.nodes[node]["dna"]):
                 centroid_to_seq[sid] = seq
         else:
-            for sid, seq in zip(G.nodes[node]["centroid"], G.nodes[node]["protein"]):
+            for sid, seq in zip(G.nodes[node]["centroid"],
+                                G.nodes[node]["protein"]):
                 centroid_to_seq[sid] = seq
-    
+
     ncentroids = len(centroid_to_seq)
 
     # centroid to index
@@ -492,9 +493,8 @@ def pwdist_edlib(G, cdhit_clusters, threshold, dna=False, n_cpu=1):
     all_distances = []
     for cluster in cdhit_clusters:
         all_distances += Parallel(n_jobs=n_cpu)(
-            delayed(run_pw)(
-                centroid_to_seq[c1], centroid_to_seq[c2],
-                centroid_to_index[c1], centroid_to_index[c2], dna)
+            delayed(run_pw)(centroid_to_seq[c1], centroid_to_seq[c2],
+                            centroid_to_index[c1], centroid_to_index[c2], dna)
             for c1, c2 in itertools.combinations(cluster, 2))
 
     data = []
@@ -527,7 +527,7 @@ def run_pw(seqA, seqB, n1, n2, dna):
                               k=0.5 * len(seqA),
                               additionalEqualities=[('A', 'N'), ('C', 'N'),
                                                     ('G', 'N'), ('T', 'N')])
-            if aln['editDistance']==-1:
+            if aln['editDistance'] == -1:
                 pqid = max(pwid, 0.0)
             else:
                 pwid = max(pwid, 1.0 - aln['editDistance'] / float(len(seqA)))
@@ -551,7 +551,7 @@ def run_pw(seqA, seqB, n1, n2, dna):
                                                 ('X', 'X'), ('Z', 'X'),
                                                 ('D', 'B'), ('N', 'B'),
                                                 ('E', 'Z'), ('Q', 'Z')])
-        if aln['editDistance']==-1:
+        if aln['editDistance'] == -1:
             pwid = 0.0
         else:
             pwid = 1.0 - aln['editDistance'] / float(len(seqA))

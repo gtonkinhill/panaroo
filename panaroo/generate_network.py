@@ -6,6 +6,7 @@ from panaroo.clean_network import collapse_paralogs
 import numpy as np
 from scipy.sparse import csc_matrix, lil_matrix
 
+
 def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
 
     # associate sequences with their clusters
@@ -46,7 +47,7 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                     'annotation': line[6],
                     'description': line[7],
                 }
-    
+
     # create a dictionary of indexes for paralog context
     centroid_index = {}
     for i, centroid in enumerate(cluster_centroids.values()):
@@ -79,38 +80,47 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                 G.nodes[prev]['members'].add(genome_id)
                 G.nodes[prev]['seqIDs'].add(id)
                 G.nodes[prev]['hasEnd'] = True
-                G.nodes[current_cluster]['lengths'].append(len(cluster_centroid_data[prev]
-                        ['dna_sequence']))
+                G.nodes[current_cluster]['lengths'].append(
+                    len(cluster_centroid_data[prev]['dna_sequence']))
                 if all_dna:
-                    G.nodes[prev]['dna'] += [cluster_centroid_data[prev]['dna_sequence']]
+                    G.nodes[prev]['dna'] += [
+                        cluster_centroid_data[prev]['dna_sequence']
+                    ]
             else:
                 if prev in paralogs:
                     # create a new paralog
                     n_nodes += 1
                     prev = n_nodes
                     temp_nodes.append(prev)
-                    centroid_context[cluster_centroids[current_cluster]].append([prev, genome_id])
+                    centroid_context[
+                        cluster_centroids[current_cluster]].append(
+                            [prev, genome_id])
                 # add non paralog node
                 G.add_node(
                     prev,
                     size=1,
                     centroid=[cluster_centroids[current_cluster]],
-                    maxLenId = 0,
+                    maxLenId=0,
                     members=set([genome_id]),
                     seqIDs=set([id]),
-                    hasEnd = True,
-                    protein=[cluster_centroid_data[current_cluster]
-                    ['prot_sequence']],
-                    dna=[cluster_centroid_data[current_cluster]['dna_sequence']],
+                    hasEnd=True,
+                    protein=[
+                        cluster_centroid_data[current_cluster]['prot_sequence']
+                    ],
+                    dna=[
+                        cluster_centroid_data[current_cluster]['dna_sequence']
+                    ],
                     annotation=cluster_centroid_data[current_cluster]
                     ['annotation'],
                     description=cluster_centroid_data[current_cluster]
                     ['description'],
-                    lengths=[len(cluster_centroid_data[current_cluster]
-                        ['dna_sequence'])],
+                    lengths=[
+                        len(cluster_centroid_data[current_cluster]
+                            ['dna_sequence'])
+                    ],
                     longCentroidID=(len(cluster_centroid_data[current_cluster]
-                        ['dna_sequence']),
-                        cluster_centroids[current_cluster]),
+                                        ['dna_sequence']),
+                                    cluster_centroids[current_cluster]),
                     paralog=(current_cluster in paralogs),
                     mergedDNA=False)
         else:
@@ -120,28 +130,33 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                 n_nodes += 1
                 neighbour = n_nodes
                 temp_nodes.append(neighbour)
-                centroid_context[cluster_centroids[current_cluster]].append([neighbour, genome_id])
+                centroid_context[cluster_centroids[current_cluster]].append(
+                    [neighbour, genome_id])
                 G.add_node(
                     neighbour,
                     size=1,
                     centroid=[cluster_centroids[current_cluster]],
-                    maxLenId = 0,
+                    maxLenId=0,
                     members=set([genome_id]),
                     seqIDs=set([id]),
-                    hasEnd = False,
-                    protein=[cluster_centroid_data[current_cluster]
-                    ['prot_sequence']],
-                    dna=[cluster_centroid_data[current_cluster]
-                    ['dna_sequence']],
+                    hasEnd=False,
+                    protein=[
+                        cluster_centroid_data[current_cluster]['prot_sequence']
+                    ],
+                    dna=[
+                        cluster_centroid_data[current_cluster]['dna_sequence']
+                    ],
                     annotation=cluster_centroid_data[current_cluster]
                     ['annotation'],
                     description=cluster_centroid_data[current_cluster]
                     ['description'],
-                    lengths=[len(cluster_centroid_data[current_cluster]
-                        ['dna_sequence'])],
+                    lengths=[
+                        len(cluster_centroid_data[current_cluster]
+                            ['dna_sequence'])
+                    ],
                     longCentroidID=(len(cluster_centroid_data[current_cluster]
-                        ['dna_sequence']),
-                        cluster_centroids[current_cluster]),
+                                        ['dna_sequence']),
+                                    cluster_centroids[current_cluster]),
                     paralog=True,
                     mergedDNA=False)
                 # add edge between nodes
@@ -154,23 +169,30 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                         current_cluster,
                         size=1,
                         centroid=[cluster_centroids[current_cluster]],
-                        maxLenId = 0,
+                        maxLenId=0,
                         members=set([genome_id]),
                         seqIDs=set([id]),
-                        hasEnd = False,
-                        protein=[cluster_centroid_data[current_cluster]
-                        ['prot_sequence']],
-                        dna=[cluster_centroid_data[current_cluster]
-                        ['dna_sequence']],
+                        hasEnd=False,
+                        protein=[
+                            cluster_centroid_data[current_cluster]
+                            ['prot_sequence']
+                        ],
+                        dna=[
+                            cluster_centroid_data[current_cluster]
+                            ['dna_sequence']
+                        ],
                         annotation=cluster_centroid_data[current_cluster]
                         ['annotation'],
                         description=cluster_centroid_data[current_cluster]
                         ['description'],
-                        lengths=[len(cluster_centroid_data[current_cluster]
-                        ['dna_sequence'])],
-                        longCentroidID=(len(cluster_centroid_data[current_cluster]
-                        ['dna_sequence']),
-                        cluster_centroids[current_cluster]),
+                        lengths=[
+                            len(cluster_centroid_data[current_cluster]
+                                ['dna_sequence'])
+                        ],
+                        longCentroidID=(len(
+                            cluster_centroid_data[current_cluster]
+                            ['dna_sequence']),
+                                        cluster_centroids[current_cluster]),
                         paralog=is_paralog,
                         mergedDNA=False)
                     # add edge between nodes
@@ -182,10 +204,14 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                     G.nodes[current_cluster]['size'] += 1
                     G.nodes[current_cluster]['members'].add(genome_id)
                     G.nodes[current_cluster]['seqIDs'].add(id)
-                    G.nodes[current_cluster]['lengths'].append(len(cluster_centroid_data[current_cluster]
-                        ['dna_sequence']))
+                    G.nodes[current_cluster]['lengths'].append(
+                        len(cluster_centroid_data[current_cluster]
+                            ['dna_sequence']))
                     if all_dna:
-                        G.nodes[current_cluster]['dna'] += [cluster_centroid_data[current_cluster]['dna_sequence']]
+                        G.nodes[current_cluster]['dna'] += [
+                            cluster_centroid_data[current_cluster]
+                            ['dna_sequence']
+                        ]
                     if G.has_edge(prev, current_cluster):
                         G[prev][current_cluster]['weight'] += 1
                         G[prev][current_cluster]['members'].add(genome_id)

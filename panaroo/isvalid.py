@@ -35,7 +35,8 @@ try:
     literal_eval(r"u'\u4444'")
 except SyntaxError:
     # Remove 'u' prefixes in unicode literals in Python 3
-    def rtp_fix_unicode(s): return s[1:]
+    def rtp_fix_unicode(s):
+        return s[1:]
 else:
     rtp_fix_unicode = None
 
@@ -91,10 +92,12 @@ def is_valid_folder(parser, arg):
     else:
         return arg
 
+
 def conv_list(maybe_list):
     if not isinstance(maybe_list, list):
         maybe_list = [maybe_list]
     return (maybe_list)
+
 
 def del_dups(seq):
     seen = set()
@@ -105,7 +108,8 @@ def del_dups(seq):
             seq[pos] = item
             pos += 1
     del seq[pos:]
-    return(seq)
+    return (seq)
+
 
 def custom_stringizer(value):
     """Convert a `value` to a Python literal in GML representation.
@@ -214,8 +218,8 @@ def custom_stringizer(value):
                 stringize(item)
             buf.write('}')
         else:
-            raise ValueError(
-                '%r cannot be converted into a Python literal' % (value,))
+            raise ValueError('%r cannot be converted into a Python literal' %
+                             (value, ))
 
     buf = StringIO()
     stringize(value)
@@ -224,6 +228,7 @@ def custom_stringizer(value):
 
 # Author: Nicholas Mancuso (nick.mancuso@gmail.com)
 from networkx.utils import arbitrary_element
+
 
 def ramsey_R2(G):
     """Approximately computes the Ramsey number `R(2;s,t)` for graph.
@@ -295,7 +300,6 @@ def max_clique(G):
     """
     sys.setrecursionlimit(int(10e6))
 
-
     if G is None:
         raise ValueError("Expected NetworkX graph!")
 
@@ -304,6 +308,7 @@ def max_clique(G):
     cgraph = nx.complement(G)
     iset, _ = clique_removal(cgraph)
     return iset
+
 
 def clique_removal(G):
     """ Repeatedly remove cliques from the graph.

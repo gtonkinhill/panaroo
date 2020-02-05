@@ -2,10 +2,11 @@ import argparse
 import subprocess
 import sys, os
 
+
 def clean_gbk(gff_file_name, outdir):
     prefix = os.path.splitext(os.path.basename(gff_file_name))[0]
     prefix = prefix.replace("-", "")
-    out_file = outdir+prefix+".gbk"
+    out_file = outdir + prefix + ".gbk"
 
     lines = []
     source_lenghts = []
@@ -13,18 +14,18 @@ def clean_gbk(gff_file_name, outdir):
         for line in infile:
             if "     source" in line:
                 source_lenghts.append(line.strip().split()[1].split("..")[1])
-    
+
     source_counter = 0
     locus_count = 0
     prev_loc = False
     with open(out_file, 'w') as outfile:
         with open(gff_file_name, 'r') as infile:
             for line in infile:
-                if line[:5]=="LOCUS":
-                    outfile.write("LOCUS       " +
-                        "contig" + str(locus_count) +
-                        "           " + source_lenghts[source_counter] +
-                        " bp    DNA     linear CON 19-AUG-2019\n")
+                if line[:5] == "LOCUS":
+                    outfile.write("LOCUS       " + "contig" +
+                                  str(locus_count) + "           " +
+                                  source_lenghts[source_counter] +
+                                  " bp    DNA     linear CON 19-AUG-2019\n")
                     prev_loc = True
                     locus_count += 1
                     source_counter += 1
@@ -53,11 +54,8 @@ def run_panx(input_files, out_dir, ncpus=1, verbose=False):
         new_prefixes.append(clean_gbk(f, input_file_dir))
 
     # run panX
-    cmd = ("~/software/pan-genome-analysis/panX.py" +
-        " -fn " + input_file_dir +
-        " -sl panx_run " +
-        " -t " + str(ncpus)
-        )
+    cmd = ("~/software/pan-genome-analysis/panX.py" + " -fn " +
+           input_file_dir + " -sl panx_run " + " -t " + str(ncpus))
 
     if verbose:
         print("running cmd: ", cmd)
@@ -65,6 +63,7 @@ def run_panx(input_files, out_dir, ncpus=1, verbose=False):
     subprocess.run(cmd, shell=True, check=True)
 
     return new_prefixes
+
 
 def post_process_fmt(new_prefixes, panx_dir, out_dir):
 
@@ -78,7 +77,7 @@ def post_process_fmt(new_prefixes, panx_dir, out_dir):
         with open(panx_dir + "allclusters_final.tsv", 'r') as infile:
             outfile.write(",".join(new_prefixes) + "\n")
             for line in infile:
-                pa = n_samples*[""]
+                pa = n_samples * [""]
                 cluster = line.strip().split()
                 for g in cluster:
                     g = g.split("|")
@@ -88,15 +87,15 @@ def post_process_fmt(new_prefixes, panx_dir, out_dir):
     return
 
 
-
 def main():
-    parser = argparse.ArgumentParser(description="""Runs PanX on GBK files and reformats output matrix.""")
+    parser = argparse.ArgumentParser(
+        description="""Runs PanX on GBK files and reformats output matrix.""")
     parser.add_argument("-o",
-                         "--out_dir",
-                         dest="output_dir",
-                         required=True,
-                         help="location of an output directory",
-                         type=str)
+                        "--out_dir",
+                        dest="output_dir",
+                        required=True,
+                        help="location of an output directory",
+                        type=str)
 
     parser.add_argument(
         "-i",
@@ -118,13 +117,16 @@ def main():
 
     args.output_dir = os.path.join(args.output_dir, "")
 
-    new_prefixes = run_panx(args.input_files, args.output_dir, 
-        ncpus=args.n_cpu, verbose=False)
+    new_prefixes = run_panx(args.input_files,
+                            args.output_dir,
+                            ncpus=args.n_cpu,
+                            verbose=False)
 
-    post_process_fmt(new_prefixes, 
-        args.output_dir + "panx_run/", args.output_dir)
+    post_process_fmt(new_prefixes, args.output_dir + "panx_run/",
+                     args.output_dir)
 
     return
+
 
 if __name__ == '__main__':
     main()

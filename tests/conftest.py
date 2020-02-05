@@ -9,4 +9,5 @@ def pytest_addoption(parser):
 
 def pytest_generate_tests(metafunc):
     if "datafolder" in metafunc.fixturenames:
-        metafunc.parametrize("datafolder", metafunc.config.getoption("datafolder"))
+        metafunc.parametrize("datafolder",
+                             metafunc.config.getoption("datafolder"))

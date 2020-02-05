@@ -16,10 +16,12 @@ from .cdhit import run_cdhit
 from .clean_network import collapse_families, collapse_paralogs
 from .generate_output import *
 
+
 def make_list(inp):
-    if not type(inp)==list:
+    if not type(inp) == list:
         inp = [inp]
     return inp
+
 
 def load_graphs(graph_files, n_cpu=1):
     graphs = []
@@ -34,7 +36,11 @@ def load_graphs(graph_files, n_cpu=1):
     return graphs
 
 
-def cluster_centroids(graphs, outdir, len_dif_percent=0.95, identity_threshold=0.95, n_cpu=1):
+def cluster_centroids(graphs,
+                      outdir,
+                      len_dif_percent=0.95,
+                      identity_threshold=0.95,
+                      n_cpu=1):
 
     # create the files we will need
     temp_input_file = tempfile.NamedTemporaryFile(delete=False, dir=outdir)
@@ -92,7 +98,7 @@ def simple_merge_graphs(graphs, clusters):
     mapping = defaultdict(dict)
     nnodes = 0
     reverse_mapping = defaultdict(list)
-    
+
     merge_centroids = {}
     centroid_context = defaultdict(list)
     for c, cluster in enumerate(clusters):
@@ -145,26 +151,31 @@ def simple_merge_graphs(graphs, clusters):
                 for m in make_list(graphs[prev[0]].nodes[prev[1]]['members'])
             ])
             lengths += make_list(graphs[prev[0]].nodes[prev[1]]['lengths'])
-            centroid +=  [
-                str(prev[0]) + "_" + str(m)
-                for m in make_list(graphs[prev[0]].nodes[prev[1]]['centroid'].split(";"))
+            centroid += [
+                str(prev[0]) + "_" + str(m) for m in make_list(graphs[
+                    prev[0]].nodes[prev[1]]['centroid'].split(";"))
             ]
             seqIDs |= set([
                 str(prev[0]) + "_" + d
                 for d in make_list(graphs[prev[0]].nodes[prev[1]]['seqIDs'])
             ])
-            protein += make_list(graphs[prev[0]].nodes[prev[1]]['protein'].split(";"))
+            protein += make_list(
+                graphs[prev[0]].nodes[prev[1]]['protein'].split(";"))
             dna += make_list(graphs[prev[0]].nodes[prev[1]]['dna'].split(";"))
-            annotation += make_list(graphs[prev[0]].nodes[prev[1]]['annotation'])
-            description += make_list(graphs[prev[0]].nodes[prev[1]]['description'])
+            annotation += make_list(
+                graphs[prev[0]].nodes[prev[1]]['annotation'])
+            description += make_list(
+                graphs[prev[0]].nodes[prev[1]]['description'])
             paralog = (paralog or graphs[prev[0]].nodes[prev[1]]['paralog'])
             hasEnd = (paralog or graphs[prev[0]].nodes[prev[1]]['hasEnd'])
-            mergedDNA = (paralog or graphs[prev[0]].nodes[prev[1]]['mergedDNA'])
+            mergedDNA = (paralog
+                         or graphs[prev[0]].nodes[prev[1]]['mergedDNA'])
 
-        merged_G.nodes[node]['size'] = size                
+        merged_G.nodes[node]['size'] = size
         merged_G.nodes[node]['members'] = set(members)
         merged_G.nodes[node]['lengths'] = lengths
-        merged_G.nodes[node]['prevCentroids'] = str(merge_centroids[node]) #";".join(centroid)
+        merged_G.nodes[node]['prevCentroids'] = str(
+            merge_centroids[node])  #";".join(centroid)
         merged_G.nodes[node]['seqIDs'] = set(seqIDs)
         merged_G.nodes[node]['hasEnd'] = hasEnd
         merged_G.nodes[node]['dna'] = [max(dna, key=len)]
@@ -174,18 +185,24 @@ def simple_merge_graphs(graphs, clusters):
         merged_G.nodes[node]['paralog'] = paralog
         merged_G.nodes[node]['mergedDNA'] = mergedDNA
         merged_G.nodes[node]['centroid'] = [str(merge_centroids[node])]
-        
+
     # fix longcentroid
-    if len(merged_G.nodes[node]['centroid']) != len(merged_G.nodes[node]['protein']):
+    if len(merged_G.nodes[node]['centroid']) != len(
+            merged_G.nodes[node]['protein']):
         print(merged_G.nodes[node]['protein'])
         print(merged_G.nodes[node]['centroid'])
         raise RuntimeError("protein/centroid count mismatch!")
 
     for node in merged_G.nodes():
-        merged_G.nodes[node]['longCentroidID'] = max([(len(s), sid) for s,sid in zip(
-            merged_G.nodes[node]['protein'], merged_G.nodes[node]['centroid'])])
-        merged_G.nodes[node]['maxLenId'] = max([(len(s), index) for s,index in zip(
-            merged_G.nodes[node]['dna'], range(len(merged_G.nodes[node]['dna'])))])[1]
+        merged_G.nodes[node]['longCentroidID'] = max([
+            (len(s), sid) for s, sid in zip(merged_G.nodes[node]['protein'],
+                                            merged_G.nodes[node]['centroid'])
+        ])
+        merged_G.nodes[node]['maxLenId'] = max([
+            (len(s), index)
+            for s, index in zip(merged_G.nodes[node]['dna'],
+                                range(len(merged_G.nodes[node]['dna'])))
+        ])[1]
 
     # fix up edge attributes
     for edge in merged_G.edges():
@@ -213,12 +230,13 @@ def get_options():
                                      prog='panaroo_merge_graphs')
 
     io_opts = parser.add_argument_group('Input/output')
-    io_opts.add_argument("-d",
-                         "--directories",
-                         dest="directories",
-                         required=True,
-                         help="Location of seperate Panaroo output directories",
-                         nargs='+')
+    io_opts.add_argument(
+        "-d",
+        "--directories",
+        dest="directories",
+        required=True,
+        help="Location of seperate Panaroo output directories",
+        nargs='+')
 
     io_opts.add_argument("-o",
                          "--out_dir",
@@ -250,8 +268,10 @@ def get_options():
     parser.add_argument(
         "--min_edge_support_sv",
         dest="min_edge_support_sv",
-        help=("minimum edge support required to call structural variants" +
-              " in the presence/absence sv file (default=max(2, 0.01*n_samples))"),
+        help=(
+            "minimum edge support required to call structural variants" +
+            " in the presence/absence sv file (default=max(2, 0.01*n_samples))"
+        ),
         type=int)
 
     # Other options
@@ -284,12 +304,14 @@ def main():
     # Create temporary directory
     temp_dir = os.path.join(tempfile.mkdtemp(dir=args.output_dir), "")
 
-    print("Merging graphs is still under active development and may change frequently!")
+    print(
+        "Merging graphs is still under active development and may change frequently!"
+    )
 
     # Load graphs
     print("Loading graphs...")
-    graphs = load_graphs([d + "final_graph.gml" for d in args.directories], 
-        n_cpu=args.n_cpu)
+    graphs = load_graphs([d + "final_graph.gml" for d in args.directories],
+                         n_cpu=args.n_cpu)
 
     # cluster centroids
     print("Clustering centroids...")
@@ -319,11 +341,11 @@ def main():
 
     print("Collapsing at families...")
     G = collapse_families(G,
-                        outdir=temp_dir,
-                        family_threshold=args.family_threshold,
-                        correct_mistranslations=False,
-                        n_cpu=args.n_cpu,
-                        quiet=(not args.verbose))[0]
+                          outdir=temp_dir,
+                          family_threshold=args.family_threshold,
+                          correct_mistranslations=False,
+                          n_cpu=args.n_cpu,
+                          quiet=(not args.verbose))[0]
 
     print("Number of nodes in merged graph: ", G.number_of_nodes())
 
@@ -333,13 +355,13 @@ def main():
     mems_to_isolates = {}
     for i, sub_G in enumerate(graphs):
         for j, iso in enumerate(sub_G.graph['isolateNames']):
-            mems_to_isolates[str(i)+"_"+str(j)] = iso
+            mems_to_isolates[str(i) + "_" + str(j)] = iso
 
     n_samples = len(mems_to_isolates)
-    args.min_edge_support_sv = max(2, math.ceil(0.01*n_samples))
+    args.min_edge_support_sv = max(2, math.ceil(0.01 * n_samples))
 
     # get original annotaiton IDs
-    # get original annotaiton IDs, lengts and whether or 
+    # get original annotaiton IDs, lengts and whether or
     # not an internal stop codon is present
     orig_ids = {}
     ids_len_stop = {}
@@ -347,15 +369,16 @@ def main():
         with open(d + "gene_data.csv", 'r') as infile:
             next(infile)
             for line in infile:
-                line=line.split(",")
+                line = line.split(",")
                 orig_ids[str(i) + "_" + line[2]] = line[3]
-                ids_len_stop[str(i) + "_" + line[2]] = (len(line[4]), "*" in line[4][1:-3])
+                ids_len_stop[str(i) + "_" + line[2]] = (len(line[4]),
+                                                        "*" in line[4][1:-3])
 
     G = generate_roary_gene_presence_absence(G,
-            mems_to_isolates=mems_to_isolates,
-            orig_ids=orig_ids,
-            ids_len_stop=ids_len_stop,
-            output_dir=args.output_dir)
+                                             mems_to_isolates=mems_to_isolates,
+                                             orig_ids=orig_ids,
+                                             ids_len_stop=ids_len_stop,
+                                             output_dir=args.output_dir)
 
     # write pan genome reference fasta file
     generate_pan_genome_reference(G,
@@ -372,31 +395,30 @@ def main():
     # add helpful attributes and write out graph in GML format
     for node in G.nodes():
         G.nodes[node]['size'] = len(G.nodes[node]['members'])
-        G.nodes[node]['genomeIDs'] = ";".join(
-            G.nodes[node]['members'])
-        G.nodes[node]['members'] = list(
-            G.nodes[node]['members'])
+        G.nodes[node]['genomeIDs'] = ";".join(G.nodes[node]['members'])
+        G.nodes[node]['members'] = list(G.nodes[node]['members'])
         G.nodes[node]['centroid'] = G.nodes[node]['prevCentroids']
         del G.nodes[node]['prevCentroids']
         G.nodes[node]['geneIDs'] = ";".join(G.nodes[node]['seqIDs'])
-        G.nodes[node]['seqIDs'] = list(
-            G.nodes[node]['seqIDs'])
+        G.nodes[node]['seqIDs'] = list(G.nodes[node]['seqIDs'])
         G.nodes[node]['degrees'] = G.degree[node]
         sub_graphs = list(
             set([m.split("_")[0] for m in G.nodes[node]['members']]))
         G.nodes[node]['subGraphs'] = ";".join(conv_list(sub_graphs))
 
     for edge in G.edges():
-        G.edges[edge[0], edge[1]]['genomeIDs'] = ";".join(
-            G.edges[edge[0], edge[1]]['members'])
-        G.edges[edge[0], edge[1]]['members'] =  list(
-            G.edges[edge[0], edge[1]]['members'])
+        G.edges[edge[0],
+                edge[1]]['genomeIDs'] = ";".join(G.edges[edge[0],
+                                                         edge[1]]['members'])
+        G.edges[edge[0],
+                edge[1]]['members'] = list(G.edges[edge[0],
+                                                   edge[1]]['members'])
         sub_graphs = list(
             set([
                 m.split("_")[0] for m in G.edges[edge[0], edge[1]]['members']
             ]))
-        G.edges[edge[0], edge[1]]['subGraphs'] = ";".join(
-            conv_list(sub_graphs))
+        G.edges[edge[0],
+                edge[1]]['subGraphs'] = ";".join(conv_list(sub_graphs))
 
     nx.write_gml(G, args.output_dir + "merged_final_graph.gml")
 

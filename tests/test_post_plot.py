@@ -11,17 +11,17 @@ def test_post_plot(datafolder):
     with tempfile.TemporaryDirectory() as tmpoutdir:
         with tempfile.TemporaryDirectory() as tmpdir:
             # run panaroo
-            sys.argv = ["", "-i", 
-                datafolder + "aa1.gff", 
-                datafolder + "aa2.gff", 
-                "-o", tmpdir]
+            sys.argv = [
+                "", "-i", datafolder + "aa1.gff", datafolder + "aa2.gff", "-o",
+                tmpdir
+            ]
             main()
 
             # generate plots
-            sys.argv = ["", "-i", 
-                tmpdir + "/gene_presence_absence_roary.csv", 
-                "-o", tmpoutdir,
-                "--graph_type", "all"]
+            sys.argv = [
+                "", "-i", tmpdir + "/gene_presence_absence_roary.csv", "-o",
+                tmpoutdir, "--graph_type", "all"
+            ]
             main_plots()
 
         # check output
@@ -32,5 +32,3 @@ def test_post_plot(datafolder):
         assert os.path.isfile(tmpoutdir + "/acc.png")
 
     return
-
-
