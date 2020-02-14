@@ -48,9 +48,9 @@ def translate(seq):
 
     indices = reduce_array[np.fromstring(seq, dtype=np.int8)]
 
-    return translation_table[indices[np.arange(0, len(
-        seq), 3)], indices[np.arange(1, len(seq), 3)], indices[np.arange(
-            2, len(seq), 3)]].tostring().decode('ascii')
+    return translation_table[
+        indices[np.arange(0, len(seq), 3)], indices[np.arange(1, len(seq), 3)],
+        indices[np.arange(2, len(seq), 3)]].tostring().decode('ascii')
 
 
 #Clean other "##" starting lines from gff file, as it confuses parsers
@@ -149,8 +149,9 @@ def translate_sequences(sequence_dic):
     protein_list = []
     for strain_id in sequence_dic:
         sequence_record = sequence_dic[strain_id]
-        if (len(sequence_record.seq)%3) != 0:
-            raise ValueError("Coding sequence not divisible by 3, is it complete?!")
+        if (len(sequence_record.seq) % 3) != 0:
+            raise ValueError(
+                "Coding sequence not divisible by 3, is it complete?!")
         protien_sequence = translate(str(sequence_record.seq))
         if protien_sequence[-1] == "*":
             protien_sequence = protien_sequence[0:-1]

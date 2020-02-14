@@ -124,7 +124,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser("explore gene neighbordhood")
     parser.add_argument("gene", help="gene of interested")
     parser.add_argument("graph", help="genome graph gml")
-    parser.add_argument("--expand_no", default = 5, help="lengths of the path that will be expanded on either side of the target gene", type = int)
+    parser.add_argument(
+        "--expand_no",
+        default=5,
+        help=
+        "lengths of the path that will be expanded on either side of the target gene",
+        type=int)
     parser.add_argument("out", help="output file")
     args = parser.parse_args()
     run(**vars(args))

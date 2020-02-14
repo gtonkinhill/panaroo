@@ -9,12 +9,11 @@ def test_qc(datafolder):
 
     with tempfile.TemporaryDirectory() as tmpoutdir:
         # run panaroo
-        sys.argv = ["", "-i", 
-            datafolder + "aa1.gff", 
-            datafolder + "aa2.gff", 
-            "-o", tmpoutdir,
-            "--graph_type", "all",
-            "--ref_db", datafolder + "test_mash_ref.msh"]
+        sys.argv = [
+            "", "-i", datafolder + "aa1.gff", datafolder + "aa2.gff", "-o",
+            tmpoutdir, "--graph_type", "all", "--ref_db",
+            datafolder + "test_mash_ref.msh"
+        ]
         main()
 
         assert os.path.isfile(tmpoutdir + "/MDS_mash_plot.html")
@@ -26,9 +25,9 @@ def test_qc(datafolder):
         assert os.path.isfile(tmpoutdir + "/mash_contamination_barplot.html")
 
         with open(tmpoutdir + "/mash_contamination_hits.tab", 'r') as infile:
-            assert len(infile.readlines())==2
+            assert len(infile.readlines()) == 2
 
         with open(tmpoutdir + "/mash_dist.txt", 'r') as infile:
-            assert len(infile.readlines())==3
+            assert len(infile.readlines()) == 3
 
     return

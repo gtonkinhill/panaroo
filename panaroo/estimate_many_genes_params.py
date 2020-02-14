@@ -21,13 +21,14 @@ def log1mexp(a):
         return (np.log1p(-np.exp(-a)))
     return (np.log(-np.expm1(-a)))
 
+
 @jit(nopython=True)
 def log_subtract(x, y):
-  if x <= y:
-    raise RuntimeError("error!! computing the log of a negative number")
-  if y == -np.inf:
-    return (x)
-  return (x + np.log1p(-np.exp(y-x)))
+    if x <= y:
+        raise RuntimeError("error!! computing the log of a negative number")
+    if y == -np.inf:
+        return (x)
+    return (x + np.log1p(-np.exp(y - x)))
 
 
 def load_pa(presence_absence_file):
@@ -97,7 +98,6 @@ def calc_llk_gene_numpy(in_tree, nleaves, l0, l1, a, v):
         in_tree[in_tree.shape[0] - 1][2] + np.log(v) - np.log(a + v))
 
     return (llk)
-
 
 
 def calc_llk_fmg(params, tree_array, nleaves, presence_absence, isolates,
@@ -242,8 +242,7 @@ def optimise_model(model,
                                     x0=x0,
                                     method='L-BFGS-B',
                                     args=(tree_array, nleaves, boot_pa,
-                                            isolates, False))
-
+                                          isolates, False))
 
     return ((boot_result.x[0], boot_result.x[1], np.mean(boot_gene_count)))
 
@@ -316,19 +315,18 @@ def main():
         tree_array[j][6] = node.edge.length
 
     outfile = open(args.outputfile, 'w')
- 
+
     a_bounds = (1e-7, 1e3)
     v_bounds = (1e-7, 1e3)
     bounds = [a_bounds, v_bounds]
     x0 = [0.001, 0.001]
 
     result = optimize.minimize(calc_llk_fmg,
-                                bounds=bounds,
-                                x0=x0,
-                                method='L-BFGS-B',
-                                args=(tree_array, nleaves,
-                                        presence_absence_llk, isolates,
-                                        args.verbose))
+                               bounds=bounds,
+                               x0=x0,
+                               method='L-BFGS-B',
+                               args=(tree_array, nleaves, presence_absence_llk,
+                                     isolates, args.verbose))
 
     gene_count = np.zeros(len(isolates))
     for g in presence_absence_llk:
@@ -340,8 +338,8 @@ def main():
         all_boots = np.zeros((args.nboot, 3))
 
         boot_results = Parallel(n_jobs=args.n_cpu)(
-            delayed(optimise_model)("FMG", presence_absence_llk, bounds,
-                                    x0, tree_array, nleaves, isolates)
+            delayed(optimise_model)("FMG", presence_absence_llk, bounds, x0,
+                                    tree_array, nleaves, isolates)
             for i in range(args.nboot))
         for i, boot in enumerate(boot_results):
             all_boots[i, 0] = boot[0]

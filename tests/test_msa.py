@@ -8,19 +8,18 @@ from Bio import SeqIO
 def test_msa(datafolder):
 
     # run panaroo
-    sys.argv = ["", "-i", 
-        datafolder + "aln.gff", 
-        datafolder + "aln.gff", 
-        "-o", datafolder,
-        "-a", "pan"]
+    sys.argv = [
+        "", "-i", datafolder + "aln.gff", datafolder + "aln.gff", "-o",
+        datafolder, "-a", "pan"
+    ]
     main()
 
     # check alignments
     fasta_files = glob.glob(datafolder + "aligned_gene_sequences/*.fas")
 
-    assert len(fasta_files)==9
+    assert len(fasta_files) == 9
 
     for f in fasta_files:
-        assert len(list(SeqIO.parse(f, "fasta")))==2
+        assert len(list(SeqIO.parse(f, "fasta"))) == 2
 
     return

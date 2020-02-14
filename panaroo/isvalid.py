@@ -1,4 +1,4 @@
-import os
+import os, sys
 try:
     try:
         from cStringIO import StringIO
@@ -35,7 +35,8 @@ try:
     literal_eval(r"u'\u4444'")
 except SyntaxError:
     # Remove 'u' prefixes in unicode literals in Python 3
-    def rtp_fix_unicode(s): return s[1:]
+    def rtp_fix_unicode(s):
+        return s[1:]
 else:
     rtp_fix_unicode = None
 
@@ -91,10 +92,12 @@ def is_valid_folder(parser, arg):
     else:
         return arg
 
+
 def conv_list(maybe_list):
     if not isinstance(maybe_list, list):
         maybe_list = [maybe_list]
     return (maybe_list)
+
 
 def del_dups(seq):
     seen = set()
@@ -105,7 +108,8 @@ def del_dups(seq):
             seq[pos] = item
             pos += 1
     del seq[pos:]
-    return(seq)
+    return (seq)
+
 
 def custom_stringizer(value):
     """Convert a `value` to a Python literal in GML representation.
@@ -214,9 +218,132 @@ def custom_stringizer(value):
                 stringize(item)
             buf.write('}')
         else:
-            raise ValueError(
-                '%r cannot be converted into a Python literal' % (value,))
+            raise ValueError('%r cannot be converted into a Python literal' %
+                             (value, ))
 
     buf = StringIO()
     stringize(value)
     return buf.getvalue()
+
+
+# Author: Nicholas Mancuso (nick.mancuso@gmail.com)
+from networkx.utils import arbitrary_element
+
+
+def ramsey_R2(G):
+    """Approximately computes the Ramsey number `R(2;s,t)` for graph.
+
+    Parameters
+    ----------
+    G : NetworkX graph
+        Undirected graph
+
+    Returns
+    -------
+    max_pair : (set, set) tuple
+        Maximum clique, Maximum independent set.
+    """
+    if not G:
+        return set(), set()
+
+    node = arbitrary_element(G)
+    nbrs = set(nx.all_neighbors(G, node))
+    nbrs.discard(node)
+    nnbrs = nx.non_neighbors(G, node)
+    c_1, i_1 = ramsey_R2(G.subgraph(nbrs).copy())
+    c_2, i_2 = ramsey_R2(G.subgraph(nnbrs).copy())
+
+    c_1.add(node)
+    i_2.add(node)
+    # Choose the larger of the two cliques and the larger of the two
+    # independent sets, according to cardinality.
+    return max(c_1, c_2, key=len), max(i_1, i_2, key=len)
+
+
+def max_clique(G):
+    """Find the Maximum Clique
+
+    Finds the `O(|V|/(log|V|)^2)` apx of maximum clique/independent set
+    in the worst case.
+
+    Parameters
+    ----------
+    G : NetworkX graph
+        Undirected graph
+
+    Returns
+    -------
+    clique : set
+        The apx-maximum clique of the graph
+
+    Notes
+    ------
+    A clique in an undirected graph G = (V, E) is a subset of the vertex set
+    `C \subseteq V`, such that for every two vertices in C, there exists an edge
+    connecting the two. This is equivalent to saying that the subgraph
+    induced by C is complete (in some cases, the term clique may also refer
+    to the subgraph).
+
+    A maximum clique is a clique of the largest possible size in a given graph.
+    The clique number `\omega(G)` of a graph G is the number of
+    vertices in a maximum clique in G. The intersection number of
+    G is the smallest number of cliques that together cover all edges of G.
+
+    http://en.wikipedia.org/wiki/Maximum_clique
+
+    References
+    ----------
+    .. [1] Boppana, R., & Halldórsson, M. M. (1992).
+        Approximating maximum independent sets by excluding subgraphs.
+        BIT Numerical Mathematics, 32(2), 180–196. Springer.
+        doi:10.1007/BF01994876
+    """
+    sys.setrecursionlimit(int(10e6))
+
+    if G is None:
+        raise ValueError("Expected NetworkX graph!")
+
+    # finding the maximum clique in a graph is equivalent to finding
+    # the independent set in the complementary graph
+    cgraph = nx.complement(G)
+    iset, _ = clique_removal(cgraph)
+    return iset
+
+
+def clique_removal(G):
+    """ Repeatedly remove cliques from the graph.
+
+    Results in a `O(|V|/(\log |V|)^2)` approximation of maximum clique
+    & independent set. Returns the largest independent set found, along
+    with found maximal cliques.
+
+    Parameters
+    ----------
+    G : NetworkX graph
+        Undirected graph
+
+    Returns
+    -------
+    max_ind_cliques : (set, list) tuple
+        Maximal independent set and list of maximal cliques (sets) in the graph.
+
+    References
+    ----------
+    .. [1] Boppana, R., & Halldórsson, M. M. (1992).
+        Approximating maximum independent sets by excluding subgraphs.
+        BIT Numerical Mathematics, 32(2), 180–196. Springer.
+    """
+    graph = G.copy()
+    c_i, i_i = ramsey_R2(graph)
+    cliques = [c_i]
+    isets = [i_i]
+    while graph:
+        graph.remove_nodes_from(c_i)
+        c_i, i_i = ramsey_R2(graph)
+        if c_i:
+            cliques.append(c_i)
+        if i_i:
+            isets.append(i_i)
+
+    maxiset = max(isets)
+    return maxiset, cliques

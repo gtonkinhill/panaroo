@@ -10,7 +10,7 @@ import argparse
 
 
 def getGFFTranslation(
-        translationFile
+    translationFile
 ):  #Takes a file containing GFF file name and sample name and returns a dictionary with sample name keys and GFF file name objects
     gffDict = {}
     for line in translationFile:  #Iterate through the files
@@ -19,7 +19,7 @@ def getGFFTranslation(
 
 
 def clean_gff_string(
-        gff_string):  #Removes other "##" starting lines from a gff file
+    gff_string):  #Removes other "##" starting lines from a gff file
     splitlines = gff_string.splitlines()
     lines_to_delete = []
     for index in range(len(splitlines)):
@@ -32,7 +32,7 @@ def clean_gff_string(
 
 
 def get_gene_coordinates(
-        gff_file, contig, genes, gene1, l
+    gff_file, contig, genes, gene1, l
 ):  #Takes a GFF file, splits into CDS and FASTA and identifies the coordinates of the 2 genes
     gff = open(gff_file).read()  #Import the GFF file
     split = gff.split("##FASTA")
@@ -60,10 +60,9 @@ def get_gene_coordinates(
 
     firstPosition = min(
         geneCoordinates
-    ) - l+1  #The first position to be extracted from the contig
+    ) - l + 1  #The first position to be extracted from the contig
     endPosition = max(
-        geneCoordinates
-    ) + l  #The end position to be extracted from the contig
+        geneCoordinates) + l  #The end position to be extracted from the contig
     if firstPosition < 0:
         firstPosition = 0
     if endPosition > len(sequences[int(contig)].seq):
@@ -81,7 +80,7 @@ def get_gene_coordinates(
 
 
 def get_gene_coordinates_single(
-        gff_file, contig, gene, l
+    gff_file, contig, gene, l
 ):  #Takes a GFF file, splits into CDS and FASTA and identifies the coordinates of the 2 genes
     gff = open(gff_file).read()  #Import the GFF file
     split = gff.split("##FASTA")
@@ -106,20 +105,17 @@ def get_gene_coordinates_single(
 
     firstPosition = min(
         geneCoordinates
-    ) - l+1  #The first position to be extracted from the contig
+    ) - l + 1  #The first position to be extracted from the contig
     endPosition = max(
-        geneCoordinates
-    ) + l  #The end position to be extracted from the contig
+        geneCoordinates) + l  #The end position to be extracted from the contig
     if firstPosition < 0:
         firstPosition = 0
     if endPosition > len(sequences[int(contig)].seq):
         endPosition = len(sequences[int(contig)].seq)
 
-    
     extractSequence = sequences[int(contig)].seq[
         firstPosition:
         endPosition]  #Assign to the sequence in the region of interest
-
 
     return extractSequence
 
@@ -210,7 +206,8 @@ if __name__ == "__main__":
                     str(
                         get_gene_coordinates(
                             gffFiles[sample], contigNames[sample][0],
-                            geneNames[sample], gene1Names[sample], args.l)) + "\n")
+                            geneNames[sample], gene1Names[sample], args.l)) +
+                    "\n")
             else:
                 outFile.write(">" + sample + "_a\n")
                 outFile.write(
@@ -224,7 +221,7 @@ if __name__ == "__main__":
                         get_gene_coordinates_single(
                             gffFiles[sample], contigNames[sample][1],
                             geneNames[sample][1], args.l)) + "\n")
-              
+
                 print("The genes in sample " + str(sample) +
                       " are on different contigs")
         else:

@@ -538,7 +538,7 @@ def main():
             bounds += [(1e-7, 1e3)]
 
     options = {"maxiter": 1e4}
-    
+
     if args.model == 'coalescent':
         # result = optimize.minimize(f_theory_dist,
         #                         bounds=bounds,
@@ -548,15 +548,20 @@ def main():
         #                                 args.model, args.fit, genomesize,
         #                                 ngenomes),
         #                         options=options)
-        
+
         result = optimize.basinhopping(f_theory_dist,
-                                x0=params_init,
-                                niter=10,
-                                minimizer_kwargs={'args': (data, (not args.no_constraint),
-                                        args.model, args.fit, genomesize,
-                                        ngenomes),
-                                        "method": 'L-BFGS-B',
-                                        "bounds": bounds})
+                                       x0=params_init,
+                                       niter=10,
+                                       minimizer_kwargs={
+                                           'args':
+                                           (data, (not args.no_constraint),
+                                            args.model, args.fit, genomesize,
+                                            ngenomes),
+                                           "method":
+                                           'L-BFGS-B',
+                                           "bounds":
+                                           bounds
+                                       })
 
     else:
         if args.tree is None:
@@ -573,13 +578,18 @@ def main():
         #                         options=options)
 
         result = optimize.basinhopping(f_theory_dist,
-                                x0=params_init,
-                                niter=10,
-                                minimizer_kwargs={'args': (data, (not args.no_constraint),
-                                        args.model, args.fit, genomesize,
-                                        ngenomes, tree_table),
-                                        "method": 'L-BFGS-B',
-                                        "bounds": bounds})
+                                       x0=params_init,
+                                       niter=10,
+                                       minimizer_kwargs={
+                                           'args':
+                                           (data, (not args.no_constraint),
+                                            args.model, args.fit, genomesize,
+                                            ngenomes, tree_table),
+                                           "method":
+                                           'L-BFGS-B',
+                                           "bounds":
+                                           bounds
+                                       })
 
     if args.verbose:
         print("***** Optimisation Summary ******")

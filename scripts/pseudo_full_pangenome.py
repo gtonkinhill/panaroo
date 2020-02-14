@@ -61,9 +61,9 @@ def translate(seq):
 
     indices = reduce_array[np.fromstring(seq, dtype=np.int8)]
 
-    return translation_table[indices[np.arange(0, len(
-        seq), 3)], indices[np.arange(1, len(seq), 3)], indices[np.arange(
-            2, len(seq), 3)]].tostring().decode('ascii')
+    return translation_table[
+        indices[np.arange(0, len(seq), 3)], indices[np.arange(1, len(seq), 3)],
+        indices[np.arange(2, len(seq), 3)]].tostring().decode('ascii')
 
 
 def get_codon(index, strand="+"):
@@ -124,8 +124,8 @@ def simulate_img_with_mutation(in_tree,
     ncore = ngenes - n_additions
     if ncore < min_ncore:
         ncore = min_ncore
-    if ncore>max_ncore:
-        ncore=max_ncore
+    if ncore > max_ncore:
+        ncore = max_ncore
 
     core_genes = list(range(n_additions, n_additions + ncore))
     for node in in_tree.preorder_node_iter():
@@ -236,18 +236,17 @@ def add_diversity(gfffile, nisolates, effective_pop_size, gain_rate, loss_rate,
     gene_locations = sample(gene_locations, n_sim_genes)
 
     # simulate presence/absence matrix and gene mutations (only swap codons)
-    pan_sim, sim_tree = simulate_pangenome(ngenes=len(gene_locations),
-                                 nisolates=nisolates,
-                                 effective_pop_size=effective_pop_size,
-                                 gain_rate=gain_rate,
-                                 loss_rate=loss_rate,
-                                 mutation_rate=mutation_rate,
-                                 max_core=max_core)
+    pan_sim, sim_tree = simulate_pangenome(
+        ngenes=len(gene_locations),
+        nisolates=nisolates,
+        effective_pop_size=effective_pop_size,
+        gain_rate=gain_rate,
+        loss_rate=loss_rate,
+        mutation_rate=mutation_rate,
+        max_core=max_core)
 
     # write out tree
-    sim_tree.write(
-        path=prefix + "_sim_tree.nwk",
-        schema="newick")
+    sim_tree.write(path=prefix + "_sim_tree.nwk", schema="newick")
 
     #Modify each gene
     for i, pan in enumerate(pan_sim):
@@ -399,15 +398,12 @@ def main():
         help=('max number of genes that may be ' +
               'affected by the simulation. The rest' + ' will be left as is.'))
 
-    parser.add_argument(
-        '--max_core',
-        dest='max_core',
-        type=int,
-        default=99999999    ,
-        help=('max number of core genes' +
-            'default=n_sim-accessory'))
-
-    
+    parser.add_argument('--max_core',
+                        dest='max_core',
+                        type=int,
+                        default=99999999,
+                        help=('max number of core genes' +
+                              'default=n_sim-accessory'))
 
     parser.add_argument('-o',
                         '--out',

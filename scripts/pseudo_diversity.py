@@ -56,9 +56,9 @@ def translate(seq):
 
     indices = reduce_array[np.fromstring(seq, dtype=np.int8)]
 
-    return translation_table[indices[np.arange(0, len(
-        seq), 3)], indices[np.arange(1, len(seq), 3)], indices[np.arange(
-            2, len(seq), 3)]].tostring().decode('ascii')
+    return translation_table[
+        indices[np.arange(0, len(seq), 3)], indices[np.arange(1, len(seq), 3)],
+        indices[np.arange(2, len(seq), 3)]].tostring().decode('ascii')
 
 
 def random_codon(strand="+"):
@@ -80,7 +80,10 @@ def clean_gff_string(gff_string):
     return cleaned_gff
 
 
-def add_diversity(gfffile, outputfile, ngenes, diversity,
+def add_diversity(gfffile,
+                  outputfile,
+                  ngenes,
+                  diversity,
                   sampled_entries=None):
 
     outfile = open(outputfile, 'w')

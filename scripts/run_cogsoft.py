@@ -13,9 +13,10 @@ from collections import defaultdict
 
 from panaroo.prokka import get_gene_sequences
 
+
 def prepare_gffs(gff_file_names, outdir):
-    
-    out_file = outdir+"all_proteins.fasta"
+
+    out_file = outdir + "all_proteins.fasta"
 
     genomeids = []
 
@@ -42,8 +43,7 @@ def prepare_gffs(gff_file_names, outdir):
     with open(outdir + "genome_to_protein.csv", 'w') as outfile:
         for clustering_id in mapping:
             genome = genomeids[int(clustering_id.split("_")[0])]
-            outfile.write(clustering_id + "," + genome
-                 + "\n")
+            outfile.write(clustering_id + "," + genome + "\n")
 
     return mapping, genomeids
 
@@ -52,9 +52,9 @@ def run_blast(outdir, ncpus, verbose=True):
 
     # format a BLASTable database
     cmd = "makeblastdb "
-    cmd += " -in " + outdir + "all_proteins.fasta" 
+    cmd += " -in " + outdir + "all_proteins.fasta"
     cmd += " -dbtype prot"
-    cmd += " -out " + outdir + "BLASTable" 
+    cmd += " -out " + outdir + "BLASTable"
 
     if verbose:
         print("running cmd: ", cmd)
@@ -63,8 +63,8 @@ def run_blast(outdir, ncpus, verbose=True):
     # unfiltered BLAST results in the ./BLASTno/ directory
     cmd = "psiblast"
     cmd += " -num_threads " + str(ncpus)
-    cmd += " -query " + outdir + "all_proteins.fasta" 
-    cmd += " -db " + outdir + "BLASTable" 
+    cmd += " -query " + outdir + "all_proteins.fasta"
+    cmd += " -db " + outdir + "BLASTable"
     cmd += " -show_gis -outfmt 7 -num_descriptions 1000"
     cmd += " -num_alignments 1000 -dbsize 100000000 -comp_based_stats F -seg no"
     cmd += " -out " + outdir + "/BLASTno/ThreeByThree.tab"
@@ -79,9 +79,9 @@ def run_blast(outdir, ncpus, verbose=True):
     cmd = "psiblast"
     cmd += " -num_threads " + str(ncpus)
     cmd += " -query " + outdir + "all_proteins.fasta"
-    cmd += " -db " + outdir + "BLASTable" 
+    cmd += " -db " + outdir + "BLASTable"
     cmd += " -show_gis -outfmt 7 -num_descriptions 1000"
-    cmd += " -num_alignments 1000 -dbsize 100000000" 
+    cmd += " -num_alignments 1000 -dbsize 100000000"
     cmd += " -comp_based_stats T -seg yes"
     cmd += " -out " + outdir + "BLASTff/ThreeByThree.tab "
 
@@ -93,12 +93,13 @@ def run_blast(outdir, ncpus, verbose=True):
 
     return
 
+
 def run_diamond(outdir, ncpus, verbose=True):
 
     # format a DIAMOND data base
     cmd = "diamond makedb"
     cmd += " --in " + outdir + "all_proteins.fasta"
-    cmd += " --db " + outdir + "DIAMONDTable" 
+    cmd += " --db " + outdir + "DIAMONDTable"
 
     if verbose:
         print("running cmd: ", cmd)
@@ -107,8 +108,8 @@ def run_diamond(outdir, ncpus, verbose=True):
     # unfiltered DIAMOND
     cmd = "diamond blastp"
     cmd += " --threads " + str(ncpus)
-    cmd += " --query " + outdir + "all_proteins.fasta" 
-    cmd += " --db " + outdir + "DIAMONDTable" 
+    cmd += " --query " + outdir + "all_proteins.fasta"
+    cmd += " --db " + outdir + "DIAMONDTable"
     cmd += " --outfmt 6"
     cmd += " --max-target-seqs 1000"
     cmd += " --masking 0"
@@ -123,8 +124,8 @@ def run_diamond(outdir, ncpus, verbose=True):
     # filtered DIAMOND results in the ./BLASTff/ directory
     cmd = "diamond blastp"
     cmd += " --threads " + str(ncpus)
-    cmd += " --query " + outdir + "all_proteins.fasta" 
-    cmd += " --db " + outdir + "DIAMONDTable" 
+    cmd += " --query " + outdir + "all_proteins.fasta"
+    cmd += " --db " + outdir + "DIAMONDTable"
     cmd += " --outfmt 6"
     cmd += " --max-target-seqs 1000"
     cmd += " --masking 1"
@@ -138,10 +139,11 @@ def run_diamond(outdir, ncpus, verbose=True):
 
     return
 
+
 def run_cog_soft(outdir, genomeids, verbose=True):
 
     # Preparation of the "sequence Universe"
-    # i.e make the ./BLASTconv/hash.csv file 
+    # i.e make the ./BLASTconv/hash.csv file
     cmd = "COGmakehash"
     cmd += " -i=" + outdir + "genome_to_protein.csv"
     cmd += " -o=" + outdir + "BLASTconv"
@@ -165,7 +167,6 @@ def run_cog_soft(outdir, genomeids, verbose=True):
         print("running cmd: ", cmd)
     subprocess.run(cmd, shell=True, check=True)
 
-
     # Lineage specific expansions
 
     # here we use the BLAST results to choose a rough outgroup for each genome
@@ -173,7 +174,7 @@ def run_cog_soft(outdir, genomeids, verbose=True):
     hit_counts = np.zeros((nsamples, nsamples), dtype=int)
     with open(outdir + "BLASTff/ThreeByThree.tab", 'r') as infile:
         for line in infile:
-            if line[0]=="#": continue
+            if line[0] == "#": continue
             line = line.strip().split()
             hitA = int(line[0].split("_")[0])
             hitB = int(line[1].split("_")[0])
@@ -183,13 +184,14 @@ def run_cog_soft(outdir, genomeids, verbose=True):
     # now create the required outgroup file
     with open(outdir + "GenThree.job.csv", 'w') as outfile:
         for i in range(nsamples):
-            outfile.write(genomeids[i] + "," + genomeids[np.argmin(hit_counts[i,:])] + "\n")
+            outfile.write(genomeids[i] + "," +
+                          genomeids[np.argmin(hit_counts[i, :])] + "\n")
 
     # now identify lineage specific expansions
     cur_dir = os.getcwd()
     os.chdir(outdir)
 
-    cmd = "COGlse" 
+    cmd = "COGlse"
     cmd += " -d=" + "BLASTconv"
     cmd += " -j=" + "GenThree.job.csv"
     cmd += " -p=" + "genome_to_protein.csv"
@@ -220,27 +222,29 @@ def run_cog_soft(outdir, genomeids, verbose=True):
     return
 
 
-
 def post_process_fmt(outdir, gff_file_names, mapping):
 
     # get original filenames
-    prefixes = [os.path.splitext(os.path.basename(gfffile))[0] for gfffile in gff_file_names]
+    prefixes = [
+        os.path.splitext(os.path.basename(gfffile))[0]
+        for gfffile in gff_file_names
+    ]
 
     # generate an index for files
     n_samples = len(prefixes)
-    
+
     # collect clusters
     clusters = defaultdict(list)
     with open(outdir + "GenThree.cls.csv", 'r') as infile:
         for line in infile:
-            line=line.strip().split(",")
+            line = line.strip().split(",")
             clusters[line[6]].append(line[0])
 
     # write out in roary like format
     with open(outdir + "COGsoft_gene_presence_absence.csv", 'w') as outfile:
         outfile.write(",".join(prefixes) + "\n")
         for cluster_name in clusters:
-            pa = n_samples*[""]
+            pa = n_samples * [""]
             cluster = clusters[cluster_name]
             for g in cluster:
                 pa[int(g.split("_")[0])] = mapping[g]
@@ -249,15 +253,15 @@ def post_process_fmt(outdir, gff_file_names, mapping):
     return
 
 
-
 def main():
-    parser = argparse.ArgumentParser(description="""Runs COGsoft on GFF3 files.""")
+    parser = argparse.ArgumentParser(
+        description="""Runs COGsoft on GFF3 files.""")
     parser.add_argument("-o",
-                         "--out_dir",
-                         dest="output_dir",
-                         required=True,
-                         help="location of an output directory",
-                         type=str)
+                        "--out_dir",
+                        dest="output_dir",
+                        required=True,
+                        help="location of an output directory",
+                        type=str)
 
     parser.add_argument(
         "-i",
@@ -271,8 +275,7 @@ def main():
     parser.add_argument(
         "--aligner",
         dest="alr",
-        help=
-        "Specify an aligner. Options:'BLAST', 'DIAMOND' (default)",
+        help="Specify an aligner. Options:'BLAST', 'DIAMOND' (default)",
         type=str,
         choices=['DIAMOND', 'BLAST'],
         default="DIAMOND")
@@ -290,7 +293,7 @@ def main():
 
     mapping, genomeids = prepare_gffs(args.input_files, args.output_dir)
 
-    if args.alr=="BLAST":
+    if args.alr == "BLAST":
         run_blast(args.output_dir, args.n_cpu)
     else:
         run_diamond(args.output_dir, args.n_cpu)
@@ -305,6 +308,7 @@ def main():
     shutil.rmtree(args.output_dir + "BLASTconv")
 
     return
+
 
 if __name__ == '__main__':
     main()

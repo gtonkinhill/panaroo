@@ -19,16 +19,17 @@ def add_to_queue(g, s, nodes, visited, sink, mapping, ref_g_id, max_dist):
             continue
         if ref_g_id not in G.nodes[i]['genomeIDs'].split(";"):
             add.append(i)
-        else: 
+        else:
             #if we have discovered a refound gene we just continue
-            g2g = dict([(j.split("_")[0], j.split("_")[1]) for j in G.nodes[i]['geneIDs'].split(";")])
+            g2g = dict([(j.split("_")[0], j.split("_")[1])
+                        for j in G.nodes[i]['geneIDs'].split(";")])
             if g2g[ref_g_id] == "refound":
                 sink["sink"] = i
                 visited.add(i)
                 continue
             dist = get_dist(mapping.loc[G.nodes[s]['name'], "gene_id"],
-                            mapping.loc[G.nodes[i]['name'], "gene_id"],
-                            max_dist)
+                            mapping.loc[G.nodes[i]['name'],
+                                        "gene_id"], max_dist)
             if dist > 100:
                 sink["sink"] = i
         visited.add(i)
@@ -70,7 +71,8 @@ def add_ref_edges(g, mapping):
 
 def remove_var_edges(g):
     for n in g:
-        if G.nodes[n]["highVar"] == 1 and ref_g_id not in G.nodes[n]['genomeIDs'].split(";") :
+        if G.nodes[n]["highVar"] == 1 and ref_g_id not in G.nodes[n][
+                'genomeIDs'].split(";"):
             var_nodes.append(n)
     var_nodes = []
     g.remove_nodes_from(var_nodes)
@@ -83,7 +85,7 @@ def layout(graph, ref_g_id, cut_edges_out, ignore_high_var,
     #look up table for name vs node id
     mapping = create_mapping(g, ref_g_id)
     gene_order = [
-        int(mapping.loc[n, "gene_id"].split("_") [2]) for n in mapping.index
+        int(mapping.loc[n, "gene_id"].split("_")[2]) for n in mapping.index
     ]
     max_dist = max(gene_order)
     if ignore_high_var:
@@ -136,9 +138,12 @@ def layout(graph, ref_g_id, cut_edges_out, ignore_high_var,
             for e in s_t_graph.edges:
                 if ref_g_id in G.nodes[e[0]]['genomeIDs'].split(";") \
                 and ref_g_id in G.nodes[e[1]]['genomeIDs'].split(";"):
-                    g2g1 = dict([(j.split("_")[0], j.split("_")[1]) for j in G.nodes[e[0]]['geneIDs'].split(";")])
-                    g2g2 = dict([(j.split("_")[0], j.split("_")[1]) for j in G.nodes[e[1]]['geneIDs'].split(";")])
-                    if g2g1[ref_g_id] == "refound" or g2g2[ref_g_id] == "refound":
+                    g2g1 = dict([(j.split("_")[0], j.split("_")[1])
+                                 for j in G.nodes[e[0]]['geneIDs'].split(";")])
+                    g2g2 = dict([(j.split("_")[0], j.split("_")[1])
+                                 for j in G.nodes[e[1]]['geneIDs'].split(";")])
+                    if g2g1[ref_g_id] == "refound" or g2g2[
+                            ref_g_id] == "refound":
                         continue
                     else:
                         n1 = mapping.loc[G.nodes[e[0]]["name"]][0]
@@ -180,9 +185,9 @@ def layout(graph, ref_g_id, cut_edges_out, ignore_high_var,
     with open(cut_edges_out, "w") as f:
         f.write("shared name\tis_cut_edge\n")
         for e in cut_edges:
-            f.write("%s (interacts with) %s\t1\n" %(e[0], e[1]))
-            f.write("%s (interacts with) %s\t1\n" %(e[1], e[0]))
-    #DEBUG to compress the graph 
+            f.write("%s (interacts with) %s\t1\n" % (e[0], e[1]))
+            f.write("%s (interacts with) %s\t1\n" % (e[1], e[0]))
+    #DEBUG to compress the graph
     #for n in G.nodes:
     #    gene_ids = [(i.split("_")[0], i) for i in  G.nodes[n]['geneIDs'].split(";")]
     #    gene_ids = list(filter(lambda x: ref_g_id == x[0],gene_ids))
@@ -190,6 +195,7 @@ def layout(graph, ref_g_id, cut_edges_out, ignore_high_var,
     #        G.nodes[n]['geneIDs'] = ""
     #    else:
     #        G.nodes[n]['geneIDs'] = gene_ids[0][1]
+
 
 if __name__ == "__main__":
     import argparse

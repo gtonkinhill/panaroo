@@ -14,6 +14,7 @@ from .generate_network import generate_network
 from .generate_output import *
 from .clean_network import *
 from .find_missing import find_missing
+from .generate_alignments import check_aligner_install
 
 from .__init__ import __version__
 
@@ -31,7 +32,7 @@ def get_options(args):
         dest="input_files",
         required=True,
         help=("input GFF3 files (usually output from running Prokka). " +
-            "Can also take a file listing each gff file line by line."),
+              "Can also take a file listing each gff file line by line."),
         type=str,
         nargs='+')
     io_opts.add_argument("-o",
@@ -194,17 +195,21 @@ def get_options(args):
     args = set_default_args(args)
     return (args)
 
+
 def main():
     args = get_options(sys.argv[1:])
     # Check cd-hit is installed
     check_cdhit_version()
+    #Make sure aligner is installed if alignment requested
+    if args.aln != None:
+        check_aligner_install(args.alr)
     # make sure trailing forward slash is present
     args.output_dir = os.path.join(args.output_dir, "")
     # Create temporary directory
     temp_dir = os.path.join(tempfile.mkdtemp(dir=args.output_dir), "")
 
     # check if input is a file containing filenames
-    if len(args.input_files)==1:
+    if len(args.input_files) == 1:
         files = []
         with open(args.input_files[0], 'r') as infile:
             for line in infile:
@@ -229,11 +234,11 @@ def main():
         print("generating initial network...")
 
     # generate network from clusters and adjacency information
-    G, centroid_contexts = generate_network(cluster_file=cd_hit_out + ".clstr",
-                         data_file=args.output_dir + "gene_data.csv",
-                         prot_seq_file=args.output_dir +
-                         "combined_protein_CDS.fasta",
-                         all_dna=args.all_seq_in_graph)
+    G, centroid_contexts, seqid_to_centroid = generate_network(
+        cluster_file=cd_hit_out + ".clstr",
+        data_file=args.output_dir + "gene_data.csv",
+        prot_seq_file=args.output_dir + "combined_protein_CDS.fasta",
+        all_dna=args.all_seq_in_graph)
 
     # merge paralogs
     if args.verbose:
@@ -243,21 +248,23 @@ def main():
     # write out pre-filter graph in GML format
     for node in G.nodes():
         G.nodes[node]['size'] = len(G.nodes[node]['members'])
-        G.nodes[node]['genomeIDs'] = ";".join(
-            G.nodes[node]['members'])
+        G.nodes[node]['genomeIDs'] = ";".join(G.nodes[node]['members'])
         G.nodes[node]['geneIDs'] = ";".join(G.nodes[node]['seqIDs'])
         G.nodes[node]['degrees'] = G.degree[node]
     for edge in G.edges():
-        G.edges[edge[0], edge[1]]['genomeIDs'] = ";".join(
-            G.edges[edge[0], edge[1]]['members'])
-    nx.write_gml(G, args.output_dir + "pre_filt_graph.gml", stringizer=custom_stringizer)
-
+        G.edges[edge[0],
+                edge[1]]['genomeIDs'] = ";".join(G.edges[edge[0],
+                                                         edge[1]]['members'])
+    nx.write_gml(G,
+                 args.output_dir + "pre_filt_graph.gml",
+                 stringizer=custom_stringizer)
 
     if args.verbose:
         print("collapse mistranslations...")
 
     # clean up translation errors
     G = collapse_families(G,
+                          seqid_to_centroid=seqid_to_centroid,
                           outdir=temp_dir,
                           dna_error_threshold=0.98,
                           correct_mistranslations=True,
@@ -268,12 +275,14 @@ def main():
         print("collapse gene families...")
 
     # collapse gene families
-    G, distances_bwtn_centroids, centroid_to_index = collapse_families(G,
-                          outdir=temp_dir,
-                          family_threshold=args.family_threshold,
-                          correct_mistranslations=False,
-                          n_cpu=args.n_cpu,
-                          quiet=(not args.verbose))
+    G, distances_bwtn_centroids, centroid_to_index = collapse_families(
+        G,
+        seqid_to_centroid=seqid_to_centroid,
+        outdir=temp_dir,
+        family_threshold=args.family_threshold,
+        correct_mistranslations=False,
+        n_cpu=args.n_cpu,
+        quiet=(not args.verbose))
 
     if args.verbose:
         print("trimming contig ends...")
@@ -282,15 +291,6 @@ def main():
     G = trim_low_support_trailing_ends(G,
                                        min_support=args.min_trailing_support,
                                        max_recursive=args.trailing_recursive)
-
-    # identify possible family level paralogs
-    if args.verbose:
-        print("identifying potentialy highly variable genes...")
-    G = identify_possible_highly_variable(
-        G,
-        cycle_threshold_max=20,
-        cycle_threshold_min=args.cycle_threshold_min,
-        size_diff_threshold=0.5)
 
     if args.verbose:
         print("refinding genes...")
@@ -313,12 +313,13 @@ def main():
 
     # merge again in case refinding has resolved issues
     G = collapse_families(G,
+                          seqid_to_centroid=seqid_to_centroid,
                           outdir=temp_dir,
                           family_threshold=args.family_threshold,
                           correct_mistranslations=False,
                           n_cpu=args.n_cpu,
                           quiet=(not args.verbose),
-                          distances_bwtn_centroids=distances_bwtn_centroids, 
+                          distances_bwtn_centroids=distances_bwtn_centroids,
                           centroid_to_index=centroid_to_index)[0]
 
     if args.clean_edges:
@@ -341,14 +342,14 @@ def main():
         print("writing output...")
 
     # write out roary like gene_presence_absence.csv
-    # get original annotaiton IDs, lengts and whether or 
+    # get original annotaiton IDs, lengts and whether or
     # not an internal stop codon is present
     orig_ids = {}
     ids_len_stop = {}
     with open(args.output_dir + "gene_data.csv", 'r') as infile:
         next(infile)
         for line in infile:
-            line=line.split(",")
+            line = line.split(",")
             orig_ids[line[2]] = line[3]
             ids_len_stop[line[2]] = (len(line[4]), "*" in line[4][1:-3])
 
@@ -371,24 +372,27 @@ def main():
         output_dir=args.output_dir,
         mems_to_isolates=mems_to_isolates,
         min_variant_support=args.min_edge_support_sv)
-    
+
     # add helpful attributes and write out graph in GML format
     for node in G.nodes():
         G.nodes[node]['size'] = len(G.nodes[node]['members'])
         G.nodes[node]['centroid'] = ";".join(G.nodes[node]['centroid'])
         G.nodes[node]['dna'] = ";".join(conv_list(G.nodes[node]['dna']))
-        G.nodes[node]['protein'] = ";".join(conv_list(G.nodes[node]['protein']))
-        G.nodes[node]['genomeIDs'] = ";".join(
-            G.nodes[node]['members'])
+        G.nodes[node]['protein'] = ";".join(conv_list(
+            G.nodes[node]['protein']))
+        G.nodes[node]['genomeIDs'] = ";".join(G.nodes[node]['members'])
         G.nodes[node]['geneIDs'] = ";".join(G.nodes[node]['seqIDs'])
         G.nodes[node]['degrees'] = G.degree[node]
         G.nodes[node]['members'] = list(G.nodes[node]['members'])
         G.nodes[node]['seqIDs'] = list(G.nodes[node]['seqIDs'])
 
     for edge in G.edges():
-        G.edges[edge[0], edge[1]]['genomeIDs'] = ";".join(
-            G.edges[edge[0], edge[1]]['members'])
-        G.edges[edge[0], edge[1]]['members'] = list(G.edges[edge[0], edge[1]]['members'])
+        G.edges[edge[0],
+                edge[1]]['genomeIDs'] = ";".join(G.edges[edge[0],
+                                                         edge[1]]['members'])
+        G.edges[edge[0],
+                edge[1]]['members'] = list(G.edges[edge[0],
+                                                   edge[1]]['members'])
 
     nx.write_gml(G, args.output_dir + "final_graph.gml")
 
