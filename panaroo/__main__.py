@@ -175,11 +175,11 @@ def get_options(args):
                         help="number of threads to use (default=1)",
                         type=int,
                         default=1)
-    parser.add_argument("--verbose",
+    parser.add_argument("--quiet",
                         dest="verbose",
-                        help="print additional output",
-                        action='store_true',
-                        default=False)
+                        help="suppress additional output",
+                        action='store_false',
+                        default=True)
     parser.add_argument('--version',
                         action='version',
                         version='%(prog)s ' + __version__)
@@ -213,7 +213,8 @@ def main():
         print("pre-processing gff3 files...")
 
     # convert input GFF3 files into summary files
-    process_prokka_input(args.input_files, args.output_dir, args.n_cpu)
+    process_prokka_input(args.input_files, args.output_dir, (not args.verbose),
+                         args.n_cpu)
 
     # Cluster protein sequences using cdhit
     cd_hit_out = args.output_dir + "combined_protein_cdhit_out.txt"
@@ -221,6 +222,7 @@ def main():
               output_file=cd_hit_out,
               id=args.id,
               s=args.len_dif_percent,
+              quiet=(not args.verbose),
               n_cpu=args.n_cpu)
 
     if args.verbose:
@@ -236,7 +238,7 @@ def main():
     # merge paralogs
     if args.verbose:
         print("Processing paralogs...")
-    G = collapse_paralogs(G, centroid_contexts)
+    G = collapse_paralogs(G, centroid_contexts, quiet=(not args.verbose))
 
     # write out pre-filter graph in GML format
     for node in G.nodes():
@@ -300,7 +302,8 @@ def main():
                      prop_match=args.refind_prop_match,
                      pairwise_id_thresh=args.id,
                      merge_id_thresh=max(0.8, args.family_threshold),
-                     n_cpu=args.n_cpu)
+                     n_cpu=args.n_cpu,
+                     verbose=args.verbose)
 
     # remove edges that are likely due to misassemblies (by consensus)
 

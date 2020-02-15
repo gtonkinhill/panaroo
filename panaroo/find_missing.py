@@ -27,7 +27,8 @@ def find_missing(G,
                  prop_match,
                  pairwise_id_thresh,
                  n_cpu,
-                 remove_by_consensus=False):
+                 remove_by_consensus=False,
+                 verbose=True):
 
     # Iterate over each genome file checking to see if any missing accessory genes
     #  can be found.
@@ -88,8 +89,9 @@ def find_missing(G,
 
                     n_searches += 1
 
-    print("Number of searches to perform: ", n_searches)
-    print("Searching...")
+    if verbose:
+        print("Number of searches to perform: ", n_searches)
+        print("Searching...")
 
     all_hits, all_node_locs, max_seq_lengths = zip(*Parallel(n_jobs=n_cpu)(
         delayed(search_gff)(search_list[member],
@@ -100,9 +102,11 @@ def find_missing(G,
                             prop_match=prop_match,
                             pairwise_id_thresh=pairwise_id_thresh,
                             merge_id_thresh=merge_id_thresh)
-        for member, gff_handle in tqdm(enumerate(gff_file_handles))))
+        for member, gff_handle in tqdm(enumerate(gff_file_handles),
+                                       disable=(not verbose))))
 
-    print("translating hits...")
+    if verbose:
+        print("translating hits...")
 
     hits_trans_dict = {}
     for member, hits in enumerate(all_hits):
@@ -148,7 +152,8 @@ def find_missing(G,
 
     # remove by consensus
     if remove_by_consensus:
-        print("removing by consensus...")
+        if verbose:
+            print("removing by consensus...")
         node_hit_counter = Counter()
         for member, hits in enumerate(all_hits):
             for node, dna_hit in hits:
@@ -163,7 +168,8 @@ def find_missing(G,
             if node in G.nodes():
                 delete_node(G, node)
 
-    print("Updating output...")
+    if verbose:
+        print("Updating output...")
 
     n_found = 0
     with open(dna_seq_file, 'a') as dna_out:
@@ -200,7 +206,8 @@ def find_missing(G,
                             [str(member) + "_refound_" + str(n_found)])
                         n_found += 1
 
-    print("Number of refound genes: ", n_found)
+    if verbose:
+        print("Number of refound genes: ", n_found)
 
     return (G)
 

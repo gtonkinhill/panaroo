@@ -197,7 +197,7 @@ def output_files(dna_dictionary, protien_list, prot_handle, dna_handle,
     return None
 
 
-def process_prokka_input(gff_list, output_dir, n_cpu):
+def process_prokka_input(gff_list, output_dir, quiet, n_cpu):
     try:
         protienHandle = open(output_dir + "combined_protein_CDS.fasta", 'w+')
         DNAhandle = open(output_dir + "combined_DNA_CDS.fasta", 'w+')
@@ -209,7 +209,7 @@ def process_prokka_input(gff_list, output_dir, n_cpu):
         job_list = [
             job_list[i:i + n_cpu] for i in range(0, len(job_list), n_cpu)
         ]
-        for job in tqdm(job_list):
+        for job in tqdm(job_list, disable=quiet):
             gene_sequence_list = Parallel(n_jobs=n_cpu)(
                 delayed(get_gene_sequences)(gff, gff_no)
                 for gff_no, gff in job)

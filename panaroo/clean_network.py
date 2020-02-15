@@ -320,7 +320,7 @@ def collapse_paralogs(G, centroid_contexts, max_context=5, quiet=False):
                               [0]] = centroid_to_index[centroid]
     ncentroids += 1
 
-    for centroid in tqdm(centroid_contexts):
+    for centroid in tqdm(centroid_contexts, disable=quiet):
         # calculate distance
         member_paralogs = defaultdict(list)
         for para in centroid_contexts[centroid]:
