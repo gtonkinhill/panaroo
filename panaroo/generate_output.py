@@ -234,7 +234,7 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
         
         unaligned_dna_files = Parallel(n_jobs=threads)(
             delayed(output_sequence)(G.nodes[x], isolates, 
-                   output_dir + "unaligned_dna_sequences", output_dir)
+                   output_dir + "unaligned_dna_sequences/", output_dir)
                     for x in tqdm(G.nodes()))
         #Get Biopython command calls for each output gene sequences
         commands = [
