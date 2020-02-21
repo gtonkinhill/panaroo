@@ -220,7 +220,7 @@ def multi_align_sequences(commands, outdir, threads, aligner):
 def reverse_translate_sequences(protein_sequence_files, dna_sequence_files, outdir, threads):
     #Read in files (multithreaded)
     protein_alignments = Parallel(n_jobs=threads, prefer="threads")(
-            delayed(AlignIO.read)(x, "fasta", alphabet=IUPAC.unambiguous_dna) 
+            delayed(AlignIO.read)("./unaligned_dna_sequences/" + x, "fasta", alphabet=IUPAC.unambiguous_dna) 
             for x in protein_sequence_files)
     
     dna_sequences = Parallel(n_jobs=threads, prefer="threads")(
