@@ -244,8 +244,9 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
         multi_align_sequences(commands, output_dir + "aligned_protein_sequences/",
                               threads, aligner)
         
-        #Get the list of aligned protien files
+        #Get the lists of aligned protien/dna files
         protein_sequences = os.listdir(output_dir + "aligned_protein_sequences/")
+        unaligned_dna_files = os.listdir(output_dir + "unaligned_dna_sequences/")
         
         #Check all alignments completed
         if len(protein_sequences) != len(unaligned_dna_files):
@@ -328,7 +329,7 @@ def concatenate_core_genome_alignments(core_names, output_dir):
 
 def generate_core_genome_alignment(G, temp_dir, output_dir, threads, aligner,
                                    isolates, threshold, codons, num_isolates):
-    #Make a folder for the output alignments TODO: decide whether or not to keep these
+    #Make a folder for the output alignments
     try:
         os.mkdir(output_dir + "aligned_gene_sequences")
     except FileExistsError:
@@ -347,7 +348,7 @@ def generate_core_genome_alignment(G, temp_dir, output_dir, threads, aligner,
             os.mkdir(output_dir + "unaligned_dna_sequences")
         except FileExistsError:
             None
-                #Multithread writing protien and dna sequences to disk (temp directory) so aligners can find them
+        #Multithread writing protien and dna sequences to disk
         unaligned_protein_files = Parallel(n_jobs=threads)(
             delayed(output_protein)(G.nodes[x], isolates, temp_dir, output_dir)
             for x in tqdm(core_genes))
