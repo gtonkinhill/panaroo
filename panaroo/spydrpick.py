@@ -16,9 +16,6 @@ def read_presence_absence(filename):
 
     # remove conserved genes
     keep = np.sum(pa_matrix, axis=1) != len(sample_names)
-    print(keep)
-    print(len(sample_names))
-    print(np.sum(pa_matrix, axis=1))
     pa_matrix = pa_matrix[keep, :]
     gene_names = gene_names[keep]
 
@@ -114,10 +111,10 @@ def spydrpick(pa_matrix, weights=None, keep_quantile=0.9, chunk_size=100):
     mi_0 = (np.sum(weights * (1 - pa_matrix), 1) + 0.5) / (n_eff + 0.5)
     mi_0 = mi_0[:, np.newaxis]
 
-    mi = mi_00 * (np.log(mi_00) - np.log(mi_1) - np.log(mi_0))
-    mi += mi_01 * (np.log(mi_01) - np.log(mi_1) - np.log(mi_0))
-    mi += mi_10 * (np.log(mi_10) - np.log(mi_1) - np.log(mi_0))
-    mi += mi_11 * (np.log(mi_11) - np.log(mi_1) - np.log(mi_0))
+    mi = mi_00 * (np.log(mi_00) - np.matrix.flatten(np.log(mi_1) - np.log(mi_0)))
+    mi += mi_01 * (np.log(mi_01) - np.matrix.flatten(np.log(mi_1) - np.log(mi_0)))
+    mi += mi_10 * (np.log(mi_10) - np.matrix.flatten(np.log(mi_1) - np.log(mi_0)))
+    mi += mi_11 * (np.log(mi_11) - np.matrix.flatten(np.log(mi_1) - np.log(mi_0)))
 
     threshold = np.quantile(mi, keep_quantile)
 
@@ -138,10 +135,10 @@ def spydrpick(pa_matrix, weights=None, keep_quantile=0.9, chunk_size=100):
                           (1 - pa_matrix[i:(i + 100), :]), 1 - pa_matrix) +
                  0.5) / (n_eff + 2.0)
 
-        mi = mi_00 * (np.log(mi_00) - np.log(mi_1) - np.log(mi_0))
-        mi += mi_01 * (np.log(mi_01) - np.log(mi_1) - np.log(mi_0))
-        mi += mi_10 * (np.log(mi_10) - np.log(mi_1) - np.log(mi_0))
-        mi += mi_11 * (np.log(mi_11) - np.log(mi_1) - np.log(mi_0))
+        mi = mi_00 * (np.log(mi_00) - np.matrix.flatten(np.log(mi_1) - np.log(mi_0)))
+        mi += mi_01 * (np.log(mi_01) - np.matrix.flatten(np.log(mi_1) - np.log(mi_0)))
+        mi += mi_10 * (np.log(mi_10) - np.matrix.flatten(np.log(mi_1) - np.log(mi_0)))
+        mi += mi_11 * (np.log(mi_11) - np.matrix.flatten(np.log(mi_1) - np.log(mi_0)))
 
         np.fill_diagonal(mi, threshold - 1)
 

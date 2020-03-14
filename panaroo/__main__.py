@@ -22,7 +22,7 @@ from .__init__ import __version__
 def get_options(args):
     import argparse
 
-    description = 'panaroo: an updated pipeline for pan-genome investigation'
+    description = 'panaroo: an updated pipeline for pangenome investigation'
     parser = argparse.ArgumentParser(description=description, prog='panaroo')
 
     io_opts = parser.add_argument_group('Input/output')

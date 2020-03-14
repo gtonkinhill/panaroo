@@ -1,6 +1,6 @@
 import networkx as nx
 from panaroo.cdhit import *
-from panaroo.merge_nodes import merge_nodes
+from panaroo.merge_nodes import merge_node_cluster
 from panaroo.isvalid import del_dups, max_clique
 from collections import defaultdict, deque
 from panaroo.cdhit import is_valid
@@ -181,21 +181,12 @@ def collapse_families(G,
                         for neig in cluster:
                             removed_nodes.add(neig)
                             if neig in search_space: search_space.remove(neig)
-                        temp_c = cluster.copy()
-                        G = merge_nodes(
-                            G,
-                            temp_c.pop(),
-                            temp_c.pop(),
+
+                        G = merge_node_cluster(G,
+                            cluster,
                             node_count,
                             multi_centroid=(not correct_mistranslations))
-                        while (len(temp_c) > 0):
-                            G = merge_nodes(
-                                G,
-                                node_count,
-                                temp_c.pop(),
-                                node_count + 1,
-                                multi_centroid=(not correct_mistranslations))
-                            node_count += 1
+
                         search_space.add(node_count)
                     else:
                         # merge if the centroids don't conflict and the nodes are adjacent in the conflicting genome
@@ -268,26 +259,14 @@ def collapse_families(G,
                                     if neig in search_space:
                                         search_space.remove(neig)
 
-                                temp_c = clust.copy()
-                                G = merge_nodes(
-                                    G,
-                                    temp_c.pop(),
-                                    temp_c.pop(),
+                                G = merge_node_cluster(G,
+                                    clust,
                                     node_count,
-                                    multi_centroid=(
-                                        not correct_mistranslations),
+                                    multi_centroid=(not correct_mistranslations),
                                     check_merge_mems=False)
-                                while (len(temp_c) > 0):
-                                    G = merge_nodes(
-                                        G,
-                                        node_count,
-                                        temp_c.pop(),
-                                        node_count + 1,
-                                        multi_centroid=(
-                                            not correct_mistranslations),
-                                        check_merge_mems=False)
-                                    node_count += 1
+
                                 search_space.add(node_count)
+
                             tempG.remove_nodes_from(clique)
                             clique = max_clique(tempG)
 
@@ -387,12 +366,11 @@ def collapse_paralogs(G, centroid_contexts, max_context=5, quiet=False):
         # merge
         for cluster in cluster_dict:
             if len(cluster_dict[cluster]) < 2: continue
-            temp_c = list(cluster_dict[cluster].copy())
             node_count += 1
-            G = merge_nodes(G, temp_c.pop(), temp_c.pop(), node_count)
-            while (len(temp_c) > 0):
-                G = merge_nodes(G, node_count, temp_c.pop(), node_count + 1)
-                node_count += 1
+
+            G = merge_node_cluster(G,
+                list(cluster_dict[cluster]),
+                node_count)
 
     return (G)
 
@@ -431,18 +409,10 @@ def merge_paralogs(G):
     for temp_c in merge_clusters:
         if len(temp_c) > 1:
             node_count += 1
-            G = merge_nodes(G,
-                            temp_c.pop(),
-                            temp_c.pop(),
-                            node_count,
-                            check_merge_mems=False)
-            while (len(temp_c) > 0):
-                G = merge_nodes(G,
-                                node_count,
-                                temp_c.pop(),
-                                node_count + 1,
-                                check_merge_mems=False)
-                node_count += 1
+            G = merge_node_cluster(G,
+                temp_c,
+                node_count,
+                check_merge_mems=False)
 
     return (G)
 

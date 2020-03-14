@@ -1,7 +1,6 @@
 from Bio import SeqIO
 from collections import Counter, defaultdict
 import networkx as nx
-from panaroo.merge_nodes import merge_nodes
 from panaroo.clean_network import collapse_paralogs
 import numpy as np
 from scipy.sparse import csc_matrix, lil_matrix
