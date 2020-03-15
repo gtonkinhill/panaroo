@@ -55,9 +55,9 @@ def generate_roary_gene_presence_absence(G, mems_to_isolates, orig_ids,
                 count += 1
                 len_mode = max(G.nodes[node]['lengths'],
                                key=G.nodes[node]['lengths'].count)
-                name = '_'.join(
+                name = '~~~'.join(
                     G.nodes[node]['annotation'].strip().strip(';').split(';'))
-                name = ''.join(e for e in name if e.isalnum() or e == "_")
+                name = ''.join(e for e in name if e.isalnum() or e in ["_", "~"])
                 if name not in used_gene_names:
                     entry = [name]
                     used_gene_names.add(name)
@@ -148,25 +148,6 @@ def generate_pan_genome_reference(G, output_dir, split_paralogs=False):
         SeqIO.write(records, outfile, "fasta")
 
     return
-
-
-# # TODO: come with a nice weighting to account for the number of observations
-# def generate_gene_mobility(G, output_dir):
-
-#     with open(output_dir + "gene_mobility.csv", 'w') as outfile:
-#         outfile.write("gene_id,annotation,count,degree,entropy\n")
-#         for node in G.nodes():
-#             entropy = 0
-#             for edge in G.edges(node):
-#                 p = G[edge[0]][edge[1]]['weight'] / (1.0 *
-#                                                      G.nodes[node]['size'])
-#                 entropy -= p * np.log(p)
-#             outfile.write(",".join([
-#                 G.nodes[node]['name'], G.nodes[node]['annotation'],
-#                 str(G.nodes[node]['size']),
-#                 str(G.degree[node]), "{:.5f}".format(entropy)
-#             ]) + "\n")
-
 
 def generate_common_struct_presence_absence(G,
                                             output_dir,
