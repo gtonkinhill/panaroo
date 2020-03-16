@@ -89,6 +89,8 @@ def collapse_families(G,
                       outdir,
                       family_threshold=0.7,
                       dna_error_threshold=0.99,
+                      filter_outliers=False,
+                      len_support_prop=0.01,
                       correct_mistranslations=False,
                       n_cpu=1,
                       quiet=False,
@@ -185,7 +187,9 @@ def collapse_families(G,
                         G = merge_node_cluster(G,
                             cluster,
                             node_count,
-                            multi_centroid=(not correct_mistranslations))
+                            multi_centroid=(not correct_mistranslations),
+                            filter_outliers=filter_outliers,
+                            len_support_prop=len_support_prop)
 
                         search_space.add(node_count)
                     else:
@@ -263,7 +267,9 @@ def collapse_families(G,
                                     clust,
                                     node_count,
                                     multi_centroid=(not correct_mistranslations),
-                                    check_merge_mems=False)
+                                    check_merge_mems=False,
+                                    filter_outliers=True,
+                                    len_support_prop=len_support_prop)
 
                                 search_space.add(node_count)
 

@@ -1,6 +1,7 @@
 import itertools
 from collections import Counter
 from .isvalid import del_dups
+import numpy as np
 
 def gen_node_iterables(G, nodes, feature, split=None):
     for n in nodes:
@@ -23,12 +24,30 @@ def merge_node_cluster(G,
                 nodes,
                 newNode,
                 multi_centroid=True,
-                check_merge_mems=True):
+                check_merge_mems=True,
+                filter_outliers=False,
+                len_support_prop=0.01):
 
     if check_merge_mems:
         mem_count = Counter(itertools.chain.from_iterable(gen_node_iterables(G, nodes, 'members')))
         if max(mem_count.values()) > 1:
             raise ValueError("merging nodes with the same genome IDs!")
+
+
+    # filter length outliers if requested
+    if filter_outliers:
+        lengths = np.array(list(itertools.chain.from_iterable(gen_node_iterables(G,nodes,'lengths'))))
+        total_support = np.sum(list(gen_node_iterables(G,nodes,'size')))
+        quantiles = np.quantile(lengths, [0.25,0.75])
+        iqr15_threshold = quantiles[1] + 1.5*(quantiles[1]-quantiles[0])
+        filter_nodes = []
+        for node in nodes:
+            if max(G.nodes[node]['lengths']) > iqr15_threshold:
+                if G.nodes[node]['size'] <= len_support_prop*total_support:
+                    filter_nodes.append(node)
+        G.remove_nodes_from(filter_nodes)
+        filter_nodes = set(filter_nodes)
+        nodes = [n for n in nodes if n not in filter_nodes]
 
     # take node with most support as the 'consensus'
     nodes = sorted(nodes, key=lambda x: G.nodes[x]['size'])

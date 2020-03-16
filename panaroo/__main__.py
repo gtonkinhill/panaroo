@@ -108,6 +108,16 @@ def get_options(args):
             " as a possible mis-assembly"),
         type=float)
     graph.add_argument(
+        "--length_outlier_support_proportion",
+        dest="length_outlier_support_proportion",
+        help=(
+            "proportion of genomes supporting a gene with a length more " +
+            "than 1.5x outside the interquatile range for genes in the same cluster" +
+            " (default=0.01). Genes failing this test will be re-annotated at the " +
+            "shorter length" ),
+        type=float,
+        default=0.01)
+    graph.add_argument(
         "--remove_by_consensus",
         dest="remove_by_consensus",
         type=ast.literal_eval,
@@ -263,6 +273,8 @@ def main():
                           outdir=temp_dir,
                           dna_error_threshold=0.98,
                           correct_mistranslations=True,
+                          filter_outliers=True,
+                          len_support_prop=args.length_outlier_support_proportion,
                           n_cpu=args.n_cpu,
                           quiet=(not args.verbose))[0]
 
@@ -275,6 +287,8 @@ def main():
         seqid_to_centroid=seqid_to_centroid,
         outdir=temp_dir,
         family_threshold=args.family_threshold,
+        filter_outliers=True,
+        len_support_prop=args.length_outlier_support_proportion,
         correct_mistranslations=False,
         n_cpu=args.n_cpu,
         quiet=(not args.verbose))
