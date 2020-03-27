@@ -11,6 +11,7 @@ from collections import defaultdict
 import networkx as nx
 from networkx.exception import NetworkXError
 from networkx.utils import open_file
+from intbitset import intbitset
 
 import re
 try:
@@ -169,6 +170,16 @@ def custom_stringizer(value):
                 stringize(item)
             buf.write(']')
         elif isinstance(value, set):
+            buf.write('[')
+            first = True
+            for item in value:
+                if not first:
+                    buf.write(',')
+                else:
+                    first = False
+                stringize(item)
+            buf.write(']')
+        elif isinstance(value, intbitset):
             buf.write('[')
             first = True
             for item in value:

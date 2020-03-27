@@ -9,11 +9,13 @@ from joblib import Parallel, delayed
 from collections import defaultdict, Counter
 import math
 import numpy as np
+from intbitset import intbitset
 
 from .isvalid import *
 from .__init__ import __version__
 from .cdhit import run_cdhit
 from .clean_network import collapse_families, collapse_paralogs
+from .merge_nodes import merge_node_cluster, gen_edge_iterables, gen_node_iterables, iter_del_dups, del_dups
 from .generate_output import *
 
 
@@ -22,6 +24,10 @@ def make_list(inp):
         inp = [inp]
     return inp
 
+def update_sid(sid, member_count):
+    sid = sid.split("_")
+    sid[0] = str(member_count + int(sid[0]))
+    return ("_".join(sid))
 
 def load_graphs(graph_files, n_cpu=1):
     graphs = []
@@ -33,13 +39,37 @@ def load_graphs(graph_files, n_cpu=1):
 
     graphs = [nx.read_gml(graph_file) for graph_file in tqdm(graph_files)]
 
+    member_count = 0
+    for i, G in enumerate(graphs):
+        # relabel nodes to be consecutive integers from 1
+        mapping = {}
+        for i, n in enumerate(G.nodes()):
+            mapping[n]=i
+        G = nx.relabel_nodes(G, mapping, copy=True)
+
+        # set up edge members and remove conflicts.
+        for e in G.edges():
+            G[e[0]][e[1]]['members'] = intbitset([m+member_count for m in G[e[0]][e[1]]['members']])
+
+        # set up node parameters and remove conflicts.
+        for n in G.nodes():
+            G.nodes[n]['centroid'] = [update_sid(sid,member_count) for sid in G.nodes[n]['centroid'].split(";")]
+            G.nodes[n]['seqIDs'] = set([update_sid(sid,member_count) for sid in G.nodes[n]['seqIDs']])
+            G.nodes[n]['protein'] = del_dups(G.nodes[n]['protein'].split(";"))
+            G.nodes[n]['dna'] = del_dups(G.nodes[n]['dna'].split(";"))
+            G.nodes[n]['longCentroidID'][1] = update_sid(G.nodes[n]['longCentroidID'][1],member_count)
+            G.nodes[n]['members'] = intbitset([m+member_count for m in G.nodes[n]['members']])
+            member_count = max(member_count, max(G.nodes[n]['members']) + 1)
+
+        graphs[i] = G
+
     return graphs
 
 
 def cluster_centroids(graphs,
                       outdir,
                       len_dif_percent=0.95,
-                      identity_threshold=0.95,
+                      identity_threshold=0.98,
                       n_cpu=1):
 
     # create the files we will need
@@ -206,14 +236,14 @@ def simple_merge_graphs(graphs, clusters):
 
     # fix up edge attributes
     for edge in merged_G.edges():
-        merged_G[edge[0]][edge[1]]['weight'] = 0
+        merged_G[edge[0]][edge[1]]['size'] = 0
         merged_G[edge[0]][edge[1]]['members'] = set()
 
         for prev1 in reverse_mapping[edge[0]]:
             for prev2 in reverse_mapping[edge[1]]:
                 if prev1[0] == prev2[0]:  #same graph
                     if graphs[prev1[0]].has_edge(prev1[1], prev2[1]):
-                        merged_G[edge[0]][edge[1]]['weight'] += 1
+                        merged_G[edge[0]][edge[1]]['size'] += 1
                         merged_G[edge[0]][edge[1]]['members'] |= set([
                             str(prev1[0]) + "_" + str(m) for m in graphs[
                                 prev1[0]][prev1[1]][prev2[1]]['members']
@@ -326,10 +356,6 @@ def main():
     G, centroid_contexts = simple_merge_graphs(graphs, clusters)
 
     print("Number of nodes in merged graph: ", G.number_of_nodes())
-
-    # collapse gene families/paralogs at successively lower thresholds
-    print("Collapsing paralogs...")
-    G = collapse_paralogs(G, centroid_contexts)
 
     print("Collapsing at DNA...")
     G = collapse_families(G,

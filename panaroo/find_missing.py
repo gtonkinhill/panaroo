@@ -74,16 +74,15 @@ def find_missing(G,
         for neigh in G.neighbors(node):
             # seen_mems = set()
             for sid in sorted(G.nodes[neigh]['seqIDs']):
-                member = sid.split("_")[0]
-                # if member in seen_mems: continue
-                # seen_mems.add(member)
-                conflicts[int(member)].add((neigh, id_to_gff[sid]))
+                member = int(sid.split("_")[0])
+
+                conflicts[member].add((neigh, id_to_gff[sid]))
                 if member not in G.nodes[node]['members']:
                     if len(G.nodes[node]["dna"][G.nodes[node]
                                                 ['maxLenId']]) <= 0:
                         print(G.nodes[node]["dna"])
                         raise NameError("Problem!")
-                    search_list[int(member)][node].add(
+                    search_list[member][node].add(
                         (G.nodes[node]["dna"][G.nodes[node]['maxLenId']],
                          id_to_gff[sid]))
 
@@ -134,7 +133,7 @@ def find_missing(G,
 
             if np.sum(seq_coverage[contig_id][loc[0]:loc[1]]) >= (
                     0.5 * (max(G.nodes[node]['lengths']))):
-                if str(member) in G.nodes[node]['members']:
+                if member in G.nodes[node]['members']:
                     remove_member_from_node(G, node, member)
                 # G.nodes[node]['members'].remove(str(member))
                 # G.nodes[node]['size'] -= 1
@@ -183,7 +182,7 @@ def find_missing(G,
                         if node in bad_nodes: continue
                         if (node, member) in bad_node_mem_pairs: continue
                         hit_protein = hits_trans_dict[member][i]
-                        G.nodes[node]['members'].add(str(member))
+                        G.nodes[node]['members'].add(member)
                         G.nodes[node]['size'] += 1
                         G.nodes[node]['dna'] = del_dups(G.nodes[node]['dna'] +
                                                         [dna_hit])

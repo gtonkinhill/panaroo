@@ -1,8 +1,8 @@
 import networkx as nx
 from panaroo.cdhit import *
-from panaroo.merge_nodes import merge_node_cluster
+from panaroo.merge_nodes import merge_node_cluster, gen_edge_iterables, gen_node_iterables
 from panaroo.isvalid import del_dups, max_clique
-from collections import defaultdict, deque
+from collections import defaultdict, deque, Counter
 from panaroo.cdhit import is_valid
 from itertools import chain, combinations
 import numpy as np
@@ -84,14 +84,29 @@ def single_linkage(G, distances_bwtn_centroids, centroid_to_index, neighbours):
     return (clusters)
 
 
+
+    # # filter length outliers if requested
+    # if filter_outliers:
+    #     lengths = np.array(list(itertools.chain.from_iterable(gen_node_iterables(G,nodes,'lengths'))))
+    #     total_support = np.sum(list(gen_node_iterables(G,nodes,'size')))
+    #     quantiles = np.quantile(lengths, [0.25,0.75])
+    #     iqr15_threshold = quantiles[1] + 1.5*(quantiles[1]-quantiles[0])
+    #     filter_nodes = []
+    #     for node in nodes:
+    #         if max(G.nodes[node]['lengths']) > iqr15_threshold:
+    #             if G.nodes[node]['size'] <= len_support_prop*total_support:
+    #                 filter_nodes.append(node)
+    #     G.remove_nodes_from(filter_nodes)
+    #     filter_nodes = set(filter_nodes)
+    #     nodes = [n for n in nodes if n not in filter_nodes]
+
 def collapse_families(G,
                       seqid_to_centroid,
                       outdir,
                       family_threshold=0.7,
                       dna_error_threshold=0.99,
-                      filter_outliers=False,
-                      len_support_prop=0.01,
                       correct_mistranslations=False,
+                      length_outlier_support_proportion=0.01,
                       n_cpu=1,
                       quiet=False,
                       distances_bwtn_centroids=None,
@@ -164,7 +179,8 @@ def collapse_families(G,
 
                 # find clusters
                 clusters = single_linkage(G, distances_bwtn_centroids,
-                                          centroid_to_index, neighbours)
+                                          centroid_to_index, neighbours)                
+                
 
                 for cluster in clusters:
 
@@ -172,12 +188,15 @@ def collapse_families(G,
                     if len(cluster) <= 1: continue
 
                     # check for conflicts
-                    members = []
-                    for n in cluster:
-                        for m in G.nodes[n]['members']:
-                            members.append(m)
+                    seen = G.nodes[cluster[0]]['members'].copy()
+                    noconflict = True
+                    for n in cluster[1:]:
+                        if not seen.isdisjoint(G.nodes[n]['members']):
+                            noconflict = False
+                            break
+                        seen |= G.nodes[n]['members']
 
-                    if (len(members) == len(set(members))):
+                    if noconflict:
                         # no conflicts so merge
                         node_count += 1
                         for neig in cluster:
@@ -187,9 +206,7 @@ def collapse_families(G,
                         G = merge_node_cluster(G,
                             cluster,
                             node_count,
-                            multi_centroid=(not correct_mistranslations),
-                            filter_outliers=filter_outliers,
-                            len_support_prop=len_support_prop)
+                            multi_centroid=(not correct_mistranslations))
 
                         search_space.add(node_count)
                     else:
@@ -199,6 +216,13 @@ def collapse_families(G,
 
                         # build a mini graph of allowed pairwise merges
                         tempG = nx.Graph()
+
+                        node_mem_index = {}
+                        for n in cluster:
+                            node_mem_index[n] = defaultdict(set)
+                            for sid in G.nodes[n]['seqIDs']:
+                                node_mem_index[n][int(sid.split("_")[0])].add(seqid_to_index[sid])
+
                         for nA, nB in itertools.combinations(cluster, 2):
                             mem_inter = G.nodes[nA]['members'].intersection(
                                 G.nodes[nB]['members'])
@@ -211,28 +235,22 @@ def collapse_families(G,
                                             set(G.nodes[nB]['centroid']))) > 0:
                                     shouldmerge = False
 
+                                edge_mem_count = Counter(itertools.chain.from_iterable(gen_edge_iterables(G, G.edges([nA,nB]), 'members')))
+                                if edge_mem_count.most_common()[0][1] > 3:
+                                    shouldmerge = False
+
+                                node_mem_count = Counter(itertools.chain.from_iterable(gen_node_iterables(G, [nA,nB], 'members')))
+                                same_mem_merge_count = 0.0
+                                for count in node_mem_count.values():
+                                    if count>1:
+                                        same_mem_merge_count+=1
+                                if 1-same_mem_merge_count/len(node_mem_count)<length_outlier_support_proportion:
+                                    shouldmerge=False
+
                                 if shouldmerge:
-                                    idsA = defaultdict(list)
-                                    for sid in G.nodes[nA]['seqIDs']:
-                                        ssid = sid.split("_")
-                                        if ssid[0] in mem_inter:
-                                            idsA[ssid[0]].append(sid)
-
-                                    idsB = defaultdict(list)
-                                    for sid in G.nodes[nB]['seqIDs']:
-                                        ssid = sid.split("_")
-                                        if ssid[0] in mem_inter:
-                                            idsB[ssid[0]].append(sid)
-
                                     for imem in mem_inter:
-                                        for sidA in set([
-                                                seqid_to_index[sid]
-                                                for sid in idsA[imem]
-                                        ]):
-                                            for sidB in set([
-                                                    seqid_to_index[sid]
-                                                    for sid in idsB[imem]
-                                            ]):
+                                        for sidA in node_mem_index[nA][imem]:
+                                            for sidB in node_mem_index[nB][imem]:
                                                 if (
                                                     (sidA,
                                                      sidB) in nonzero_dist
@@ -267,9 +285,7 @@ def collapse_families(G,
                                     clust,
                                     node_count,
                                     multi_centroid=(not correct_mistranslations),
-                                    check_merge_mems=False,
-                                    filter_outliers=True,
-                                    len_support_prop=len_support_prop)
+                                    check_merge_mems=False)
 
                                 search_space.add(node_count)
 
@@ -433,14 +449,14 @@ def clean_misassembly_edges(G, edge_support_threshold):
         max_weight = max(max_weight, G.nodes[node]['size'])
         for neigh in G.neighbors(node):
             if G.nodes[neigh]['hasEnd']:
-                if G[node][neigh]['weight'] < edge_support_threshold:
+                if G[node][neigh]['size'] < edge_support_threshold:
                     bad_edges.add((node, neigh))
 
     # remove edges that have much lower support than the nodes they connect
     for edge in G.edges():
-        if float(G.edges[edge]['weight']) < (0.05 * min(
+        if float(G.edges[edge]['size']) < (0.05 * min(
                 int(G.nodes[edge[0]]['size']), int(G.nodes[edge[1]]['size']))):
-            if float(G.edges[edge]['weight']) < edge_support_threshold:
+            if float(G.edges[edge]['size']) < edge_support_threshold:
                 bad_edges.add(edge)
 
     for edge in bad_edges:

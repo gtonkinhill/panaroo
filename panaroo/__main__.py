@@ -15,6 +15,7 @@ from .generate_output import *
 from .clean_network import *
 from .find_missing import find_missing
 from .generate_alignments import check_aligner_install
+from intbitset import intbitset
 
 from .__init__ import __version__
 
@@ -253,13 +254,13 @@ def main():
     # write out pre-filter graph in GML format
     for node in G.nodes():
         G.nodes[node]['size'] = len(G.nodes[node]['members'])
-        G.nodes[node]['genomeIDs'] = ";".join(G.nodes[node]['members'])
+        G.nodes[node]['genomeIDs'] = ";".join([str(m) for m in G.nodes[node]['members']])
         G.nodes[node]['geneIDs'] = ";".join(G.nodes[node]['seqIDs'])
         G.nodes[node]['degrees'] = G.degree[node]
     for edge in G.edges():
         G.edges[edge[0],
-                edge[1]]['genomeIDs'] = ";".join(G.edges[edge[0],
-                                                         edge[1]]['members'])
+                edge[1]]['genomeIDs'] = ";".join([str(m) for m in G.edges[edge[0],
+                                                         edge[1]]['members']])
     nx.write_gml(G,
                  args.output_dir + "pre_filt_graph.gml",
                  stringizer=custom_stringizer)
@@ -273,8 +274,7 @@ def main():
                           outdir=temp_dir,
                           dna_error_threshold=0.98,
                           correct_mistranslations=True,
-                          filter_outliers=True,
-                          len_support_prop=args.length_outlier_support_proportion,
+                          length_outlier_support_proportion=args.length_outlier_support_proportion,
                           n_cpu=args.n_cpu,
                           quiet=(not args.verbose))[0]
 
@@ -287,9 +287,8 @@ def main():
         seqid_to_centroid=seqid_to_centroid,
         outdir=temp_dir,
         family_threshold=args.family_threshold,
-        filter_outliers=True,
-        len_support_prop=args.length_outlier_support_proportion,
         correct_mistranslations=False,
+        length_outlier_support_proportion=args.length_outlier_support_proportion,
         n_cpu=args.n_cpu,
         quiet=(not args.verbose))
 
@@ -327,6 +326,7 @@ def main():
                           outdir=temp_dir,
                           family_threshold=args.family_threshold,
                           correct_mistranslations=False,
+                          length_outlier_support_proportion=args.length_outlier_support_proportion,
                           n_cpu=args.n_cpu,
                           quiet=(not args.verbose),
                           distances_bwtn_centroids=distances_bwtn_centroids,
@@ -346,7 +346,7 @@ def main():
     G.graph['isolateNames'] = isolate_names
     mems_to_isolates = {}
     for i, iso in enumerate(isolate_names):
-        mems_to_isolates[str(i)] = iso
+        mems_to_isolates[i] = iso
 
     if args.verbose:
         print("writing output...")
@@ -390,7 +390,7 @@ def main():
         G.nodes[node]['dna'] = ";".join(conv_list(G.nodes[node]['dna']))
         G.nodes[node]['protein'] = ";".join(conv_list(
             G.nodes[node]['protein']))
-        G.nodes[node]['genomeIDs'] = ";".join(G.nodes[node]['members'])
+        G.nodes[node]['genomeIDs'] = ";".join([str(m) for m in G.nodes[node]['members']])
         G.nodes[node]['geneIDs'] = ";".join(G.nodes[node]['seqIDs'])
         G.nodes[node]['degrees'] = G.degree[node]
         G.nodes[node]['members'] = list(G.nodes[node]['members'])
@@ -398,8 +398,8 @@ def main():
 
     for edge in G.edges():
         G.edges[edge[0],
-                edge[1]]['genomeIDs'] = ";".join(G.edges[edge[0],
-                                                         edge[1]]['members'])
+                edge[1]]['genomeIDs'] = ";".join([str(m) for m in G.edges[edge[0],
+                                                         edge[1]]['members']])
         G.edges[edge[0],
                 edge[1]]['members'] = list(G.edges[edge[0],
                                                    edge[1]]['members'])
