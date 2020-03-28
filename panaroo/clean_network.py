@@ -100,7 +100,7 @@ def single_linkage(G, distances_bwtn_centroids, centroid_to_index, neighbours):
     #     filter_nodes = set(filter_nodes)
     #     nodes = [n for n in nodes if n not in filter_nodes]
 
-@profile
+# @profile
 def collapse_families(G,
                       seqid_to_centroid,
                       outdir,
@@ -238,7 +238,7 @@ def collapse_families(G,
                                     shouldmerge = False
 
                                 if shouldmerge:
-                                    if 1-float(len(mem_inter))/len(G.nodes[nA]['members'] | G.nodes[nB]['members']):
+                                    if 1-float(len(mem_inter))/len(G.nodes[nA]['members'] | G.nodes[nB]['members']) < length_outlier_support_proportion:
                                         shouldmerge=False
 
                                 if shouldmerge:
