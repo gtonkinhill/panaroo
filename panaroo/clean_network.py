@@ -100,6 +100,7 @@ def single_linkage(G, distances_bwtn_centroids, centroid_to_index, neighbours):
     #     filter_nodes = set(filter_nodes)
     #     nodes = [n for n in nodes if n not in filter_nodes]
 
+@profile
 def collapse_families(G,
                       seqid_to_centroid,
                       outdir,
@@ -158,12 +159,13 @@ def collapse_families(G,
                         for i, j in zip(nonzero_dist[0], nonzero_dist[1])])
 
     for depth in depths:
+        if not quiet: print("Processing depth: ", depth)
         search_space = set(G.nodes())
         while len(search_space) > 0:
             # look for nodes to merge
             temp_node_list = list(search_space)
             removed_nodes = set()
-            for node in temp_node_list:
+            for node in tqdm(temp_node_list, disable=quiet):
                 if node in removed_nodes: continue
 
                 if G.degree[node] <= 2:
@@ -235,17 +237,14 @@ def collapse_families(G,
                                             set(G.nodes[nB]['centroid']))) > 0:
                                     shouldmerge = False
 
-                                edge_mem_count = Counter(itertools.chain.from_iterable(gen_edge_iterables(G, G.edges([nA,nB]), 'members')))
-                                if edge_mem_count.most_common()[0][1] > 3:
-                                    shouldmerge = False
+                                if shouldmerge:
+                                    if 1-float(len(mem_inter))/len(G.nodes[nA]['members'] | G.nodes[nB]['members']):
+                                        shouldmerge=False
 
-                                node_mem_count = Counter(itertools.chain.from_iterable(gen_node_iterables(G, [nA,nB], 'members')))
-                                same_mem_merge_count = 0.0
-                                for count in node_mem_count.values():
-                                    if count>1:
-                                        same_mem_merge_count+=1
-                                if 1-same_mem_merge_count/len(node_mem_count)<length_outlier_support_proportion:
-                                    shouldmerge=False
+                                if shouldmerge:
+                                    edge_mem_count = Counter(itertools.chain.from_iterable(gen_edge_iterables(G, G.edges([nA,nB]), 'members')))
+                                    if edge_mem_count.most_common()[0][1] > 3:
+                                        shouldmerge = False
 
                                 if shouldmerge:
                                     for imem in mem_inter:
