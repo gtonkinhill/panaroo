@@ -1,7 +1,7 @@
 import networkx as nx
 from panaroo.cdhit import *
 from panaroo.merge_nodes import merge_node_cluster, gen_edge_iterables, gen_node_iterables
-from panaroo.isvalid import del_dups, max_clique
+from panaroo.isvalid import del_dups
 from collections import defaultdict, deque, Counter
 from panaroo.cdhit import is_valid
 from itertools import chain, combinations
@@ -83,7 +83,7 @@ def single_linkage(G, distances_bwtn_centroids, centroid_to_index, neighbours):
 
     return (clusters)
 
-@profile
+# @profile
 def collapse_families(G,
                       seqid_to_centroid,
                       outdir,
