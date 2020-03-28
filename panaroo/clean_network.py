@@ -83,24 +83,7 @@ def single_linkage(G, distances_bwtn_centroids, centroid_to_index, neighbours):
 
     return (clusters)
 
-
-
-    # # filter length outliers if requested
-    # if filter_outliers:
-    #     lengths = np.array(list(itertools.chain.from_iterable(gen_node_iterables(G,nodes,'lengths'))))
-    #     total_support = np.sum(list(gen_node_iterables(G,nodes,'size')))
-    #     quantiles = np.quantile(lengths, [0.25,0.75])
-    #     iqr15_threshold = quantiles[1] + 1.5*(quantiles[1]-quantiles[0])
-    #     filter_nodes = []
-    #     for node in nodes:
-    #         if max(G.nodes[node]['lengths']) > iqr15_threshold:
-    #             if G.nodes[node]['size'] <= len_support_prop*total_support:
-    #                 filter_nodes.append(node)
-    #     G.remove_nodes_from(filter_nodes)
-    #     filter_nodes = set(filter_nodes)
-    #     nodes = [n for n in nodes if n not in filter_nodes]
-
-# @profile
+@profile
 def collapse_families(G,
                       seqid_to_centroid,
                       outdir,
@@ -225,71 +208,69 @@ def collapse_families(G,
                             for sid in G.nodes[n]['seqIDs']:
                                 node_mem_index[n][int(sid.split("_")[0])].add(seqid_to_index[sid])
 
-                        for nA, nB in itertools.combinations(cluster, 2):
-                            mem_inter = G.nodes[nA]['members'].intersection(
-                                G.nodes[nB]['members'])
-                            if len(mem_inter) > 0:
 
-                                shouldmerge = True
-                                if len(
-                                        set(G.nodes[nA]['centroid']).
-                                        intersection(
-                                            set(G.nodes[nB]['centroid']))) > 0:
-                                    shouldmerge = False
+                        # sort by size
+                        cluster = sorted(cluster, key=lambda x: G.nodes[x]['size'], reverse=True)
 
-                                if shouldmerge:
-                                    if 1-float(len(mem_inter))/len(G.nodes[nA]['members'] | G.nodes[nB]['members']) < length_outlier_support_proportion:
-                                        shouldmerge=False
-
-                                if shouldmerge:
-                                    edge_mem_count = Counter(itertools.chain.from_iterable(gen_edge_iterables(G, G.edges([nA,nB]), 'members')))
-                                    if edge_mem_count.most_common()[0][1] > 3:
+                        while len(cluster) > 0:
+                            sub_clust = [cluster[0]]
+                            nA = cluster[0]
+                            for nB in cluster[1:]:
+                                mem_inter = G.nodes[nA]['members'].intersection(
+                                    G.nodes[nB]['members'])
+                                if len(mem_inter) > 0:
+                                    shouldmerge = True
+                                    if len(
+                                            set(G.nodes[nA]['centroid']).
+                                            intersection(
+                                                set(G.nodes[nB]['centroid']))) > 0:
                                         shouldmerge = False
 
-                                if shouldmerge:
-                                    for imem in mem_inter:
-                                        for sidA in node_mem_index[nA][imem]:
-                                            for sidB in node_mem_index[nB][imem]:
-                                                if (
-                                                    (sidA,
-                                                     sidB) in nonzero_dist
-                                                ) or ((sidB,
-                                                       sidA) in nonzero_dist):
-                                                    shouldmerge = False
-                                                    break
+                                    if shouldmerge:
+                                        if 1-float(len(mem_inter))/len(G.nodes[nA]['members'] | G.nodes[nB]['members']) < length_outlier_support_proportion:
+                                            shouldmerge=False
+
+                                    if shouldmerge:
+                                        edge_mem_count = Counter(itertools.chain.from_iterable(gen_edge_iterables(G, G.edges([nA,nB]), 'members')))
+                                        if edge_mem_count.most_common()[0][1] > 3:
+                                            shouldmerge = False
+
+                                    if shouldmerge:
+                                        for imem in mem_inter:
+                                            for sidA in node_mem_index[nA][imem]:
+                                                for sidB in node_mem_index[nB][imem]:
+                                                    if (
+                                                        (sidA,
+                                                        sidB) in nonzero_dist
+                                                    ) or ((sidB,
+                                                        sidA) in nonzero_dist):
+                                                        shouldmerge = False
+                                                        break
+                                                if not shouldmerge: break
                                             if not shouldmerge: break
-                                        if not shouldmerge: break
 
-                                if shouldmerge:
-                                    tempG.add_edge(nA, nB)
-                            else:
-                                tempG.add_edge(nA, nB)
-
-                        # merge from largest clique to smallest
-                        sys.setrecursionlimit(max(len(tempG.nodes), 10000))
-                        clique = max_clique(tempG)
-                        while len(clique) > 1:
-                            clique_clusters = single_linkage(
-                                G, distances_bwtn_centroids, centroid_to_index,
-                                clique)
-                            for clust in clique_clusters:
-                                if len(clust) <= 1: continue
-                                node_count += 1
-                                for neig in clust:
-                                    removed_nodes.add(neig)
-                                    if neig in search_space:
-                                        search_space.remove(neig)
-
-                                G = merge_node_cluster(G,
-                                    clust,
-                                    node_count,
-                                    multi_centroid=(not correct_mistranslations),
-                                    check_merge_mems=False)
-
-                                search_space.add(node_count)
-
-                            tempG.remove_nodes_from(clique)
-                            clique = max_clique(tempG)
+                                    if shouldmerge:
+                                        sub_clust.append(nB)
+                                else:
+                                    sub_clust.append(nB)
+                            
+                            if len(sub_clust)>1:
+                                clique_clusters = single_linkage(
+                                    G, distances_bwtn_centroids, centroid_to_index,
+                                    sub_clust)
+                                for clust in clique_clusters:
+                                    if len(clust) <= 1: continue
+                                    node_count += 1
+                                    for neig in clust:
+                                        removed_nodes.add(neig)
+                                        if neig in search_space:
+                                            search_space.remove(neig)
+                                    G = merge_node_cluster(G, clust, node_count,
+                                            multi_centroid=(not correct_mistranslations),
+                                            check_merge_mems=False)
+                                    search_space.add(node_count)
+                            
+                            cluster = [n for n in cluster if n not in sub_clust]
 
                 if node in search_space:
                     search_space.remove(node)
