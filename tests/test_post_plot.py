@@ -13,6 +13,7 @@ def test_post_plot(datafolder):
             # run panaroo
             sys.argv = [
                 "", "-i", datafolder + "aa1.gff", datafolder + "aa2.gff", "-o",
+                "--clean-mode", 'strict',
                 tmpdir
             ]
             main()
