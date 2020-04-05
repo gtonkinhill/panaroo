@@ -124,7 +124,7 @@ def delete_node(G, node):
     return G
 
 
-def remove_member_from_node(G, node, member):
+def remove_member_from_node(G, node, member, seqid_to_centroid=None):
 
     # add in replacement edges if required
     mem_edges = list(
@@ -137,12 +137,46 @@ def remove_member_from_node(G, node, member):
             else:
                 G.add_edge(n1, n2, size=1, members=intbitset([member]))
 
-    # remove member from node
-    G.nodes[node]['members'].discard(member)
-    G.nodes[node]['seqIDs'] = set([
-        sid for sid in G.nodes[node]['seqIDs']
-        if sid.split("_")[0] != str(member)
-    ])
-    G.nodes[node]['size'] -= 1
+    if seqid_to_centroid is None:
+        # remove member from node
+        G.nodes[node]['members'].discard(member)
+        G.nodes[node]['seqIDs'] = set([
+            sid for sid in G.nodes[node]['seqIDs']
+            if sid.split("_")[0] != str(member)
+        ])
+        G.nodes[node]['size'] -= 1
+    else:
+        # remove member from node
+        G.nodes[node]['members'].discard(member)
+        G.nodes[node]['size'] -= 1
+
+        if G.nodes[node]['size'] == 0:
+            G = delete_node(G, node)
+            return(G)
+
+        keep_sid = set()
+        keep_centroid = set()
+        for sid in G.nodes[node]['seqIDs']:
+            if sid.split("_")[0] != str(member):
+                keep_sid.add(sid)
+                keep_centroid.add(seqid_to_centroid[sid])
+
+        G.nodes[node]['seqIDs'] = keep_sid
+
+        indexes = []
+        for i, c in enumerate(G.nodes[node]['centroid']):
+            if c not in keep_centroid:
+                indexes.append(i)
+
+        for i in reversed(indexes):
+            del G.nodes[node]['centroid'][i]
+            del G.nodes[node]['protein'][i]
+            del G.nodes[node]['dna'][i]
+
+        # update long centroid
+        G.nodes[node]['longCentroidID'] = max([(len(seq), sid) for sid, seq in zip(G.nodes[node]["centroid"], G.nodes[node]["dna"])])
+        for i, sid in enumerate(G.nodes[node]['centroid']):
+            if sid==G.nodes[node]['longCentroidID'][1]:
+                G.nodes[node]['maxLenId'] = i
 
     return G
