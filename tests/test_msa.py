@@ -10,7 +10,7 @@ def test_msa(datafolder):
     # run panaroo
     sys.argv = [
         "", "-i", datafolder + "aln.gff", datafolder + "aln.gff", "-o",
-        datafolder, "-a", "pan"
+        "--clean-mode", 'strict', datafolder, "-a", "pan"
     ]
     main()
 
