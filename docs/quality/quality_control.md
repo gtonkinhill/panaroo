@@ -6,7 +6,7 @@ The script can be called using 3 cpus as
 
 ```
 mkdir results
-panaroo-qc -i *.gff -o results -t 3 --graph_type all --ref_db refseq.genomes.k21.s1000.msh
+panaroo-qc -i *.gff -o results -t 3 --graph_type all --ref_db refseq.genomes.k21s1000.msh
 ```
 
 ### Parameters

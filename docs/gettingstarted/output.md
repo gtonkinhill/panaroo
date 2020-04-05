@@ -4,6 +4,8 @@
 
 A csv file describing which gene is in which sample. If a gene cluster is present in a sample, the sequence name of the representative for that sample is given in the matrix. The corresponding DNA and protein sequence can then be matched to those found in the `combined_DNA_CDS.fasta` and `combined_protein_CDS.fasta` files. The format is the same as that given by [Roary](https://sanger-pathogens.github.io/Roary/).
 
+Annotations that have been merged will be seperated by a semicolon. Refound genes that inlcude a stop codon will have '_stop' appended to the end of the gene name. This indicates they could be a potential pseudo gene. Gene within a cluster that have an unusual length will have '_len' appended to the gene name.
+
 ### gene_presence_absence.Rtab
 
 A binary tab seperated version of the `gene_presence_absence.csv` file describing which gene is in which sample. The format is the same as that given by [Roary](https://sanger-pathogens.github.io/Roary/).

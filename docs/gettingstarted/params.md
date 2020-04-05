@@ -2,7 +2,7 @@
 
 #### Mode
 
-The main parameter that should be adjusted when using Panaroo is the `mode`. This changes a number of defaults to either favour `strict`, `moderate` or `relaxed` filtering.
+The main parameter that should be adjusted when using Panaroo is the `mode`. This changes a number of defaults to either favour `strict`, `moderate` or `sensitive` filtering.
 The default parameter settings for each of these modes is given in the table at the end of this page. 
 
 #### Gene Alignment
@@ -12,7 +12,7 @@ Panaroo can generate multiple sequence alignments from the resulting gene cluste
 Thus to align all genes present in at least 98% of isolates using clustal and 10 cpus you would run Panaroo as
 
 ```
-panaroo -i *.gff -o ./results/ -a core --aligner clustal --core_threshold 0.98 -t 10
+panaroo -i *.gff -o ./results/ --mode strict -a core --aligner clustal --core_threshold 0.98 -t 10
 ```
 
 #### Cluster Thresholds
@@ -24,7 +24,7 @@ Thus we recommend using the defaults for `--threshold` (0.98) and `--len_dif_per
 If you wish to adjust the level at which Panaroo colapses genes into putitive families we suggest changing the family sequence identity level (default 0.7). Thus to run Panaroo using a more relaxed threshold of 50% identity you could run
 
 ```
-panaroo -i *.gff -o ./results/ -f 0.5
+panaroo -i *.gff -o ./results/ --mode strict -f 0.5
 ```
 
 #### Paralogs
@@ -32,7 +32,7 @@ panaroo -i *.gff -o ./results/ -f 0.5
 Panaroo splits paralogs into seperate clusters by default. Merging paralogs can be enabled by running Panraoo as
 
 ```
-panaroo -i *.gff -o ./results/ --merge_paralogs
+panaroo -i *.gff -o ./results/  --mode strict --merge_paralogs
 ```
 
 #### Refinding Genes
@@ -44,45 +44,75 @@ As such missing genes are often the results of assembly fragmentation, the refin
 Thus to refind genes that match at least 50% of the sequence within a radius of 1000 nucleotides you could run
 
 ```
-panaroo -i *.gff -o ./results/ --refind_prop_match 0.5 --search_radius 1000
+panaroo -i *.gff -o ./results/ --mode strict --refind_prop_match 0.5 --search_radius 1000
 ```
 
 
 ### Panaroo Usage
 
 ```
-usage: panaroo [-h] -i INPUT_FILES [INPUT_FILES ...] -o OUTPUT_DIR [-c ID]
+usage: panaroo [-h] -i INPUT_FILES [INPUT_FILES ...] -o OUTPUT_DIR
+               --clean-mode {strict,moderate,sensitive} [-c ID]
                [-f FAMILY_THRESHOLD] [--len_dif_percent LEN_DIF_PERCENT]
                [--merge_paralogs] [--search_radius SEARCH_RADIUS]
                [--refind_prop_match REFIND_PROP_MATCH]
-               [--mode {strict,moderate,relaxed}]
                [--min_trailing_support MIN_TRAILING_SUPPORT]
                [--trailing_recursive TRAILING_RECURSIVE]
                [--edge_support_threshold EDGE_SUPPORT_THRESHOLD]
+               [--length_outlier_support_proportion LENGTH_OUTLIER_SUPPORT_PROPORTION]
                [--remove_by_consensus {True,False}]
                [--high_var_flag CYCLE_THRESHOLD_MIN]
                [--min_edge_support_sv MIN_EDGE_SUPPORT_SV]
-               [--all_seq_in_graph] [-a ALN] [--aligner ALR]
-               [--core_threshold CORE] [-t N_CPU] [--verbose] [--version]
+               [--all_seq_in_graph] [--no_clean_edges] [-a {core,pan}]
+               [--aligner {prank,clustal,mafft}] [--core_threshold CORE]
+               [-t N_CPU] [--quiet] [--version]
 
-panaroo: an updated pipeline for pan-genome investigation
+panaroo: an updated pipeline for pangenome investigation
 
 optional arguments:
   -h, --help            show this help message and exit
   -t N_CPU, --threads N_CPU
                         number of threads to use (default=1)
-  --verbose             print additional output
+  --quiet               suppress additional output
   --version             show program's version number and exit
 
 Input/output:
   -i INPUT_FILES [INPUT_FILES ...], --input INPUT_FILES [INPUT_FILES ...]
-                        input GFF3 files (usually output from running Prokka)
+                        input GFF3 files (usually output from running Prokka).
+                        Can also take a file listing each gff file line by
+                        line.
   -o OUTPUT_DIR, --out_dir OUTPUT_DIR
                         location of an output directory
 
+Mode:
+  --clean-mode {strict,moderate,sensitive}
+                        The stringency mode at which to run panaroo. Must be
+                        one of 'strict','moderate' or 'sensitive'. Each of
+                        these modes can be fine tuned using the additional
+                        parameters in the 'Graph correction' section.
+
+                        strict:
+                        Requires fairly strong evidence (present in  at least
+                        5% of genomes) to keep likely contaminant genes. Will
+                        remove genes that are refound more often than they were
+                        called originally.
+
+                        moderate:
+                        Requires moderate evidence (present in  at least 1% of
+                        genomes) to keep likely contaminant genes. Keeps genes
+                        that are refound more often than they were called
+                        originally.
+
+                        sensitive:
+                        Does not delete any genes and only performes merge and
+                        refinding operations. Useful if rare plasmids are of
+                        interest as these are often hard to disguish from
+                        contamination. Results will likely include  higher
+                        number of spurious annotations.
+
 Matching:
   -c ID, --threshold ID
-                        sequence identity threshold (default=0.98)
+                        sequence identity threshold (default=0.95)
   -f FAMILY_THRESHOLD, --family_threshold FAMILY_THRESHOLD
                         protein family sequence identity threshold
                         (default=0.7)
@@ -99,18 +129,21 @@ Refind:
                         in order to consider it a match
 
 Graph correction:
-  --mode {strict,moderate,relaxed}
-                        the stringency mode at which to run panaroo. One of
-                        'strict', 'moderate' or 'relaxed' (default='strict')
   --min_trailing_support MIN_TRAILING_SUPPORT
                         minimum cluster size to keep a gene called at the end
                         of a contig
   --trailing_recursive TRAILING_RECURSIVE
-                        number of times to perform recursive triming of low
+                        number of times to perform recursive trimming of low
                         support nodes near the end of contigs
   --edge_support_threshold EDGE_SUPPORT_THRESHOLD
                         minimum support required to keep and edge that has
                         been flagged as a possible mis-assembly
+  --length_outlier_support_proportion LENGTH_OUTLIER_SUPPORT_PROPORTION
+                        proportion of genomes supporting a gene with a length
+                        more than 1.5x outside the interquatile range for
+                        genes in the same cluster (default=0.01). Genes
+                        failing this test will be re-annotated at the shorter
+                        length
   --remove_by_consensus {True,False}
                         if a gene is called in the same region with similar
                         sequence a minority of the time, remove it. One of
@@ -124,12 +157,14 @@ Graph correction:
   --all_seq_in_graph    Retains all DNA sequence for each gene cluster in the
                         graph output. Off by default as it uses a large amount
                         of space.
+  --no_clean_edges      Turn off edge filtering in the final output graph.
 
 Gene alignment:
-  -a ALN, --alignment ALN
+  -a {core,pan}, --alignment {core,pan}
                         Output alignments of core genes or all genes. Options
                         are 'core' and 'pan'. Default: 'None'
-  --aligner ALR         Specify an aligner. Options:'prank', 'clustal', and
+  --aligner {prank,clustal,mafft}
+                        Specify an aligner. Options:'prank', 'clustal', and
                         default: 'mafft'
   --core_threshold CORE
                         Core-genome sample threshold (default=0.95)
