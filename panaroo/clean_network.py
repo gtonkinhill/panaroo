@@ -138,7 +138,7 @@ def collapse_families(G,
                 seqid_to_index[sid] = centroid_to_index[G.nodes[node]
                                                         ["longCentroidID"][1]]
             else:
-                t=seqid_to_centroid[sid]
+                t = seqid_to_centroid[sid]
                 seqid_to_index[sid] = centroid_to_index[seqid_to_centroid[sid]]
 
     nonzero_dist = distances_bwtn_centroids.nonzero()
@@ -149,16 +149,18 @@ def collapse_families(G,
     for n in G.nodes():
         node_mem_index[n] = defaultdict(set)
         for sid in G.nodes[n]['seqIDs']:
-            node_mem_index[n][int(sid.split("_")[0])].add(
-                seqid_to_index[sid])
+            node_mem_index[n][int(sid.split("_")[0])].add(seqid_to_index[sid])
 
     for depth in depths:
         if not quiet: print("Processing depth: ", depth)
         search_space = set(G.nodes())
+        iteration_num = 1
         while len(search_space) > 0:
             # look for nodes to merge
             temp_node_list = list(search_space)
             removed_nodes = set()
+            if not quiet: print("Iteration: ", iteration_num)
+            iteration_num += 1
             for node in tqdm(temp_node_list, disable=quiet):
                 if node in removed_nodes: continue
 
@@ -207,7 +209,8 @@ def collapse_families(G,
                         node_mem_index[node_count] = node_mem_index[cluster[0]]
                         for n in cluster[1:]:
                             for m in node_mem_index[n]:
-                                node_mem_index[node_count][m] |= node_mem_index[n][m]
+                                node_mem_index[node_count][
+                                    m] |= node_mem_index[n][m]
                             node_mem_index[n].clear()
                             node_mem_index[n] = None
 
@@ -222,11 +225,14 @@ def collapse_families(G,
                                          key=lambda x: G.nodes[x]['size'],
                                          reverse=True)
 
-                        node_mem_count = Counter(itertools.chain.from_iterable(gen_node_iterables(G, cluster, 'members')))
+                        node_mem_count = Counter(
+                            itertools.chain.from_iterable(
+                                gen_node_iterables(G, cluster, 'members')))
                         mem_count = np.array(list(node_mem_count.values()))
                         merge_same_members = True
                         if np.sum(mem_count == 1) / float(
-                                len(mem_count)) < length_outlier_support_proportion:
+                                len(mem_count
+                                    )) < length_outlier_support_proportion:
                             # do not merge nodes that have the same members as this is likely to be a spurious long gene
                             merge_same_members = False
 
@@ -234,17 +240,17 @@ def collapse_families(G,
                             sub_clust = [cluster[0]]
                             nA = cluster[0]
                             for nB in cluster[1:]:
-                                mem_inter = list(G.nodes[nA][
-                                    'members'].intersection(
+                                mem_inter = list(
+                                    G.nodes[nA]['members'].intersection(
                                         G.nodes[nB]['members']))
                                 if len(mem_inter) > 0:
                                     if merge_same_members:
                                         shouldmerge = True
                                         if len(
-                                                set(G.nodes[nA]
-                                                    ['centroid']).intersection(
-                                                        set(G.nodes[nB]
-                                                            ['centroid']))) > 0:
+                                                set(G.nodes[nA]['centroid']).
+                                                intersection(
+                                                    set(G.nodes[nB]
+                                                        ['centroid']))) > 0:
                                             shouldmerge = False
 
                                         if shouldmerge:
@@ -254,7 +260,7 @@ def collapse_families(G,
                                                         G, G.edges([nA, nB]),
                                                         'members')):
                                                 edge_mem_count[e] += 1
-                                                if edge_mem_count[e]>3:
+                                                if edge_mem_count[e] > 3:
                                                     shouldmerge = False
                                                     break
 
@@ -262,11 +268,12 @@ def collapse_families(G,
                                             for imem in mem_inter:
                                                 for sidA in node_mem_index[nA][
                                                         imem]:
-                                                    for sidB in node_mem_index[nB][
-                                                            imem]:
-                                                        if ((sidA,
-                                                            sidB) in nonzero_dist
-                                                            ) or ((sidB, sidA) in
+                                                    for sidB in node_mem_index[
+                                                            nB][imem]:
+                                                        if ((
+                                                                sidA, sidB
+                                                        ) in nonzero_dist) or (
+                                                            (sidB, sidA) in
                                                                 nonzero_dist):
                                                             shouldmerge = False
                                                             break
@@ -279,27 +286,6 @@ def collapse_families(G,
                                     sub_clust.append(nB)
 
                             if len(sub_clust) > 1:
-
-                                # optionally remove long genes with low support. Shorter versions of these will be refound in the
-                                #  refind stage.
-                                # if length_outlier_support_proportion > 0:
-                                #     node_mem_count = Counter(itertools.chain.from_iterable(gen_node_iterables(G, sub_clust, 'members')))
-                                #     mem_count = np.array(list(node_mem_count.values()))
-                                #     if np.sum(mem_count == 1) / float(
-                                #             len(mem_count)) < length_outlier_support_proportion:
-                                #         outlier_members = intbitset([m for m in node_mem_count if node_mem_count[m] != mode(mem_count, axis=None)])
-                                #         for n in sub_clust:
-                                #             mem_inter = list(outlier_members.intersection(
-                                #                     G.nodes[n]['members']))
-                                #             for member in mem_inter:
-                                #                 G = remove_member_from_node(G, n, member, seqid_to_centroid)
-                                #             if n not in G.nodes():
-                                #                 removed_nodes.add(n)
-                                #                 sub_clust.remove(n)
-                                #                 if n in search_space:
-                                #                     search_space.remove(n)
-                                #                 if n in cluster:
-                                #                     cluster.remove(n)
 
                                 clique_clusters = single_linkage(
                                     G, distances_bwtn_centroids,
@@ -319,13 +305,15 @@ def collapse_families(G,
                                             not correct_mistranslations),
                                         check_merge_mems=False)
 
-                                    node_mem_index[node_count] = node_mem_index[clust[0]]
+                                    node_mem_index[
+                                        node_count] = node_mem_index[clust[0]]
                                     for n in clust[1:]:
                                         for m in node_mem_index[n]:
-                                            node_mem_index[node_count][m] |= node_mem_index[n][m]
+                                            node_mem_index[node_count][
+                                                m] |= node_mem_index[n][m]
                                         node_mem_index[n].clear()
                                         node_mem_index[n] = None
-                                    
+
                                     search_space.add(node_count)
 
                             cluster = [

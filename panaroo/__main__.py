@@ -3,6 +3,8 @@ import tempfile
 from Bio import SeqIO
 import shutil
 import networkx as nx
+import argparse
+import textwrap
 import ast
 
 from .isvalid import *
@@ -20,11 +22,26 @@ from intbitset import intbitset
 from .__init__ import __version__
 
 
+class SmartFormatter(argparse.HelpFormatter):
+    def _split_lines(self, text, width):
+        if text.startswith('R|'):
+            lines = []
+            for l in text[2:].splitlines():
+                if l == "":
+                    lines += [""]
+                else:
+                    lines += textwrap.wrap(l, width=55)
+            return lines
+        # this is the RawTextHelpFormatter._split_lines
+        return argparse.HelpFormatter._split_lines(self, text, width)
+
+
 def get_options(args):
-    import argparse
 
     description = 'panaroo: an updated pipeline for pangenome investigation'
-    parser = argparse.ArgumentParser(description=description, prog='panaroo')
+    parser = argparse.ArgumentParser(description=description,
+                                     prog='panaroo',
+                                     formatter_class=SmartFormatter)
 
     io_opts = parser.add_argument_group('Input/output')
     io_opts.add_argument(
@@ -36,12 +53,41 @@ def get_options(args):
               "Can also take a file listing each gff file line by line."),
         type=str,
         nargs='+')
+
     io_opts.add_argument("-o",
                          "--out_dir",
                          dest="output_dir",
                          required=True,
                          help="location of an output directory",
-                         type=lambda x: is_valid_folder(parser, x))
+                         type=str)
+
+    mode_opts = parser.add_argument_group('Mode')
+
+    mode_opts.add_argument(
+        "--clean-mode",
+        dest="mode",
+        help=
+        ('''R|The stringency mode at which to run panaroo. Must be one of 'strict',\
+'moderate' or 'sensitive'. Each of these modes can be fine tuned using the\
+ additional parameters in the 'Graph correction' section.
+
+strict: 
+Requires fairly strong evidence (present in  at least 5%% of genomes)\
+ to keep likely contaminant genes. Will remove genes that are refound more often than\
+ they were called originally.
+
+moderate: 
+Requires moderate evidence (present in  at least 1%% of genomes)\
+ to keep likely contaminant genes. Keeps genes that are refound more often than\
+ they were called originally.
+
+sensitive: 
+Does not delete any genes and only performes merge and refinding\
+ operations. Useful if rare plasmids are of interest as these are often hard to\
+ disguish from contamination. Results will likely include  higher number of\
+ spurious annotations.'''),
+        choices=['strict', 'moderate', 'sensitive'],
+        required=True)
 
     matching = parser.add_argument_group('Matching')
     matching.add_argument("-c",
@@ -82,13 +128,7 @@ def get_options(args):
         type=float)
 
     graph = parser.add_argument_group('Graph correction')
-    graph.add_argument(
-        "--mode",
-        dest="mode",
-        help=("the stringency mode at which to run panaroo. One of 'strict'" +
-              ", 'moderate' or 'relaxed' (default='strict')"),
-        choices=['strict', 'moderate', 'relaxed'],
-        default='strict')
+
     graph.add_argument(
         "--min_trailing_support",
         dest="min_trailing_support",
@@ -111,11 +151,12 @@ def get_options(args):
     graph.add_argument(
         "--length_outlier_support_proportion",
         dest="length_outlier_support_proportion",
-        help=(
-            "proportion of genomes supporting a gene with a length more " +
-            "than 1.5x outside the interquatile range for genes in the same cluster" +
-            " (default=0.01). Genes failing this test will be re-annotated at the " +
-            "shorter length" ),
+        help=
+        ("proportion of genomes supporting a gene with a length more " +
+         "than 1.5x outside the interquatile range for genes in the same cluster"
+         +
+         " (default=0.01). Genes failing this test will be re-annotated at the "
+         + "shorter length"),
         type=float,
         default=0.01)
     graph.add_argument(
@@ -207,6 +248,10 @@ def main():
     #Make sure aligner is installed if alignment requested
     if args.aln != None:
         check_aligner_install(args.alr)
+
+    # create directory if it isn't present already
+    if not os.path.exists(args.output_dir):
+        os.mkdir(args.output_dir)
     # make sure trailing forward slash is present
     args.output_dir = os.path.join(args.output_dir, "")
     # Create temporary directory
@@ -254,13 +299,13 @@ def main():
     # write out pre-filter graph in GML format
     for node in G.nodes():
         G.nodes[node]['size'] = len(G.nodes[node]['members'])
-        G.nodes[node]['genomeIDs'] = ";".join([str(m) for m in G.nodes[node]['members']])
+        G.nodes[node]['genomeIDs'] = ";".join(
+            [str(m) for m in G.nodes[node]['members']])
         G.nodes[node]['geneIDs'] = ";".join(G.nodes[node]['seqIDs'])
         G.nodes[node]['degrees'] = G.degree[node]
     for edge in G.edges():
-        G.edges[edge[0],
-                edge[1]]['genomeIDs'] = ";".join([str(m) for m in G.edges[edge[0],
-                                                         edge[1]]['members']])
+        G.edges[edge[0], edge[1]]['genomeIDs'] = ";".join(
+            [str(m) for m in G.edges[edge[0], edge[1]]['members']])
     nx.write_gml(G,
                  args.output_dir + "pre_filt_graph.gml",
                  stringizer=custom_stringizer)
@@ -274,7 +319,8 @@ def main():
                           outdir=temp_dir,
                           dna_error_threshold=0.98,
                           correct_mistranslations=True,
-                          length_outlier_support_proportion=args.length_outlier_support_proportion,
+                          length_outlier_support_proportion=args.
+                          length_outlier_support_proportion,
                           n_cpu=args.n_cpu,
                           quiet=(not args.verbose))[0]
 
@@ -288,7 +334,8 @@ def main():
         outdir=temp_dir,
         family_threshold=args.family_threshold,
         correct_mistranslations=False,
-        length_outlier_support_proportion=args.length_outlier_support_proportion,
+        length_outlier_support_proportion=args.
+        length_outlier_support_proportion,
         n_cpu=args.n_cpu,
         quiet=(not args.verbose))
 
@@ -321,12 +368,15 @@ def main():
     # remove edges that are likely due to misassemblies (by consensus)
 
     # merge again in case refinding has resolved issues
+    if args.verbose:
+        print("collapse gene families with refound genes...")
     G = collapse_families(G,
                           seqid_to_centroid=seqid_to_centroid,
                           outdir=temp_dir,
                           family_threshold=args.family_threshold,
                           correct_mistranslations=False,
-                          length_outlier_support_proportion=args.length_outlier_support_proportion,
+                          length_outlier_support_proportion=args.
+                          length_outlier_support_proportion,
                           n_cpu=args.n_cpu,
                           quiet=(not args.verbose),
                           distances_bwtn_centroids=distances_bwtn_centroids,
@@ -390,16 +440,16 @@ def main():
         G.nodes[node]['dna'] = ";".join(conv_list(G.nodes[node]['dna']))
         G.nodes[node]['protein'] = ";".join(conv_list(
             G.nodes[node]['protein']))
-        G.nodes[node]['genomeIDs'] = ";".join([str(m) for m in G.nodes[node]['members']])
+        G.nodes[node]['genomeIDs'] = ";".join(
+            [str(m) for m in G.nodes[node]['members']])
         G.nodes[node]['geneIDs'] = ";".join(G.nodes[node]['seqIDs'])
         G.nodes[node]['degrees'] = G.degree[node]
         G.nodes[node]['members'] = list(G.nodes[node]['members'])
         G.nodes[node]['seqIDs'] = list(G.nodes[node]['seqIDs'])
 
     for edge in G.edges():
-        G.edges[edge[0],
-                edge[1]]['genomeIDs'] = ";".join([str(m) for m in G.edges[edge[0],
-                                                         edge[1]]['members']])
+        G.edges[edge[0], edge[1]]['genomeIDs'] = ";".join(
+            [str(m) for m in G.edges[edge[0], edge[1]]['members']])
         G.edges[edge[0],
                 edge[1]]['members'] = list(G.edges[edge[0],
                                                    edge[1]]['members'])

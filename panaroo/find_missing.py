@@ -221,7 +221,7 @@ def search_gff(node_search_dict,
                merge_id_thresh=0.7,
                n_cpu=1):
 
-    gff_handle = open(gff_handle_name, "rU")
+    gff_handle = open(gff_handle_name, 'r')
 
     # sort sets to fix order
     conflicts = sorted(conflicts)

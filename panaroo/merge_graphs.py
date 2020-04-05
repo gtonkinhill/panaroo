@@ -119,7 +119,7 @@ def cluster_centroids(graphs,
 
     # Process output
     clusters = []
-    with open(temp_output_file.name + ".clstr", 'rU') as infile:
+    with open(temp_output_file.name + ".clstr", 'r') as infile:
         c = []
         for line in infile:
             if line[0] == ">":

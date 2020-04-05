@@ -372,7 +372,7 @@ def get_options(args):
         dest="input_files",
         required=True,
         help="input GFF3 files (usually output from running Prokka)",
-        type=argparse.FileType('rU'),
+        type=argparse.FileType('r'),
         nargs='+')
     io_opts.add_argument("-o",
                          "--out_dir",

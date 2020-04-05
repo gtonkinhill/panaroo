@@ -6,6 +6,7 @@ import numpy as np
 from scipy.sparse import csc_matrix, lil_matrix
 from intbitset import intbitset
 
+
 def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
 
     # associate sequences with their clusters
@@ -13,7 +14,7 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
     seqid_to_centroid = {}
     cluster_centroids = {}
     cluster_members = defaultdict(list)
-    with open(cluster_file, 'rU') as infile:
+    with open(cluster_file, 'r') as infile:
         for line in infile:
             if line[0] == ">":
                 cluster = int(line.strip().split()[-1])
@@ -34,7 +35,7 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
     # Load meta data such as sequence and annotation
     cluster_centroid_data = {}
     centroid_ids = set(cluster_centroids.values())
-    with open(data_file, 'rU') as infile:
+    with open(data_file, 'r') as infile:
         next(infile)  # skip header
         for line in infile:
             line = line.strip().split(",")
@@ -159,7 +160,10 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                     paralog=True,
                     mergedDNA=False)
                 # add edge between nodes
-                G.add_edge(prev, neighbour, size=1, members=intbitset([genome_id]))
+                G.add_edge(prev,
+                           neighbour,
+                           size=1,
+                           members=intbitset([genome_id]))
                 prev = neighbour
             else:
                 if not G.has_node(current_cluster):
