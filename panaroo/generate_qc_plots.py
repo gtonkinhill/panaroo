@@ -122,6 +122,7 @@ def plot_ngenes(input_gffs, outdir):
         for line in gff:
             if "##FASTA" in line: break
             if "##" == line[:2]: continue
+            if "CDS" not in line: continue
             ngenes[i] += 1
 
     with open(outdir + "ngenes.txt", "w") as genes_out:
