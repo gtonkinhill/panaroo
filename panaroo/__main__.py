@@ -158,7 +158,7 @@ Does not delete any genes and only performes merge and refinding\
          " (default=0.01). Genes failing this test will be re-annotated at the "
          + "shorter length"),
         type=float,
-        default=0.01)
+        default=0.1)
     graph.add_argument(
         "--remove_by_consensus",
         dest="remove_by_consensus",

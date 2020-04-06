@@ -266,6 +266,18 @@ def get_options():
                           action='store_true',
                           default=False)
 
+    matching.add_argument(
+        "--length_outlier_support_proportion",
+        dest="length_outlier_support_proportion",
+        help=
+        ("proportion of genomes supporting a gene with a length more " +
+         "than 1.5x outside the interquatile range for genes in the same cluster"
+         +
+         " (default=0.01). Genes failing this test will be re-annotated at the "
+         + "shorter length"),
+        type=float,
+        default=0.1)
+
     parser.add_argument(
         "--min_edge_support_sv",
         dest="min_edge_support_sv",
@@ -361,6 +373,8 @@ def main():
                           outdir=temp_dir,
                           dna_error_threshold=0.98,
                           correct_mistranslations=True,
+                          length_outlier_support_proportion=args.
+                          length_outlier_support_proportion,
                           n_cpu=args.n_cpu,
                           quiet=(not args.verbose))[0]
 
@@ -370,6 +384,8 @@ def main():
                           outdir=temp_dir,
                           family_threshold=args.family_threshold,
                           correct_mistranslations=False,
+                          length_outlier_support_proportion=args.
+                          length_outlier_support_proportion,
                           n_cpu=args.n_cpu,
                           quiet=(not args.verbose))[0]
 
@@ -400,9 +416,10 @@ def main():
             next(infile)
             for line in infile:
                 line = line.split(",")
-                if line[2] not in id_mapping[i]: continue #its been filtered
+                if line[2] not in id_mapping[i]: continue  #its been filtered
                 orig_ids[id_mapping[i][line[2]]] = line[3]
-                ids_len_stop[id_mapping[i][line[2]]] = (len(line[4]), "*" in line[4][1:-3])
+                ids_len_stop[id_mapping[i][line[2]]] = (len(line[4]),
+                                                        "*" in line[4][1:-3])
 
     G = generate_roary_gene_presence_absence(G,
                                              mems_to_isolates=mems_to_isolates,
@@ -431,16 +448,16 @@ def main():
         G.nodes[node]['dna'] = ";".join(conv_list(G.nodes[node]['dna']))
         G.nodes[node]['protein'] = ";".join(conv_list(
             G.nodes[node]['protein']))
-        G.nodes[node]['genomeIDs'] = ";".join([str(m) for m in G.nodes[node]['members']])
+        G.nodes[node]['genomeIDs'] = ";".join(
+            [str(m) for m in G.nodes[node]['members']])
         G.nodes[node]['geneIDs'] = ";".join(G.nodes[node]['seqIDs'])
         G.nodes[node]['degrees'] = G.degree[node]
         G.nodes[node]['members'] = list(G.nodes[node]['members'])
         G.nodes[node]['seqIDs'] = list(G.nodes[node]['seqIDs'])
 
     for edge in G.edges():
-        G.edges[edge[0],
-                edge[1]]['genomeIDs'] = ";".join([str(m) for m in G.edges[edge[0],
-                                                         edge[1]]['members']])
+        G.edges[edge[0], edge[1]]['genomeIDs'] = ";".join(
+            [str(m) for m in G.edges[edge[0], edge[1]]['members']])
         G.edges[edge[0],
                 edge[1]]['members'] = list(G.edges[edge[0],
                                                    edge[1]]['members'])
@@ -453,10 +470,11 @@ def main():
         for i, d in enumerate(args.directories):
             with open(d + "gene_data.csv", 'r') as infile:
                 header = next(infile)
-                if i==0: outdata.write(header)
+                if i == 0: outdata.write(header)
                 for line in infile:
                     line = line.strip().split(",")
-                    if line[2] not in id_mapping[i]: continue #its been filtered
+                    if line[2] not in id_mapping[i]:
+                        continue  #its been filtered
                     line[2] = id_mapping[i][line[2]]
                     outdata.write(",".join(line) + "\n")
                     outdna.write(">" + line[2] + "\n")
