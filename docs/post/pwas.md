@@ -27,7 +27,7 @@ mkdir panaroo_output
 panaroo -i ./prokka_output/*/*.gff -o panaroo_output -t 24 --verbose -a core
 ```
 
-In order to control for population structure in our association analyses we build a phylogeny from the core gene alignment using [Iqtree](http://www.iqtree.org/). 
+In order to control for population structure in our association analyses we build a phylogeny from the core gene alignment using [IQ-TREE](http://www.iqtree.org/). 
 
 ```
 cd panaroo_output

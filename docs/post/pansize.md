@@ -8,7 +8,7 @@ These model based approaches are preferable to the common accumulation curves of
 
 The IMG model allows for gene gain from an unbounded resvoir of new genes, and gene loss. As the resevoir is unbounded, the same gene gain event can only occur once. This might represent horizontal gene transfer from a diverged taxa with gene loss representing the conversion of genes to pseudogenes or deletion in reproduction. This model is described in Baemdicker et al. 2012 and Collins et al. 2012.
 
-To estimate the parameters of this model, a dated phylogeny based on the core genome is required. Such phylogenies can be produced using [BEAST](https://www.beast2.org/) or by combining faster methods such as [Iqtree](http://www.iqtree.org/) and [Bactdater](https://xavierdidelot.github.io/BactDating/)
+To estimate the parameters of this model, a dated phylogeny based on the core genome is required. Such phylogenies can be produced using [BEAST](https://www.beast2.org/) or by combining faster methods such as [IQ-TREE](http://www.iqtree.org/) and [BactDating](https://xavierdidelot.github.io/BactDating/)
 
 An implementation following that in Collins et al. 2012 is given in Panaroo and can be run as
 

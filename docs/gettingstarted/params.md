@@ -7,7 +7,7 @@ The default parameter settings for each of these modes is given in the table at 
 
 #### Gene Alignment
 
-Panaroo can generate multiple sequence alignments from the resulting gene clusters. Currently, the user can choose from either [PRANK](https://www.ncbi.nlm.nih.gov/pubmed/24170401),  [Clustal](http://www.clustal.org/omega/) or the default [MAFFT](https://mafft.cbrc.jp/alignment/software/). MSA can be run either for the core genome using `-a core` or for every gene cluster using `-a pan`. The conservation level required to classify a gene as 'core' can be set using `--core_threshold`.
+Panaroo can generate multiple sequence alignments from the resulting gene clusters. Currently, the user can choose from either [PRANK](https://www.ncbi.nlm.nih.gov/pubmed/24170401),  [Clustal](http://www.clustal.org/omega/) or the default, [MAFFT](https://mafft.cbrc.jp/alignment/software/). MSA can be run either for the core genome using `-a core` or for every gene cluster using `-a pan`. The frequency of a gene in the your sample required to classify it as 'core' can be set using `--core_threshold`.
 
 Thus to align all genes present in at least 98% of isolates using clustal and 10 cpus you would run Panaroo as
 
@@ -37,7 +37,7 @@ panaroo -i *.gff -o ./results/  --mode strict --merge_paralogs
 
 #### Refinding Genes
 
-In order to identify genes that have been missed by annotation software, Panaroo incoporates a refinding step. Suppose two clusters geneA and geneB are adjacent in the Panaroo pangenome graph. If geneA is present in a genome but its neighbour (geneB) is not then Panaroo searches the sequence surrounding geneA for the presence of geneB. The radius of this search in nucleotides is controlled by `--search_radius`. 
+In order to identify genes that have been missed by annotation software, Panaroo incoporates a refinding step. Suppose two clusters geneA and geneB are adjacent in the Panaroo pangenome graph. If geneA is present in a genome but its neighbour (geneB) is not then Panaroo searches the sequence surrounding geneA for the presence of geneB. The radius of this search in nucleotides is controlled by `--search_radius`, with the default being 5000.  
 
 As such missing genes are often the results of assembly fragmentation, the refinding step only requires that a proportion of the missing gene is located. This proportion can be controlled using the `--refind_prop_match` parameter.
 

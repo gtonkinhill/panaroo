@@ -66,3 +66,4 @@ Optional:
 * prank
 * mafft
 * clustal
+* mash
