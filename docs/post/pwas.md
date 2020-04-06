@@ -24,14 +24,14 @@ We can now run Panaroo, setting the option to build a multiple sequence alignmen
 
 ```
 mkdir panaroo_output
-panaroo -i ./prokka_output/*/*.gff -o panaroo_output -t 24 --verbose -a core
+panaroo -i ./prokka_output/*/*.gff -o panaroo_output -t 8 --verbose -a core
 ```
 
 In order to control for population structure in our association analyses we build a phylogeny from the core gene alignment using [IQ-TREE](http://www.iqtree.org/). 
 
 ```
 cd panaroo_output
-iqtree -s core_gene_alignment.aln -pre core_tree -nt 24 -fast -m GTR
+iqtree -s core_gene_alignment.aln -pre core_tree -nt 8 -fast -m GTR
 cd ..
 ```
 
