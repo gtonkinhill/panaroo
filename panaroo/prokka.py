@@ -68,7 +68,7 @@ def clean_gff_string(gff_string):
 
 def get_gene_sequences(gff_file_name, file_number):
     #Get name and separate the prokka GFF into separate GFF and FASTA files
-    gff_file = open(gff_file_name, 'rU')
+    gff_file = open(gff_file_name, 'r')
     sequence_dictionary = OrderedDict()
 
     #Split file and parse
@@ -228,5 +228,5 @@ def process_prokka_input(gff_list, output_dir, quiet, n_cpu):
 if __name__ == "__main__":
     #used for debugging purpopses
     import sys
-    thing = process_prokka_input([open(f, 'rU') for f in sys.argv[1:]], "./",
+    thing = process_prokka_input([open(f, 'r') for f in sys.argv[1:]], "./",
                                  2)

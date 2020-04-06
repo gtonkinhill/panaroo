@@ -6,9 +6,11 @@ The script can be called using 3 cpus as
 
 ```
 mkdir results
-panaroo-qc -i *.gff -o results -t 3 --graph_type all --ref_db refseq.genomes.k21.s1000.msh
+panaroo-qc -i *.gff -o results -t 3 --graph_type all --ref_db refseq.genomes.k21s1000.msh
 ```
 
+This requires a reference database supplied with `--ref_db` to check for contamination. The authors of mash have provided such a database, downloadable from this [link](https://gembox.cbcb.umd.edu/mash/refseq.genomes.k21s1000.msh).
+ 
 ### Parameters
 
 ```

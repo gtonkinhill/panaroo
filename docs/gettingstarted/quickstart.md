@@ -7,7 +7,7 @@ Using GFFs in the same format as output by Prokka run:
 
 ```
 mkdir results
-panaroo -i *.gff -o results
+panaroo -i *.gff -o results --mode strict
 ```
 
 ## Mode
@@ -17,7 +17,7 @@ By default Panaroo runs in its strictest (most conservative) mode. We have found
 Very rare plasmids are difficult to distguish from contamination. Thus, if you are interested in retaining such plasmids at the expense of added contamination we recommend running panaroo using its most sensitive mode
 
 ```
-panaroo -i *.gff -o results --mode relaxed
+panaroo -i *.gff -o results --mode sensitive
 ```
 
 
@@ -28,7 +28,7 @@ It is usually a good idea to perform some rudimentary quality checks on the inpu
 The reference mash database can be downloaded from https://mash.readthedocs.io/en/latest/tutorials.html
 
 ```
-panaroo-qc -t 3 --graph_type all -i *.gff --ref_db refseq.genomes.k21.s1000.msh -o results
+panaroo-qc -t 3 --graph_type all -i *.gff --ref_db refseq.genomes.k21s1000.msh -o results
 ```
 
 

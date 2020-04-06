@@ -122,6 +122,7 @@ def plot_ngenes(input_gffs, outdir):
         for line in gff:
             if "##FASTA" in line: break
             if "##" == line[:2]: continue
+            if "CDS" not in line: continue
             ngenes[i] += 1
 
     with open(outdir + "ngenes.txt", "w") as genes_out:
@@ -372,7 +373,7 @@ def get_options(args):
         dest="input_files",
         required=True,
         help="input GFF3 files (usually output from running Prokka)",
-        type=argparse.FileType('rU'),
+        type=argparse.FileType('r'),
         nargs='+')
     io_opts.add_argument("-o",
                          "--out_dir",

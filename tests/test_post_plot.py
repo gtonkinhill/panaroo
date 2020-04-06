@@ -12,7 +12,8 @@ def test_post_plot(datafolder):
         with tempfile.TemporaryDirectory() as tmpdir:
             # run panaroo
             sys.argv = [
-                "", "-i", datafolder + "aa1.gff", datafolder + "aa2.gff", "-o",
+                "", "-i", datafolder + "aa1.gff", datafolder + "aa2.gff", 
+                "--clean-mode", 'strict', "-o",
                 tmpdir
             ]
             main()
