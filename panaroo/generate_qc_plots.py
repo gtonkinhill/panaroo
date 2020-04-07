@@ -20,8 +20,11 @@ def get_mash_dist(input_gffs, outdir, n_cpu=1, quiet=True):
     # build mash sketch
     mash_cmd = "mash triangle"
     mash_cmd += " -p " + str(n_cpu)
-    for gff in input_gffs:
-        mash_cmd += " " + gff.name
+    #Set up file of gffs to input into mash
+    with open("mash_input.txt", "w") as mashhandle:
+        for gff in input_gffs:
+            mashhandle.write(gff.name+'\n')
+    mash_cmd += " -l mash_input.txt"
     mash_cmd += " > " + outdir + "mash_dist.txt"
 
     if not quiet:
@@ -372,7 +375,7 @@ def get_options(args):
         dest="input_files",
         required=True,
         help="input GFF3 files (usually output from running Prokka)",
-        type=argparse.FileType('rU'),
+        type=str,
         nargs='+')
     io_opts.add_argument("-o",
                          "--out_dir",
@@ -407,7 +410,14 @@ def get_options(args):
 
 def main():
     args = get_options(sys.argv[1:])
-
+    # check if input is a file containing filenames
+    if len(args.input_files) == 1:
+        files = []
+        with open(args.input_files[0], 'r') as infile:
+            for line in infile:
+                files.append(line.strip())
+        args.input_files = [open(x, 'r') for x in files]
+    
     # make sure trailing forward slash is present
     args.output_dir = os.path.join(args.output_dir, "")
 
