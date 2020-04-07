@@ -37,6 +37,17 @@ Input/output:
                         structure. format: 'sample_name,cluster_id'
 ```
 
+### Output
+
+The program will produce a file `gene_pa_spydrpick.csv` which includes those gene pairs with MI values above the specified threshold. It includes an 'outlier' column with values
+
+
+| Outlier Flag |   Description   |
+|:------------:|:---------------:|
+|       0      |   non-outlier   |
+|       1      |     outlier     |
+|       2      | extreme outlier |
+
 
 ### Alternative Tools
 

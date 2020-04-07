@@ -5,7 +5,7 @@ Conda is the simplest way to install Panaroo and all its dependencies.
 ### Conda
 
 ```
-conda install -c bioconda panaroo
+conda install -c conda-forge -c bioconda -c defaults panaroo
 ```
 
 For some systems this can install a single threaded version of the cd-hit dependency. In that case the following version can sometimes resolve the issue.
@@ -66,3 +66,4 @@ Optional:
 * prank
 * mafft
 * clustal
+* mash

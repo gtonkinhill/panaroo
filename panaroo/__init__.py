@@ -1,3 +1,3 @@
-'''An updated pipeline for pan-genome investigation'''
+'''An updated pipeline for pangenome investigation'''
 
-__version__ = '1.1.1'
+__version__ = '1.2.0'

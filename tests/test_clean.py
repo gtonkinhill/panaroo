@@ -11,7 +11,7 @@ def test_clean(datafolder):
         # run panaroo
         sys.argv = [
             "", "-i", datafolder + "paralog.gff", datafolder + "paralog.gff",
-            datafolder + "paralog.gff", "-o", tmpoutdir
+            datafolder + "paralog.gff", "-o", tmpoutdir, "--clean-mode", 'strict'
         ]
         main()
 

@@ -39,3 +39,5 @@ The buttons in the figure below can then be used to either create a new graph fr
 
 
 ### Additional Metadata
+
+Additional metadata can be imported to cytoscape using the "Import table from file" button, next to the "Import network" button. These data can be assosciated with a graph and then user for additional filtering or annotation. The `name` attribute in the pangenome graph is a good option to index the imported spreadsheet for assosciating additional gene data with the pangenome graph. See [Meta-data Annotation](vis/metadata.md) for additional details. 

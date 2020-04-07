@@ -24,7 +24,7 @@ def get_options():
                          dest="input_files",
                          required=True,
                          help="input fasta files",
-                         type=argparse.FileType('rU'),
+                         type=argparse.FileType('r'),
                          nargs='+')
     io_opts.add_argument("-o",
                          "--out_dir",
@@ -135,7 +135,7 @@ def run_prokka_mod(input_file, out_folder, train_file, force, add_cmds):
     subprocess.run(cmd, shell=True, check=True, executable='/bin/sh')
 
     # check prokka completed successfully
-    with open(out_folder + prefix + "_prokka.log", 'rU') as logfile:
+    with open(out_folder + prefix + "_prokka.log", 'r') as logfile:
         lines = logfile.read().splitlines()
         if "Annotation finished successfully." not in lines[-6]:
             raise Exception('Prokka did not execute successfully!')

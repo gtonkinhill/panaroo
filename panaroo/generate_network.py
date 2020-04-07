@@ -1,10 +1,10 @@
 from Bio import SeqIO
 from collections import Counter, defaultdict
 import networkx as nx
-from panaroo.merge_nodes import merge_nodes
 from panaroo.clean_network import collapse_paralogs
 import numpy as np
 from scipy.sparse import csc_matrix, lil_matrix
+from intbitset import intbitset
 
 
 def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
@@ -14,7 +14,7 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
     seqid_to_centroid = {}
     cluster_centroids = {}
     cluster_members = defaultdict(list)
-    with open(cluster_file, 'rU') as infile:
+    with open(cluster_file, 'r') as infile:
         for line in infile:
             if line[0] == ">":
                 cluster = int(line.strip().split()[-1])
@@ -35,7 +35,7 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
     # Load meta data such as sequence and annotation
     cluster_centroid_data = {}
     centroid_ids = set(cluster_centroids.values())
-    with open(data_file, 'rU') as infile:
+    with open(data_file, 'r') as infile:
         next(infile)  # skip header
         for line in infile:
             line = line.strip().split(",")
@@ -70,7 +70,7 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
         current_cluster = seq_to_cluster[id]
         seqid_to_centroid[id] = cluster_centroids[current_cluster]
         loc = id.split("_")
-        genome_id = loc[0]
+        genome_id = int(loc[0])
         if loc[-1] == "0":
             # we're at the start of a contig
             if prev is not None: G.nodes[prev]['hasEnd'] = True
@@ -101,7 +101,7 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                     size=1,
                     centroid=[cluster_centroids[current_cluster]],
                     maxLenId=0,
-                    members=set([genome_id]),
+                    members=intbitset([genome_id]),
                     seqIDs=set([id]),
                     hasEnd=True,
                     protein=[
@@ -137,7 +137,7 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                     size=1,
                     centroid=[cluster_centroids[current_cluster]],
                     maxLenId=0,
-                    members=set([genome_id]),
+                    members=intbitset([genome_id]),
                     seqIDs=set([id]),
                     hasEnd=False,
                     protein=[
@@ -160,7 +160,10 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                     paralog=True,
                     mergedDNA=False)
                 # add edge between nodes
-                G.add_edge(prev, neighbour, weight=1, members=set([genome_id]))
+                G.add_edge(prev,
+                           neighbour,
+                           size=1,
+                           members=intbitset([genome_id]))
                 prev = neighbour
             else:
                 if not G.has_node(current_cluster):
@@ -170,7 +173,7 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                         size=1,
                         centroid=[cluster_centroids[current_cluster]],
                         maxLenId=0,
-                        members=set([genome_id]),
+                        members=intbitset([genome_id]),
                         seqIDs=set([id]),
                         hasEnd=False,
                         protein=[
@@ -198,8 +201,8 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                     # add edge between nodes
                     G.add_edge(prev,
                                current_cluster,
-                               weight=1,
-                               members=set([genome_id]))
+                               size=1,
+                               members=intbitset([genome_id]))
                 else:
                     G.nodes[current_cluster]['size'] += 1
                     G.nodes[current_cluster]['members'].add(genome_id)
@@ -213,13 +216,13 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                             ['dna_sequence']
                         ]
                     if G.has_edge(prev, current_cluster):
-                        G[prev][current_cluster]['weight'] += 1
+                        G[prev][current_cluster]['size'] += 1
                         G[prev][current_cluster]['members'].add(genome_id)
                     else:
                         G.add_edge(prev,
                                    current_cluster,
-                                   weight=1,
-                                   members=set([genome_id]))
+                                   size=1,
+                                   members=intbitset([genome_id]))
                 prev = current_cluster
 
     return G, centroid_context, seqid_to_centroid
