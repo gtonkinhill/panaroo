@@ -250,6 +250,7 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files, outd
             delayed(codonalign.build)
             (protein_alignments[index], list(dna_sequences[index])) 
             for index in range(len(protein_alignments)))
+    
     #output codon alignments
     outnames = [x.split("/")[-1] for x in protein_sequence_files]
         
@@ -261,7 +262,7 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files, outd
     
     alignments = os.listdir(outdir + "aligned_gene_sequences/")
     
-    return alignments
+     return alignments
 
 def write_alignment_header(alignment_list, outdir):
     out_entries = []
