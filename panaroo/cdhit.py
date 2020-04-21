@@ -56,6 +56,7 @@ def run_cdhit(
     accurate=True,  # use the slower but more accurate options
     use_local=False,  #whether to use local or global sequence alignment
     word_length=None,
+    min_length=None,
     quiet=False):
 
     cmd = "cd-hit"
@@ -78,6 +79,9 @@ def run_cdhit(
 
     if (word_length is not None) and (not accurate):
         cmd += " -n " + str(word_length)
+
+    if min_length is not None:
+        cmd += " -l " + str(min_length)
 
     if not quiet:
         print("running cmd: " + cmd)

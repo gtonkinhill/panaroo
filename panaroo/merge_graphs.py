@@ -74,7 +74,8 @@ def load_graphs(graph_files, n_cpu=1):
                 id_mapping[i][sid] = nid
                 new_ids.add(nid)
             G.nodes[n]['seqIDs'] = new_ids
-            G.nodes[n]['protein'] = del_dups(G.nodes[n]['protein'].split(";"))
+            G.nodes[n]['protein'] = del_dups(G.nodes[n]['protein'].replace(
+                '*', 'J').split(";"))
             G.nodes[n]['dna'] = del_dups(G.nodes[n]['dna'].split(";"))
             G.nodes[n]['lengths'] = conv_list(G.nodes[n]['lengths'])
             G.nodes[n]['longCentroidID'][1] = update_sid(
@@ -91,6 +92,8 @@ def load_graphs(graph_files, n_cpu=1):
 
 def cluster_centroids(graphs,
                       outdir,
+                      directories,
+                      id_mapping,
                       len_dif_percent=0.95,
                       identity_threshold=0.98,
                       n_cpu=1):
@@ -102,12 +105,21 @@ def cluster_centroids(graphs,
     temp_output_file.close()
 
     # create input for cdhit
+    orig_ids = {}
+    ids_len_stop = {}
     with open(temp_input_file.name, 'w') as outfile:
-        for G in graphs:
-            for node in G.nodes():
-                for sid, seq in zip(G.nodes[node]["centroid"],
-                                    G.nodes[node]["protein"]):
-                    outfile.write(">" + sid + "\n" + seq + "\n")
+        for i, d in enumerate(directories):
+            with open(d + "gene_data.csv", 'r') as infile:
+                next(infile)
+                for line in infile:
+                    line = line.split(",")
+                    if line[2] not in id_mapping[i]:
+                        continue  #its been filtered
+                    orig_ids[id_mapping[i][line[2]]] = line[3]
+                    ids_len_stop[id_mapping[i][line[2]]] = (len(
+                        line[4]), "*" in line[4][1:-3])
+                    outfile.write(">" + id_mapping[i][line[2]] + "\n" +
+                                  line[4].replace("*", "J") + "\n")
 
     # Run cd-hit
     run_cdhit(temp_input_file.name,
@@ -115,6 +127,7 @@ def cluster_centroids(graphs,
               id=identity_threshold,
               s=len_dif_percent,
               accurate=True,
+              min_length=5,
               n_cpu=n_cpu)
 
     # Process output
@@ -137,21 +150,40 @@ def cluster_centroids(graphs,
     os.remove(temp_output_file.name + ".clstr")
 
     # rename centroids
-    mapping = {}
+    seqid_to_centroid = {}
     centroids_to_nodes = defaultdict(list)
     for cluster in clusters:
         for sid in cluster:
-            mapping[sid] = cluster[0]
+            seqid_to_centroid[sid] = cluster[0]
+    all_centroids = set(list(seqid_to_centroid.values()))
+
+    centroid_to_seqs = {}
+    for i, d in enumerate(directories):
+        with open(d + "gene_data.csv", 'r') as infile:
+            next(infile)
+            for line in infile:
+                line = line.split(",")
+                if line[2] not in id_mapping[i]: continue  #its been filtered
+                if id_mapping[i][line[2]] in all_centroids:
+                    centroid_to_seqs[id_mapping[i][line[2]]] = (line[4],
+                                                                line[5])
 
     for G in graphs:
         for node in G.nodes():
-            G.nodes[node]["centroid"] = [
-                mapping[sid] for sid in G.nodes[node]["centroid"]
+            G.nodes[node]["centroid"] = list(
+                set([
+                    seqid_to_centroid[sid] for sid in G.nodes[node]['seqIDs']
+                ]))
+            G.nodes[node]["dna"] = [
+                centroid_to_seqs[sid][1] for sid in G.nodes[node]["centroid"]
             ]
-            G.nodes[node]["longCentroidID"][1] = mapping[G.nodes[node]
-                                                         ["longCentroidID"][1]]
-            for sid in G.nodes[node]["centroid"]:
-                centroids_to_nodes[sid].append(node)
+            G.nodes[node]["protein"] = [
+                centroid_to_seqs[sid][0] for sid in G.nodes[node]["centroid"]
+            ]
+            G.nodes[node]["longCentroidID"] = max([
+                (len(seq), sid) for seq, sid in zip(G.nodes[node]["dna"],
+                                                    G.nodes[node]["centroid"])
+            ])
 
     # determine node clusters
     tempG = nx.Graph()
@@ -165,20 +197,7 @@ def cluster_centroids(graphs,
 
     clusters = [list(comp) for comp in nx.connected_components(tempG)]
 
-    # generate approximate seqIDs to centroids
-    seqid_to_centroid = {}
-    for G in graphs:
-        for node in G.nodes():
-            max_len = -1
-            for c, p in zip(G.nodes[node]["centroid"],
-                            G.nodes[node]["protein"]):
-                if len(p) > max_len:
-                    max_len = len(p)
-                    centroid = c
-            for sid in G.nodes[node]["seqIDs"]:
-                seqid_to_centroid[sid] = centroid
-
-    return clusters, seqid_to_centroid
+    return clusters, seqid_to_centroid, orig_ids, ids_len_stop
 
 
 def simple_merge_graphs(graphs, clusters):
@@ -209,7 +228,7 @@ def simple_merge_graphs(graphs, clusters):
                                           cluster,
                                           node_count,
                                           multi_centroid=True,
-                                          check_merge_mems=False)
+                                          check_merge_mems=True)
 
     return merged_G
 
@@ -320,9 +339,9 @@ def get_options():
                         help="number of threads to use (default=1)",
                         type=int,
                         default=1)
-    parser.add_argument("--verbose",
-                        dest="verbose",
-                        help="print additional output",
+    parser.add_argument("--quiet",
+                        dest="quiet",
+                        help="suppress additional output",
                         action='store_true',
                         default=False)
     parser.add_argument('--version',
@@ -354,9 +373,11 @@ def main():
 
     # cluster centroids
     print("Clustering centroids...")
-    clusters, seqid_to_centroid = cluster_centroids(
+    clusters, seqid_to_centroid, orig_ids, ids_len_stop = cluster_centroids(
         graphs=graphs,
         outdir=temp_dir,
+        directories=args.directories,
+        id_mapping=id_mapping,
         len_dif_percent=args.len_dif_percent,
         identity_threshold=args.id,
         n_cpu=args.n_cpu)
@@ -376,7 +397,8 @@ def main():
                           length_outlier_support_proportion=args.
                           length_outlier_support_proportion,
                           n_cpu=args.n_cpu,
-                          quiet=(not args.verbose))[0]
+                          quiet=args.quiet,
+                          depths = [1, 2])[0]
 
     print("Collapsing at families...")
     G = collapse_families(G,
@@ -387,7 +409,8 @@ def main():
                           length_outlier_support_proportion=args.
                           length_outlier_support_proportion,
                           n_cpu=args.n_cpu,
-                          quiet=(not args.verbose))[0]
+                          quiet=args.quiet,
+                          depths = [1, 2])[0]
 
     print("Number of nodes in merged graph: ", G.number_of_nodes())
 
@@ -403,7 +426,7 @@ def main():
     for i, iso in enumerate(isolate_names):
         mems_to_isolates[i] = iso
 
-    if args.verbose:
+    if not args.quiet:
         print("writing output...")
 
     # write out roary like gene_presence_absence.csv
@@ -482,13 +505,13 @@ def main():
 
     # #Write out core/pan-genome alignments
     if args.aln == "pan":
-        if args.verbose: print("generating pan genome MSAs...")
+        if not args.quiet: print("generating pan genome MSAs...")
         generate_pan_genome_alignment(G, temp_dir, args.output_dir, args.n_cpu,
                                       args.alr, isolate_names)
         core_nodes = get_core_gene_nodes(G, args.core, len(isolate_names))
         concatenate_core_genome_alignments(core_nodes, args.output_dir)
     elif args.aln == "core":
-        if args.verbose: print("generating core genome MSAs...")
+        if not args.quiet: print("generating core genome MSAs...")
         generate_core_genome_alignment(G, temp_dir, args.output_dir,
                                        args.n_cpu, args.alr, isolate_names,
                                        args.core, len(isolate_names))
