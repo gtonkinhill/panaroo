@@ -20,11 +20,22 @@ def get_mash_dist(input_gffs, outdir, n_cpu=1, quiet=True):
     # build mash sketch
     mash_cmd = "mash triangle"
     mash_cmd += " -p " + str(n_cpu)
-    #Set up file of gffs to input into mash
-    with open("mash_input.txt", "w") as mashhandle:
-        for gff in input_gffs:
-            mashhandle.write(gff.name+'\n')
-    mash_cmd += " -l mash_input.txt"
+
+    #Set up two lists of gffs to input into mash. This is a bit messy but
+    # allows for an arbitary number of gffs.
+    temp_output_file1 = tempfile.NamedTemporaryFile(delete=False, dir=outdir)
+    temp_output_file2 = tempfile.NamedTemporaryFile(delete=False, dir=outdir)
+    temp_output_file1.close()
+    temp_output_file2.close()
+    
+    with open(temp_output_file1.name, 'w') as outfile:
+        outfile.write(input_gffs[0])
+    with open(temp_output_file2.name, 'w') as outfile:
+        for gff in input_gffs[1:]:
+            outfile.write(gff + "\n")
+    
+    mash_cmd += " -l " + temp_output_file1.name
+    mash_cmd += " " + temp_output_file2.name
     mash_cmd += " > " + outdir + "mash_dist.txt"
 
     if not quiet:
@@ -44,8 +55,12 @@ def get_mash_dist(input_gffs, outdir, n_cpu=1, quiet=True):
 
     # get simplified file names
     file_names = [
-        os.path.splitext(os.path.basename(gff.name))[0] for gff in input_gffs
+        os.path.splitext(os.path.basename(gff))[0] for gff in input_gffs
     ]
+
+    # clean up
+    os.remove(temp_output_file1.name)
+    os.remove(temp_output_file2.name)
 
     return dist_mat, file_names
 
@@ -115,18 +130,18 @@ def plot_ngenes(input_gffs, outdir):
 
     # get simplified file names
     file_names = [
-        os.path.splitext(os.path.basename(gff.name))[0] for gff in input_gffs
+        os.path.splitext(os.path.basename(gff))[0] for gff in input_gffs
     ]
 
     # count genes
     ngenes = np.zeros(len(input_gffs))
-    for i, gff in enumerate(input_gffs):
-        gff.seek(0)
-        for line in gff:
-            if "##FASTA" in line: break
-            if "##" == line[:2]: continue
-            if "CDS" not in line: continue
-            ngenes[i] += 1
+    for i, gff_file in enumerate(input_gffs):
+        with open(gff_file, 'r') as gff:
+            for line in gff:
+                if "##FASTA" in line: break
+                if "##" == line[:2]: continue
+                if "CDS" not in line: continue
+                ngenes[i] += 1
 
     with open(outdir + "ngenes.txt", "w") as genes_out:
         genes_out.write("sample\tno_genes\n")
@@ -172,19 +187,19 @@ def plot_ncontigs(input_gffs, outdir):
 
     # get simplified file names
     file_names = [
-        os.path.splitext(os.path.basename(gff.name))[0] for gff in input_gffs
+        os.path.splitext(os.path.basename(gff))[0] for gff in input_gffs
     ]
 
     # count genes
     ncontigs = np.zeros(len(input_gffs))
-    for i, gff in enumerate(input_gffs):
-        gff.seek(0)
-        in_fasta = False
-        for line in gff:
-            if in_fasta and (line[0] == ">"):
-                ncontigs[i] += 1
-            if "##FASTA" in line:
-                in_fasta = True
+    for i, gff_file in enumerate(input_gffs):
+        with open(gff_file, 'r') as gff:
+            in_fasta = False
+            for line in gff:
+                if in_fasta and (line[0] == ">"):
+                    ncontigs[i] += 1
+                if "##FASTA" in line:
+                    in_fasta = True
 
     # generate static plot
     with open(outdir + "ncontigs.txt", "w") as contig_out:
@@ -235,7 +250,7 @@ def run_mash_screen(gff, mash_ref, outdir):
 
     temp_output_file = tempfile.NamedTemporaryFile(delete=False, dir=outdir)
     temp_output_file.close()
-    temp_mash_cmd = mash_cmd + " " + gff.name + " > " + temp_output_file.name
+    temp_mash_cmd = mash_cmd + " " + gff + " > " + temp_output_file.name
     subprocess.run(temp_mash_cmd, shell=True, check=True)
 
     # load output
@@ -255,7 +270,7 @@ def run_mash_screen(gff, mash_ref, outdir):
 
 def get_mash_contam(input_gffs, mash_ref, n_cpu, outdir):
     file_names = [
-        os.path.splitext(os.path.basename(gff.name))[0] for gff in input_gffs
+        os.path.splitext(os.path.basename(gff))[0] for gff in input_gffs
     ]
 
     genome_hits = Parallel(n_jobs=n_cpu)(
@@ -411,14 +426,7 @@ def get_options(args):
 
 def main():
     args = get_options(sys.argv[1:])
-    # check if input is a file containing filenames
-    if len(args.input_files) == 1:
-        files = []
-        with open(args.input_files[0], 'r') as infile:
-            for line in infile:
-                files.append(line.strip())
-        args.input_files = [open(x, 'r') for x in files]
-    
+
     # make sure trailing forward slash is present
     args.output_dir = os.path.join(args.output_dir, "")
 
