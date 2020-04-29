@@ -68,8 +68,8 @@ def generate_roary_gene_presence_absence(G, mems_to_isolates, orig_ids,
                     unique_id_count += 1
                 entry.append(G.nodes[node]['annotation'])
                 entry.append(G.nodes[node]['description'])
-                entry.append(len(G.nodes[node]['seqIDs']))
                 entry.append(G.nodes[node]['size'])
+                entry.append(len(G.nodes[node]['seqIDs']))
                 entry.append((1.0 * len(G.nodes[node]['seqIDs'])) /
                              G.nodes[node]['size'])
                 entry.append(frag)
