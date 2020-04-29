@@ -80,7 +80,7 @@ def post_process_fmt(input_files, out_dir):
             outfile.write(next(infile))
             for line in infile:
                 line = line.strip().split(",")
-                for i in range(19, len(line)):
+                for i in range(14, len(line)):
                     line[i] = ";".join([id_mapping[g.strip('"')] for g in line[i].split()])
                 outfile.write(",".join(line) + "\n")
 
@@ -123,11 +123,11 @@ def main():
 
     args.output_dir = os.path.join(args.output_dir, "")
 
-    # run_ppanggolin(args.input_files,
-    #                args.output_dir,
-    #                defrag=args.defrag,
-    #                ncpus=args.n_cpu,
-    #                verbose=False)
+    run_ppanggolin(args.input_files,
+                   args.output_dir,
+                   defrag=args.defrag,
+                   ncpus=args.n_cpu,
+                   verbose=False)
 
     post_process_fmt(args.input_files, 
                      args.output_dir)
