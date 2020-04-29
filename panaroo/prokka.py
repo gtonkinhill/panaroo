@@ -158,7 +158,7 @@ def translate_sequences(sequence_dic):
         if "*" in protien_sequence:
             print(sequence_record)
             print(protien_sequence)
-            raise ValueError("Premature stop codon in a gene!")
+            # raise ValueError("Premature stop codon in a gene!")
         protein_record = SeqRecord(Seq(protien_sequence),
                                    id=strain_id,
                                    description=strain_id)

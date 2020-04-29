@@ -12,7 +12,7 @@ def get_dist(ref_s, ref_t, max_dist):
     return min(abs(int(s) - int(t)), abs(abs(int(s) - int(t)) - max_dist))
 
 
-def add_to_queue(g, s, nodes, visited, sink, mapping, ref_g_id, max_dist):
+def add_to_queue(G, s, nodes, visited, sink, mapping, ref_g_id, max_dist):
     add = []
     for i in nodes:
         if i in visited:
@@ -36,17 +36,17 @@ def add_to_queue(g, s, nodes, visited, sink, mapping, ref_g_id, max_dist):
     return add
 
 
-def create_mapping(g, ref_g_id):
+def create_mapping(G, ref_g_id):
     #look up table for name vs node id
     gene_dict = {}
-    for n in list(g):
+    for n in G.nodes():
         gene_ids = [(i.split("_")[0], i)
                     for i in G.nodes[n]['geneIDs'].split(";")]
         gene_ids = list(filter(lambda x: ref_g_id == x[0], gene_ids))
         if len(gene_ids) != 0:
             gene_dict[G.nodes[n]['name']] = gene_ids[0][1]
         elif len(gene_ids) > 1:
-            sys.exit("a problem occurred with node")
+            raise NameError("A problem occurred with node!")
     mapping = pd.DataFrame.from_dict(gene_dict, orient='index')
     mapping.columns = ["gene_id"]
     #we dont want to include refound genes in this step TODO also consider in add reference edges step
@@ -54,8 +54,8 @@ def create_mapping(g, ref_g_id):
     return mapping
 
 
-def add_ref_edges(g, mapping):
-    name_dict = dict([(G.nodes[n]['name'], n) for n in list(g)])
+def add_ref_edges(G, mapping):
+    name_dict = dict([(G.nodes[n]['name'], n) for n in G.nodes()])
     for n in mapping.index:
         mapping.loc[n, "seq"] = int(mapping.loc[n, "gene_id"].split("_")[2])
     mapping.sort_values("seq", inplace=True)
@@ -63,10 +63,10 @@ def add_ref_edges(g, mapping):
     for i in range(1, mapping.shape[0]):
         node1 = str(name_dict[mapping.index[i]])
         node2 = str(name_dict[mapping.index[i - 1]])
-        if not g.has_edge(node1, node2):
+        if not G.has_edge(node1, node2):
             j += 1
-            g.add_edge(node1, node2)
-    return g
+            G.add_edge(node1, node2)
+    return G
 
 
 def remove_var_edges(g):
@@ -81,26 +81,26 @@ def remove_var_edges(g):
 
 def layout(graph, ref_g_id, cut_edges_out, ignore_high_var,
            add_reference_edges):
-    g = nx.read_gml(graph)
+    G = nx.read_gml(graph)
     #look up table for name vs node id
-    mapping = create_mapping(g, ref_g_id)
+    mapping = create_mapping(G, ref_g_id)
     gene_order = [
         int(mapping.loc[n, "gene_id"].split("_")[2]) for n in mapping.index
     ]
     max_dist = max(gene_order)
     if ignore_high_var:
-        g = remove_var_edges(g)
+        G = remove_var_edges(G)
     if add_reference_edges:
-        g = add_ref_edges(g, mapping)
+        G = add_ref_edges(G, mapping)
         #write gml with reference edges to disk to be used in cytoscape instead of the original final_graph.gml
-        nx.write_gml(g, "with_ref_" + graph)
-    name_dict = dict([(G.nodes[n]['name'], n) for n in list(g)])
+        nx.write_gml(G, graph.replace(".gml", "_with_ref.gml"))
+    name_dict = dict([(G.nodes[n]['name'], n) for n in G.nodes()])
     #set capacity for edges for the min cut algorithm as the weight of that edge
-    for e in g.edges:
+    for e in G.edges:
         try:
-            g.edges[e]["capacity"] = g.edges[e]["weight"]
+            G.edges[e]["capacity"] = G.edges[e]["size"]
         except:
-            g.edges[e]["capacity"] = 1
+            G.edges[e]["capacity"] = 1
     #store edges to be taken out of the graph
     cut_edges = []
     i = 0
@@ -115,23 +115,23 @@ def layout(graph, ref_g_id, cut_edges_out, ignore_high_var,
         nid = name_dict[n]
         visited = set([nid])
         sink = {"sink": None}
-        queue = add_to_queue(g, nid, g.neighbors(nid), visited, sink, mapping,
+        queue = add_to_queue(G, nid, G.neighbors(nid), visited, sink, mapping,
                              ref_g_id, max_dist)
         #depth first search
         last_target = None
         while len(queue) != 0:
             target = queue.pop(0)
             visited.add(target)
-            neighbors = g.neighbors(target)
+            neighbors = G.neighbors(target)
             #for each reference node explore all edges that lead to non-reference nodes
-            queue = queue + add_to_queue(g, nid, neighbors, visited, sink,
+            queue = queue + add_to_queue(G, nid, neighbors, visited, sink,
                                          mapping, ref_g_id, max_dist)
         last_target = None
         #did we find a long-range connection?
         if sink["sink"] is not None:
             print("found path")
             visited.add(sink["sink"])
-            s_t_graph = function.induced_subgraph(g, visited)
+            s_t_graph = function.induced_subgraph(G, visited)
             s_t_graph = nx.Graph(s_t_graph)
             #the induced graph could contain reference edges which need to be removed
             remove = []
@@ -172,9 +172,9 @@ def layout(graph, ref_g_id, cut_edges_out, ignore_high_var,
             if len(cut) == 0:
                 #something happened as no min cut can be found
                 i += 1
-                sys.exit(
+                raise NameError(
                     "no min cut could be found; sorry this shouldn't happen")
-            g.remove_edges_from(cut)
+            G.remove_edges_from(cut)
             sink["sink"] = None
             #there may be more paths from that node -> apply again on the same node
         else:

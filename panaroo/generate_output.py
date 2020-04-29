@@ -68,8 +68,8 @@ def generate_roary_gene_presence_absence(G, mems_to_isolates, orig_ids,
                     unique_id_count += 1
                 entry.append(G.nodes[node]['annotation'])
                 entry.append(G.nodes[node]['description'])
-                entry.append(len(G.nodes[node]['seqIDs']))
                 entry.append(G.nodes[node]['size'])
+                entry.append(len(G.nodes[node]['seqIDs']))
                 entry.append((1.0 * len(G.nodes[node]['seqIDs'])) /
                              G.nodes[node]['size'])
                 entry.append(frag)
@@ -221,7 +221,7 @@ def get_core_gene_nodes(G, threshold, num_isolates):
     core_nodes = []
     for node in G.nodes():
         if float(G.nodes[node]["size"]) / float(num_isolates) > threshold:
-            core_nodes.append(node)
+            core_nodes.append(G.nodes[node]["name"])
     return core_nodes
 
 

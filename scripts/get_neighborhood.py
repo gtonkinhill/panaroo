@@ -1,6 +1,11 @@
 import networkx as nx
 from collections import deque
 
+def conv_list(maybe_list):
+    if not isinstance(maybe_list, list):
+        maybe_list = [maybe_list]
+    return (maybe_list)
+
 def get_target(g, gene):
     for n, attr in g.nodes(data=True):
         if attr["name"] == gene:
@@ -73,14 +78,14 @@ def main():
     # load graph
     G = nx.read_gml(args.graph)
     for n in G.nodes():
-        G.nodes[n]['members'] = set(G.nodes[n]['members'])
+        G.nodes[n]['members'] = set(conv_list(G.nodes[n]['members']))
 
     # find target gene
     target = get_target(G, args.gene)
 
     # find target genome id if requested
+    gid = None
     if args.genome_id is not None:
-        gid = None
         for i, genome in enumerate(G.graph['isolateNames']):
             if genome==args.genome_id:
                 gid = str(i)

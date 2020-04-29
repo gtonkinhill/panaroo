@@ -97,15 +97,14 @@ def collapse_families(G,
                       n_cpu=1,
                       quiet=False,
                       distances_bwtn_centroids=None,
-                      centroid_to_index=None):
+                      centroid_to_index=None,
+                      depths = [1, 2, 3]):
 
     node_count = max(list(G.nodes())) + 10
 
     if correct_mistranslations:
-        depths = [1, 2, 3]
         threshold = [0.99, 0.98, 0.95, 0.9]
     else:
-        depths = [1, 2, 3]
         threshold = [0.99, 0.95, 0.9, 0.8, 0.7, 0.6, 0.5]
 
     # precluster for speed

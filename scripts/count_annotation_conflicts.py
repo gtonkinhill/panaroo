@@ -38,6 +38,8 @@ def count_differences(gene_data,
                     if ":" in l: continue
                 elif method == "panaroo":
                     if ";" in l: continue
+                elif method == "ppanggolin":
+                    if ";" in l: continue
 
                 l = re.split("[;:\t]", l)
                 for g in l:
@@ -102,7 +104,7 @@ def main():
         dest="method",
         help="Algorithm used to produce p/a file for formatting",
         type=str,
-        choices=['panaroo', 'roary', 'pirate', 'panx', 'cogsoft'],
+        choices=['panaroo', 'roary', 'pirate', 'panx', 'cogsoft', 'ppanggolin'],
         default="panaroo")
 
     args = parser.parse_args()
@@ -123,6 +125,9 @@ def main():
         sep = ","
     elif args.method == "cogsoft":
         col_skip = 0
+        sep = ","
+    elif args.method == "ppanggolin":
+        col_skip = 14
         sep = ","
 
     anno_conlfict_count = count_differences(gene_data,
