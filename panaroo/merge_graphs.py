@@ -118,8 +118,13 @@ def cluster_centroids(graphs,
                     orig_ids[id_mapping[i][line[2]]] = line[3]
                     ids_len_stop[id_mapping[i][line[2]]] = (len(
                         line[4]), "*" in line[4][1:-3])
+                    if "*" in line[4][-5:]:
+                        seq = "X".join(line[4].split("*")[:-1])
+                        if len(seq)<=5: raise ValueError("short seq!")
+                    else:
+                        seq = line[4].replace("*", "X")
                     outfile.write(">" + id_mapping[i][line[2]] + "\n" +
-                                  line[4].replace("*", "J") + "\n")
+                                  seq + "\n")
 
     # Run cd-hit
     run_cdhit(temp_input_file.name,
@@ -174,9 +179,12 @@ def cluster_centroids(graphs,
                 set([
                     seqid_to_centroid[sid] for sid in G.nodes[node]['seqIDs']
                 ]))
+            for sid in G.nodes[node]["centroid"]:
+                centroids_to_nodes[sid].append(node)
             G.nodes[node]["dna"] = [
                 centroid_to_seqs[sid][1] for sid in G.nodes[node]["centroid"]
             ]
+            
             G.nodes[node]["protein"] = [
                 centroid_to_seqs[sid][0] for sid in G.nodes[node]["centroid"]
             ]
@@ -194,7 +202,7 @@ def cluster_centroids(graphs,
             for nA, nB in itertools.combinations(centroids_to_nodes[centroid],
                                                  2):
                 tempG.add_edge(nA, nB)
-
+    
     clusters = [list(comp) for comp in nx.connected_components(tempG)]
 
     return clusters, seqid_to_centroid, orig_ids, ids_len_stop
@@ -400,10 +408,12 @@ def main():
                           quiet=args.quiet,
                           depths = [1, 2])[0]
 
+    print("Number of nodes in merged graph: ", G.number_of_nodes())
+
     print("Collapsing at families...")
     G = collapse_families(G,
                           seqid_to_centroid=seqid_to_centroid,
-                          outdir=temp_dir,
+                          outdir=args.output_dir,
                           family_threshold=args.family_threshold,
                           correct_mistranslations=False,
                           length_outlier_support_proportion=args.

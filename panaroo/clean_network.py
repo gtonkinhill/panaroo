@@ -137,7 +137,6 @@ def collapse_families(G,
                 seqid_to_index[sid] = centroid_to_index[G.nodes[node]
                                                         ["longCentroidID"][1]]
             else:
-                t = seqid_to_centroid[sid]
                 seqid_to_index[sid] = centroid_to_index[seqid_to_centroid[sid]]
 
     nonzero_dist = distances_bwtn_centroids.nonzero()
