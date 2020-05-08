@@ -12,7 +12,7 @@
 - Post-processing
     - [Pangenome Association Study](/post/pwas.md)
     - [Structural Variant Analysis](/post/sv.md)
-    - [Graph Gene Neighborhood](/post/gene_neighborhood.md)
+    - [Graph Gene Neighborhood](/post/gene_neighbourhood.md)
     - [Estimating the Pan-genome Size](/post/pansize.md)
     - [Co-Evolving Genes](/post/coevolution.md)
 

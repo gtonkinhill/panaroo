@@ -62,7 +62,8 @@ setup(
             'panaroo-spydrpick = panaroo.spydrpick:main',
             'panaroo-img = panaroo.estimate_img_params:main',
             'panaroo-fmg = panaroo.estimate_many_genes_params:main',
-            'panaroo-msa = panaroo.post_run_alignment_gen:main'
+            'panaroo-msa = panaroo.post_run_alignment_gen:main',
+            'panaroo-gene-neighbourhood = panaroo.get_neighborhood:main'
         ],
     },
 )

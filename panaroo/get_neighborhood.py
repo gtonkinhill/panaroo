@@ -1,5 +1,5 @@
 import networkx as nx
-from collections import deque
+from collections import deque, defaultdict
 
 def conv_list(maybe_list):
     if not isinstance(maybe_list, list):
@@ -27,7 +27,7 @@ def generic_bfs_edges_with_dist(G, source, neighbors=None, depth_limit=None, gen
         try:
             child = next(children)
             if child not in visited:
-                yield child, depth_limit-depth_now+1
+                yield parent, child, depth_limit-depth_now+1
                 visited.add(child)
                 if depth_now > 1:
                     queue.append((child, depth_now - 1, get_neighbours_with_genome(G, child, genome)))
@@ -39,8 +39,7 @@ def get_neighbours_with_genome(G, node, genome):
     if genome is None:
         return (neighbours)
     else:
-        return (n for n in neighbours if genome in G[node][n]['members'])
-
+        return (n for n in neighbours if genome in conv_list(G[node][n]['members']))
 
 def get_options():
     import argparse
@@ -93,11 +92,45 @@ def main():
             raise NameError("Genome ID does not match any in the graph!")
 
     # write out neighbouring genes and distance from target
+    
+    # allocate edges to members
+    mems_to_edges = defaultdict(list)
+    if gid is None:
+        msearch = G.nodes[target]['members']
+    else:
+        msearch = [int(gid)]
+
+    for mem in msearch:
+        for u,v,d in bfs_with_dist(G, target, depth_limit=args.expand_no, genome=mem): 
+            mems_to_edges[mem].append((u,v))
+
+    # find path for each member
+    paths_to_members = defaultdict(list)
+    for mem in mems_to_edges:
+        # create temporary graph
+        tG = nx.Graph()
+        tG.add_edges_from(mems_to_edges[mem])
+
+        # find largest connected component that contains the target
+        for c in sorted(nx.connected_components(tG), key=len, reverse=True):
+            if target in c:
+                path = sorted(c)
+                break
+        
+        # reorder path
+        spaths = nx.shortest_path_length(tG, source=target)
+        n = max(spaths, key=spaths.get)
+        path = [n] + [v for u, v in nx.dfs_edges(tG, source=n)]
+        
+        paths_to_members[tuple(path)].append(mem)
+
+    # write output
     with open(args.out, 'w') as outfile:
-        outfile.write("gene,dist\n")
-        for node, dist in bfs_with_dist(G, target, depth_limit=args.expand_no, genome=gid):
-            gname = G.nodes[node]['name']
-            outfile.write(gname + "," + str(dist) +"\n")
+        outfile.write("support\tmembers\tpath\n")
+        for path in paths_to_members:
+            outfile.write(str(len(paths_to_members[path])) + "\t")
+            outfile.write(",".join([G.graph['isolateNames'][m] for m in paths_to_members[path]]) + "\t")
+            outfile.write(",".join([G.nodes[n]['name'] for n in path]) + "\n")
 
     return
 
