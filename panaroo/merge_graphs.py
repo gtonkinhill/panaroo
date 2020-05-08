@@ -64,10 +64,13 @@ def load_graphs(graph_files, n_cpu=1):
         # set up node parameters and remove conflicts.
         max_mem = -1
         for n in G.nodes():
-            G.nodes[n]['centroid'] = [
-                update_sid(sid, member_count)
-                for sid in G.nodes[n]['centroid'].split(";")
-            ]
+            ncentroids = []
+            for sid in G.nodes[n]['centroid'].split(";"):
+                nid = update_sid(sid, member_count)
+                id_mapping[i][sid] = nid
+                if "refound" not in nid:
+                    ncentroids.append(nid)
+            G.nodes[n]['centroid'] = ncentroids
             new_ids = set()
             for sid in conv_list(G.nodes[n]['seqIDs']):
                 nid = update_sid(sid, member_count)
@@ -118,13 +121,9 @@ def cluster_centroids(graphs,
                     orig_ids[id_mapping[i][line[2]]] = line[3]
                     ids_len_stop[id_mapping[i][line[2]]] = (len(
                         line[4]), "*" in line[4][1:-3])
-                    if "*" in line[4][-5:]:
-                        seq = "X".join(line[4].split("*")[:-1])
-                        if len(seq)<=5: raise ValueError("short seq!")
-                    else:
-                        seq = line[4].replace("*", "X")
+                    if "refound" in line[2]: continue
                     outfile.write(">" + id_mapping[i][line[2]] + "\n" +
-                                  seq + "\n")
+                                  line[4] + "\n")
 
     # Run cd-hit
     run_cdhit(temp_input_file.name,
@@ -177,7 +176,7 @@ def cluster_centroids(graphs,
         for node in G.nodes():
             G.nodes[node]["centroid"] = list(
                 set([
-                    seqid_to_centroid[sid] for sid in G.nodes[node]['seqIDs']
+                    seqid_to_centroid[sid] for sid in G.nodes[node]['seqIDs'] if "refound" not in sid
                 ]))
             for sid in G.nodes[node]["centroid"]:
                 centroids_to_nodes[sid].append(node)
@@ -405,22 +404,20 @@ def main():
                           length_outlier_support_proportion=args.
                           length_outlier_support_proportion,
                           n_cpu=args.n_cpu,
-                          quiet=args.quiet,
-                          depths = [1, 2])[0]
+                          quiet=args.quiet)[0]
 
     print("Number of nodes in merged graph: ", G.number_of_nodes())
 
     print("Collapsing at families...")
     G = collapse_families(G,
                           seqid_to_centroid=seqid_to_centroid,
-                          outdir=args.output_dir,
+                          outdir=temp_dir,
                           family_threshold=args.family_threshold,
                           correct_mistranslations=False,
                           length_outlier_support_proportion=args.
                           length_outlier_support_proportion,
                           n_cpu=args.n_cpu,
-                          quiet=args.quiet,
-                          depths = [1, 2])[0]
+                          quiet=args.quiet)[0]
 
     print("Number of nodes in merged graph: ", G.number_of_nodes())
 
