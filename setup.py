@@ -62,7 +62,8 @@ setup(
             'panaroo-plot-abundance = panaroo.generate_abundance_plots:main',
             'panaroo-spydrpick = panaroo.spydrpick:main',
             'panaroo-img = panaroo.estimate_img_params:main',
-            'panaroo-fmg = panaroo.estimate_many_genes_params:main'
+            'panaroo-fmg = panaroo.estimate_many_genes_params:main',
+            'panaroo-gene-neighbourhood = panaroo.get_neighborhood:main'
         ],
     },
 )

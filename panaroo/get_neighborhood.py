@@ -98,7 +98,7 @@ def main():
     if gid is None:
         msearch = G.nodes[target]['members']
     else:
-        msearch = [gid]
+        msearch = [int(gid)]
 
     for mem in msearch:
         for u,v,d in bfs_with_dist(G, target, depth_limit=args.expand_no, genome=mem): 
@@ -118,16 +118,17 @@ def main():
                 break
         
         # reorder path
-        for n in path:
-            if tG.degree(n)==1:
-                path = [n] + [v for u, v in nx.bfs_edges(tG, source=n)]
-                break
+        spaths = nx.shortest_path_length(tG, source=target)
+        n = max(spaths, key=spaths.get)
+        path = [n] + [v for u, v in nx.dfs_edges(tG, source=n)]
         
         paths_to_members[tuple(path)].append(mem)
 
+    # write output
     with open(args.out, 'w') as outfile:
-        outfile.write("members\tpath\n")
+        outfile.write("support\tmembers\tpath\n")
         for path in paths_to_members:
+            outfile.write(str(len(paths_to_members[path])) + "\t")
             outfile.write(",".join([G.graph['isolateNames'][m] for m in paths_to_members[path]]) + "\t")
             outfile.write(",".join([G.nodes[n]['name'] for n in path]) + "\n")
 
