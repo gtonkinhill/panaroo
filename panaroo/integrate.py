@@ -16,7 +16,7 @@ from .cdhit import run_cdhit
 from .generate_network import generate_network
 from .isvalid import *
 
-def get_options(): #options for integrating (combination of merge graph and cdhit options
+def get_options(): #options for integrating (combination of merge graph and cdhit options)
    
     import argparse
 
@@ -32,7 +32,7 @@ def get_options(): #options for integrating (combination of merge graph and cdhi
         dest="input_dir",
         required=True,
         help="input directory for gml of pre-existing panaroo output",
-        type=str) #SPECIFY THE LOCATIONS OF THE PREEXISTING GRAPH 
+        type=str)
     
     io_opts.add_argument(
         "-i",
@@ -40,14 +40,14 @@ def get_options(): #options for integrating (combination of merge graph and cdhi
         dest="input_gff",
         required=True,
         help="input gff file of new genome to be integrated",
-        type=str) #SPECIFY THE GFF TO BE INTEGRATED  
+        type=str) 
         
     io_opts.add_argument("-o",
                          "--out_dir",
                          dest="output_dir",
                          required=True,
                          help="location of a new output directory",
-                         type=lambda x: is_valid_folder(parser, x)) #SPECIFY THE OUTPUT DIRECTORY OF THE FINAL GRAPH. USED IN PROCESS_PROKKA_INPUT, RUN_CDHIT, NX.WRITE_GML
+                         type=lambda x: is_valid_folder(parser, x))
 
     matching = parser.add_argument_group('Matching')
 
@@ -56,7 +56,7 @@ def get_options(): #options for integrating (combination of merge graph and cdhi
                           dest="id",
                           help="sequence identity threshold (default=0.95)",
                           default=0.98,
-                          type=float) #SEQUENCE IDENTITY THRESHOLD. USED IN RUN-CDHIT
+                          type=float) 
 
     matching.add_argument(
         "-f",
@@ -64,19 +64,19 @@ def get_options(): #options for integrating (combination of merge graph and cdhi
         dest="family_threshold",
         help="protein family sequence identity threshold (default=0.7)",
         default=0.7,
-        type=float) #PROTEIN SEQUENCE IDENTITY THRESHOLD. USED IN RUN-CDHIT-EST
+        type=float)
 
     matching.add_argument("--len_dif_percent",
                           dest="len_dif_percent",
                           help="length difference cutoff (default=0.95)",
                           default=0.95,
-                          type=float) #USED IN CLUSTER CENTROIDS AND RUN-CDHIT
+                          type=float)
 
     matching.add_argument("--merge_paralogs",
                           dest="merge_paralogs",
                           help="don't split paralogs",
                           action='store_true',
-                          default=False) #USED IN MERGE_PARALOGS FROM CLEAN NETWORK  
+                          default=False) 
 
     matching.add_argument(
         "--length_outlier_support_proportion",
@@ -88,7 +88,7 @@ def get_options(): #options for integrating (combination of merge graph and cdhi
          " (default=0.01). Genes failing this test will be re-annotated at the "
          + "shorter length"),
         type=float,
-        default=0.1) #USED IN COLLAPSE FAMILIES IN CLEAN NETWORK  
+        default=0.1) 
 
     parser.add_argument(
         "--min_edge_support_sv",
@@ -98,7 +98,7 @@ def get_options(): #options for integrating (combination of merge graph and cdhi
             " in the presence/absence csv file (default=max(2, 0.01*n_samples))"
         ),
         default=2,
-        type=int) #USED IN generate_common_struct_presence_absence IN GENERATE OUTPUT
+        type=int) 
 
     # MSA options
     core = parser.add_argument_group('Gene alignment')
@@ -110,7 +110,7 @@ def get_options(): #options for integrating (combination of merge graph and cdhi
               " 'core' and 'pan'. Default: 'None'"),
         type=str,
         choices=['core', 'pan'],
-        default=None) #USED IN generate_pan_genome_alignment AND generate_core_genome_alignment FROM GENERATE_OUTPUT
+        default=None) 
     
     core.add_argument(
         "--aligner",
@@ -119,13 +119,13 @@ def get_options(): #options for integrating (combination of merge graph and cdhi
         "Specify an aligner. Options:'prank', 'clustal', and default: 'mafft'",
         type=str,
         choices=['prank', 'clustal', 'mafft'],
-        default="mafft") #USED IN generate_pan_genome_alignment AND generate_core_genome_alignment FROM GENERATE_OUTPUT
+        default="mafft") 
     
     core.add_argument("--core_threshold",
                       dest="core",
                       help="Core-genome sample threshold (default=0.95)",
                       type=float,
-                      default=0.95) #USED IN generate_core_genome_alignment and get_core_gene_nodes FROM GENERATE_OUTPUT
+                      default=0.95) 
     
     graph = parser.add_argument_group('Graph correction')
     
@@ -142,17 +142,17 @@ def get_options(): #options for integrating (combination of merge graph and cdhi
                         dest="n_cpu",
                         help="number of threads to use (default=1)",
                         type=int,
-                        default=1) #USED IN LOAD_GRAPHS, cluster_centroids, collapse_families, generate_pan_genome_alignment, generate_core_genome_alignment,PROCESS_PROKKA INPUT, RUN_CDJIT
+                        default=1) 
     
     parser.add_argument("--quiet",
                         dest="quiet",
                         help="suppress additional output",
                         action='store_true',
-                        default=False) #USED IN collapse_families, Write out core/pan-genome alignments, PROCESS_PROKKA_INPUT 
+                        default=False)
         
     parser.add_argument("--version'",
                         action="version",
-                        version='%(prog)s ' + __version__) #IMPORTED FROM INNIT.PY
+                        version='%(prog)s ' + __version__)
 
     args = parser.parse_args()
     return (args)
@@ -191,7 +191,7 @@ def reformat_network(single_gml, output_dir, isolateName): #Generate network out
         y['longCentroidID'] = list(y['longCentroidID'])
         y['seqIDs'] = list(y['seqIDs'])
     
-    single_gml.graph.update({'isolateNames' : 'x'}) # isolateName from gff filename
+    single_gml.graph.update({'isolateNames' : 'x'}) # isolateName assigned x as list(x) in merged graph
     nx.write_gml(single_gml, output_dir + "final_graph.gml")
     
     return single_gml
