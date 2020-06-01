@@ -430,6 +430,10 @@ def main():
     # make sure trailing forward slash is present
     args.output_dir = os.path.join(args.output_dir, "")
 
+    if len(args.input_files) == 1:
+        with open(args.input_files[0]) as inhandle:
+            args.input_files = inhandle.read().splitlines()
+    
     generate_qc_plot(method=args.graph_type,
                      input_files=args.input_files,
                      outdir=args.output_dir,
