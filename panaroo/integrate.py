@@ -371,6 +371,10 @@ def merge_graphs(directories, filename, n_cpu, temp_dir, len_dif_percent, Id, fa
 def main(): #Takes a single GFF input, generates a graph and merges with a pre-existing graph
     args = get_options()
     
+    # create directory if it isn't present already
+    if not os.path.exists(args.output_dir):
+      os.mkdir(args.output_dir)
+         
     args.input_dir = os.path.join(args.input_dir, "")
     args.output_dir = os.path.join(args.output_dir, "")
         
