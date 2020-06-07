@@ -6,7 +6,6 @@ A script to merge a single GFF file with a pre-existing panaroo output
 import os
 import tempfile
 import networkx as nx
-import subprocess
 import shutil
 import sys
 
