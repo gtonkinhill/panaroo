@@ -16,7 +16,7 @@ from .generate_network import generate_network
 from .isvalid import *
 from .merge_graphs import *
 
-def get_options(args): #options for integrating (combination of merge graph and cdhit options
+def get_options(): #options for integrating (combination of merge graph and cdhit options
    
     import argparse
 
@@ -369,7 +369,7 @@ def merge_graphs(directories, filename, n_cpu, temp_dir, len_dif_percent, Id, fa
     return 
 
 def main(): #Takes a single GFF input, generates a graph and merges with a pre-existing graph
-    args = get_options(sys.argv[1:])
+    args = get_options()
     
     # create directory if it isn't present already
     if not os.path.exists(args.output_dir):
