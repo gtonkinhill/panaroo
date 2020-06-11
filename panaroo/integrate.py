@@ -48,7 +48,7 @@ def get_options(): #options for integrating (combination of merge graph and cdhi
                          dest="output_dir",
                          required=True,
                          help="location of a new output directory",
-                         type=lambda x: is_valid_folder(parser, x))
+                         type=str)
 
     matching = parser.add_argument_group('Matching')
 
@@ -211,6 +211,10 @@ def reformat_network(single_gml, output_dir, isolateName): #Generate network out
 def main(): #Takes a single GFF input, generates a graph and merges with a pre-existing graph
     args = get_options()
     
+    # create directory if it isn't present already
+    if not os.path.exists(args.output_dir):
+        os.mkdir(args.output_dir)
+         
     args.input_dir = os.path.join(args.input_dir, "")
     args.output_dir = os.path.join(args.output_dir, "")
         
