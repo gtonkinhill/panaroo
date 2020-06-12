@@ -237,7 +237,7 @@ def main():
 
     filename = os.path.basename(args.input_gff).split(".")[0]
 
-    print("Processing input")
+    if not args.quiet: print("Processing input")
     process_prokka_input(gff_list=gff_file,
                          output_dir=temp_dir,
                          quiet=args.quiet,
@@ -251,14 +251,14 @@ def main():
               quiet=args.quiet,
               n_cpu=args.n_cpu)
 
-    print("Generating network")
-
+    if not args.quiet: print("Generating network")
     single_gml, centroid_contexts_single, seqid_to_centroid_single = generate_network(
         cluster_file=cd_hit_out + ".clstr",
         data_file=temp_dir + "gene_data.csv",
         prot_seq_file=temp_dir + "combined_protein_CDS.fasta",
         all_dna=args.all_seq_in_graph)
-    print("Reformatting network")
+
+    if not args.quiet: print("Reformatting network")
     reformat_network(single_gml=single_gml,
                      output_dir=temp_dir,
                      isolateName=filename)
