@@ -16,7 +16,6 @@ from Bio.Align.Applications import MafftCommandline
 from Bio.Align.Applications import ClustalOmegaCommandline
 import Bio.Application
 
-
 from Bio import codonalign
 from Bio.Alphabet import IUPAC
 
@@ -68,7 +67,7 @@ def output_sequence(node, isolate_list, temp_directory, outdir):
     #Get the name of the sequences for the gene of interest
     sequence_ids = node["seqIDs"]
     output_sequences = []
-    #Counter for the number of sequences to
+    #Counter for the number of sequences to avoid aliging single sequences
     isolate_no = 0
     #Look for gene sequences among all genes (from disk)
     for seq in SeqIO.parse(outdir + "combined_DNA_CDS.fasta", 'fasta'):
@@ -96,25 +95,55 @@ def output_sequence(node, isolate_list, temp_directory, outdir):
     SeqIO.write(output_sequences, outname, 'fasta')
     return outname
 
-def output_protein(node, isolate_list, temp_directory, outdir):
+def output_dna_and_protein(node, isolate_list, temp_directory, outdir):
     #Get the name of the sequences for the gene of interest
     sequence_ids = node["seqIDs"]
-    output_sequences = []
+    output_dna = []
+    output_protein = []
+    #Counter for the number of sequences to avoid aliging single sequences
+    isolate_no = 0
     #Look for gene sequences among all genes (from disk)
-    for seq in SeqIO.parse(outdir + "combined_protein_CDS.fasta", 'fasta'):
-        isolate_num = int(seq.id.split('_')[0])
+    all_proteins = list(SeqIO.parse(outdir + "combined_protein_CDS.fasta", 'fasta'))
+    all_dna = list(SeqIO.parse(outdir + "combined_DNA_CDS.fasta", 'fasta'))
+    
+    for seq_ind in range(len(all_proteins)):
+        
+        seq_id = all_proteins[seq_ind].id
+        
+        #check to make sure protien and DNA are same id
+        if seq_id != all_dna[seq_ind].id:
+            raise ValueError("DNA and protien sequence IDs do not match!")
+        
+        isolate_num = int(seq_id.split('_')[0])
         isolate_name = isolate_list[isolate_num].replace(";",
-                                                         "") + ";" + seq.id
-        if seq.id in sequence_ids:
-            output_sequences.append(
-                SeqRecord(seq.seq, id=isolate_name, description=""))
+                                                         "") + ";" + seq_id
+        if seq_id in sequence_ids:
+            prot_stop_codon = all_proteins[seq_ind].seq.find("*")
+            if prot_stop_codon > -1:
+                output_protein.append(
+                    SeqRecord(all_proteins[seq_ind].seq[:prot_stop_codon], 
+                              id=isolate_name, description=""))
+                output_dna.append(
+                    SeqRecord(all_dna[seq_ind].seq[:(prot_stop_codon*3)], 
+                              id=isolate_name, description=""))
+            else:
+                output_dna.append(
+                    SeqRecord(all_dna[seq_ind].seq, 
+                              id=isolate_name, description=""))
+                output_protein.append(
+                    SeqRecord(all_proteins[seq_ind].seq, 
+                              id=isolate_name, description=""))
+            isolate_no += 1
     #Put gene of interest sequences in a generator, with corrected isolate names
-    output_sequences = (x for x in output_sequences)
+    output_dna = (x for x in output_dna)
+    output_protein = (x for x in output_protein)
     #set filename to gene name
-    outname = temp_directory + node["name"] + ".fasta"
+    prot_outname = temp_directory + node["name"] + ".fasta"
+    dna_outname = "unaligned_dna_sequences/" + node["name"] + ".fasta"
     #Write them to disk
-    SeqIO.write(output_sequences, outname, 'fasta')
-    return outname
+    SeqIO.write(output_protein, prot_outname, 'fasta')
+    SeqIO.write(output_dna, dna_outname, 'fasta')
+    return (prot_outname, dna_outname)
 
 
 def get_alignment_commands(fastafile_name, outdir, aligner, threads):
@@ -218,19 +247,34 @@ def multi_align_sequences(commands, outdir, threads, aligner):
     return True
 
 def reverse_translate_sequences(protein_sequence_files, dna_sequence_files, outdir, threads):
-    #Read in files (multithreaded)
-    protein_alignments = Parallel(n_jobs=threads, prefer="threads")(
-            delayed(AlignIO.read)("./unaligned_dna_sequences/" + x, "fasta", alphabet=IUPAC.unambiguous_dna) 
-            for x in protein_sequence_files)
+    #Check that the dna and protein files match up
+    for index in range(len(protein_sequence_files)):
+        gene_id = protein_sequence_files[index].split(".")[0]
+        if gene_id in dna_sequence_files[index]:
+            continue
+        else:
+            print(protein_sequence_files[index])
+            print(dna_sequence_files[index])
+            raise ValueError("DNA and protien sequence IDs do not match!")
     
+    #Read in files (multithreaded)
     dna_sequences = Parallel(n_jobs=threads, prefer="threads")(
-            delayed(SeqIO.parse)(x, "fasta", alphabet=IUPAC.protien) 
-            for x in dna_sequence_files)
+            delayed(SeqIO.parse)(x, "fasta", alphabet=IUPAC.unambiguous_dna) 
+            for x in dna_sequence_files)  
+    protein_alignments = Parallel(n_jobs=threads, prefer="threads")(
+            delayed(AlignIO.read)(outdir + x, "fasta", alphabet=IUPAC.protein) 
+            for x in protein_sequence_files)
     #build codon alignments
     codon_alignments = Parallel(n_jobs=threads, prefer="threads")(
             delayed(codonalign.build)
-            (protein_alignments[index], dna_sequences[index]) 
+            (protein_alignments[index], list(dna_sequences[index])) 
             for index in range(len(protein_alignments)))
+    
+    #Remove <unknown description> from codon alignments
+    for alignment in codon_alignments:
+        for sequence in alignment:
+            sequence.description = ""
+    
     #output codon alignments
     outnames = [x.split("/")[-1] for x in protein_sequence_files]
         
@@ -276,3 +320,16 @@ def write_alignment_header(alignment_list, outdir):
             outhandle.write(entry)
         outhandle.write(footer)
     return True
+
+
+#Code to test codon alignments
+if __name__ == '__main__':
+    panaroo_output_dir = sys.argv[1]
+    threads = int(sys.argv[2])
+    dna_sequences = os.listdir(panaroo_output_dir.rstrip("/") +'/'+ "unaligned_dna_sequences/")
+    protein_sequences = os.listdir(panaroo_output_dir.rstrip("/") +'/'+ "aligned_protein_sequences/")
+    
+    codon_alignemnts = reverse_translate_sequences(protein_sequences, dna_sequences,
+                                                   "./", threads)
+    AlignIO.write(codon_alignments[0], "codon_alignments_test.fasta", "fasta")
+        

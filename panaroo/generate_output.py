@@ -227,14 +227,13 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
         except FileExistsError:
             None
         #Multithread writing protien and dna sequences to disk (temp directory) so aligners can find them
-        unaligned_protein_files = Parallel(n_jobs=threads)(
-            delayed(output_protein)(G.nodes[x], isolates, temp_dir, output_dir)
+        output_files = Parallel(n_jobs=threads)(
+            delayed(output_dna_and_protein)(G.nodes[x], isolates, temp_dir, output_dir)
             for x in tqdm(G.nodes()))
         
-        unaligned_dna_files = Parallel(n_jobs=threads)(
-            delayed(output_sequence)(G.nodes[x], isolates, 
-                   output_dir + "unaligned_dna_sequences/", output_dir)
-                    for x in tqdm(G.nodes()))
+        unaligned_protein_files = [x[0] for x in output_files]
+        unaligned_dna_files = [x[1] for x in output_files]
+        
         #Get Biopython command calls for each output gene sequences
         commands = [
             get_protein_commands(fastafile, output_dir, aligner, threads)
@@ -245,12 +244,12 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
                               threads, aligner)
         
         #Get the list of aligned protien files
-        protein_sequences = os.listdir(output_dir + "aligned_protein_sequences/")
+        protein_sequences = [output_dir + "aligned_protein_sequences/" + x.split("/")[-1].split(".")[0] + ".aln.fas" for x in unaligned_dna_files]
         
         #Check all alignments completed
-        if len(protein_sequences) != len(unaligned_dna_files):
-            raise RuntimeError("Some alignments failed to complete!")
-        
+        for file in protein_sequences:
+            if os.path.isfile(file) == False:
+                raise RuntimeError("Some alignments failed to complete!")
         
         #Reverse translate and output codon alignments
         codon_alignments = reverse_translate_sequences(protein_sequences, 
