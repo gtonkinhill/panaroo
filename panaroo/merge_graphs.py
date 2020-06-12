@@ -254,7 +254,7 @@ def merge_graphs(directories, temp_dir, len_dif_percent, pid, family_threshold,
         [d + "final_graph.gml" for d in directories], n_cpu=n_cpu)
 
     # cluster centroids
-    print("Clustering centroids...")
+    if not quiet: print("Clustering centroids...")
     clusters, seqid_to_centroid, orig_ids, ids_len_stop = cluster_centroids(
         graphs=graphs,
         outdir=temp_dir,
