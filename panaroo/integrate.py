@@ -276,6 +276,8 @@ def main():
                  aln=args.aln,
                  alr=args.alr,
                  core=args.core,
+                 merge_single=True,
+                 depths=[1],
                  n_cpu=args.n_cpu,
                  quiet=args.quiet)
 

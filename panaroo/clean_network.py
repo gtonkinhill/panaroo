@@ -99,7 +99,7 @@ def collapse_families(G,
                       distances_bwtn_centroids=None,
                       centroid_to_index=None,
                       depths = [1, 2, 3],
-                      search_space = None):
+                      search_genome_ids = None):
 
     node_count = max(list(G.nodes())) + 10
 
@@ -152,8 +152,15 @@ def collapse_families(G,
 
     for depth in depths:
         if not quiet: print("Processing depth: ", depth)
-        if search_space is None:
+        if search_genome_ids is None:
             search_space = set(G.nodes())
+        else:
+            search_space = set()
+            search_genome_ids = intbitset(search_genome_ids)
+            for n in G.nodes():
+                if len(G.nodes[n]['members'].intersection(search_genome_ids))>0:
+                    search_space.add(n)
+            
         iteration_num = 1
         while len(search_space) > 0:
             # look for nodes to merge

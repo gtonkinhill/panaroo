@@ -241,9 +241,22 @@ def simple_merge_graphs(graphs, clusters):
     return merged_G
 
 
-def merge_graphs(directories, temp_dir, len_dif_percent, pid, family_threshold,
-                 length_outlier_support_proportion, merge_paralogs, output_dir,
-                 min_edge_support_sv, aln, alr, core, n_cpu, quiet):
+def merge_graphs(directories,
+                 temp_dir,
+                 len_dif_percent,
+                 pid,
+                 family_threshold,
+                 length_outlier_support_proportion,
+                 merge_paralogs,
+                 output_dir,
+                 min_edge_support_sv,
+                 aln,
+                 alr,
+                 core,
+                 merge_single=False,
+                 depths=[1,2,3],
+                 n_cpu=1,
+                 quiet=False):
 
     print(
         "Merging graphs is still under active development and may change frequently!"
@@ -252,6 +265,10 @@ def merge_graphs(directories, temp_dir, len_dif_percent, pid, family_threshold,
     if not quiet: print("Loading graphs...")
     graphs, isolate_names, id_mapping = load_graphs(
         [d + "final_graph.gml" for d in directories], n_cpu=n_cpu)
+
+    search_genome_ids = None
+    if merge_single:
+        search_genome_ids = [len(isolate_names)-1]
 
     # cluster centroids
     if not quiet: print("Clustering centroids...")
@@ -280,7 +297,9 @@ def merge_graphs(directories, temp_dir, len_dif_percent, pid, family_threshold,
         correct_mistranslations=True,
         length_outlier_support_proportion=length_outlier_support_proportion,
         n_cpu=n_cpu,
-        quiet=quiet)[0]
+        quiet=quiet,
+        depths=depths,
+        search_genome_ids=search_genome_ids)[0]
 
     if not quiet:
         print("Number of nodes in merged graph: ", G.number_of_nodes())
@@ -294,7 +313,9 @@ def merge_graphs(directories, temp_dir, len_dif_percent, pid, family_threshold,
         correct_mistranslations=False,
         length_outlier_support_proportion=length_outlier_support_proportion,
         n_cpu=n_cpu,
-        quiet=quiet)[0]
+        quiet=quiet,
+        depths=depths,
+        search_genome_ids=search_genome_ids)[0]
 
     if not quiet:
         print("Number of nodes in merged graph: ", G.number_of_nodes())
