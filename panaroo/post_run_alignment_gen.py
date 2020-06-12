@@ -43,6 +43,13 @@ def get_options():
         type=str,
         choices={'prank', 'clustal', 'mafft'},
         default="mafft")
+    core.add_argument(
+        "--codons",
+        dest="codons",
+        help=
+        "Generate codon alignments by aligning sequences at the protein level",
+        action='store_true',
+        default=False)
     core.add_argument("--core_threshold",
                       dest="core",
                       help="Core-genome sample threshold (default=0.95)",
@@ -103,7 +110,7 @@ def main():
         if args.verbose: print("generating core genome MSAs...")
         generate_core_genome_alignment(G, temp_dir, args.output_dir,
                                        args.n_cpu, args.alr, isolate_names,
-                                       args.core, len(isolate_names))
+                                       args.core, args.codons, len(isolate_names))
 
     # remove temporary directory
     shutil.rmtree(temp_dir)
