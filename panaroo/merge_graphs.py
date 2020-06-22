@@ -176,14 +176,15 @@ def cluster_centroids(graphs,
         for node in G.nodes():
             G.nodes[node]["centroid"] = list(
                 set([
-                    seqid_to_centroid[sid] for sid in G.nodes[node]['seqIDs'] if "refound" not in sid
+                    seqid_to_centroid[sid] for sid in G.nodes[node]['seqIDs']
+                    if "refound" not in sid
                 ]))
             for sid in G.nodes[node]["centroid"]:
                 centroids_to_nodes[sid].append(node)
             G.nodes[node]["dna"] = [
                 centroid_to_seqs[sid][1] for sid in G.nodes[node]["centroid"]
             ]
-            
+
             G.nodes[node]["protein"] = [
                 centroid_to_seqs[sid][0] for sid in G.nodes[node]["centroid"]
             ]
@@ -201,7 +202,7 @@ def cluster_centroids(graphs,
             for nA, nB in itertools.combinations(centroids_to_nodes[centroid],
                                                  2):
                 tempG.add_edge(nA, nB)
-    
+
     clusters = [list(comp) for comp in nx.connected_components(tempG)]
 
     return clusters, seqid_to_centroid, orig_ids, ids_len_stop
@@ -238,6 +239,188 @@ def simple_merge_graphs(graphs, clusters):
                                           check_merge_mems=True)
 
     return merged_G
+
+
+def merge_graphs(directories,
+                 temp_dir,
+                 len_dif_percent,
+                 pid,
+                 family_threshold,
+                 length_outlier_support_proportion,
+                 merge_paralogs,
+                 output_dir,
+                 min_edge_support_sv,
+                 aln,
+                 alr,
+                 core,
+                 merge_single=False,
+                 depths=[1,2,3],
+                 n_cpu=1,
+                 quiet=False):
+
+    print(
+        "Merging graphs is still under active development and may change frequently!"
+    )
+    # Load graphs
+    if not quiet: print("Loading graphs...")
+    graphs, isolate_names, id_mapping = load_graphs(
+        [d + "final_graph.gml" for d in directories], n_cpu=n_cpu)
+
+    search_genome_ids = None
+    if merge_single:
+        search_genome_ids = [len(isolate_names)-1]
+
+    # cluster centroids
+    if not quiet: print("Clustering centroids...")
+    clusters, seqid_to_centroid, orig_ids, ids_len_stop = cluster_centroids(
+        graphs=graphs,
+        outdir=temp_dir,
+        directories=directories,
+        id_mapping=id_mapping,
+        len_dif_percent=len_dif_percent,
+        identity_threshold=pid,
+        n_cpu=n_cpu)
+
+    # perform initial merge
+    if not quiet: print("Performing inital merge...")
+    G = simple_merge_graphs(graphs, clusters)
+
+    if not quiet:
+        print("Number of nodes in merged graph: ", G.number_of_nodes())
+
+    if not quiet: print("Collapsing at DNA...")
+    G = collapse_families(
+        G,
+        seqid_to_centroid=seqid_to_centroid,
+        outdir=temp_dir,
+        dna_error_threshold=0.98,
+        correct_mistranslations=True,
+        length_outlier_support_proportion=length_outlier_support_proportion,
+        n_cpu=n_cpu,
+        quiet=quiet,
+        depths=depths,
+        search_genome_ids=search_genome_ids)[0]
+
+    if not quiet:
+        print("Number of nodes in merged graph: ", G.number_of_nodes())
+
+    if not quiet: print("Collapsing at families...")
+    G = collapse_families(
+        G,
+        seqid_to_centroid=seqid_to_centroid,
+        outdir=temp_dir,
+        family_threshold=family_threshold,
+        correct_mistranslations=False,
+        length_outlier_support_proportion=length_outlier_support_proportion,
+        n_cpu=n_cpu,
+        quiet=quiet,
+        depths=depths,
+        search_genome_ids=search_genome_ids)[0]
+
+    if not quiet:
+        print("Number of nodes in merged graph: ", G.number_of_nodes())
+
+    # Generate output
+    if not quiet: print("Generating output...")
+
+    # if requested merge paralogs
+    if merge_paralogs:
+        G = merge_paralogs(G)
+
+    G.graph['isolateNames'] = isolate_names
+    mems_to_isolates = {}
+    for i, iso in enumerate(isolate_names):
+        mems_to_isolates[i] = iso
+
+    if not quiet:
+        print("writing output...")
+
+    # write out roary like gene_presence_absence.csv
+    # get original annotaiton IDs, lengths and whether or
+    # not an internal stop codon is present
+    orig_ids = {}
+    ids_len_stop = {}
+    for i, d in enumerate(directories):
+        with open(d + "gene_data.csv", 'r') as infile:
+            next(infile)
+            for line in infile:
+                line = line.split(",")
+                if line[2] not in id_mapping[i]: continue  #its been filtered
+                orig_ids[id_mapping[i][line[2]]] = line[3]
+                ids_len_stop[id_mapping[i][line[2]]] = (len(line[4]),
+                                                        "*" in line[4][1:-3])
+
+    G = generate_roary_gene_presence_absence(G,
+                                             mems_to_isolates=mems_to_isolates,
+                                             orig_ids=orig_ids,
+                                             ids_len_stop=ids_len_stop,
+                                             output_dir=output_dir)
+    #Write out presence_absence summary
+    generate_summary_stats(output_dir=output_dir)
+
+    # write pan genome reference fasta file
+    generate_pan_genome_reference(G,
+                                  output_dir=output_dir,
+                                  split_paralogs=False)
+
+    # write out common structural differences in a matrix format
+    generate_common_struct_presence_absence(
+        G,
+        output_dir=output_dir,
+        mems_to_isolates=mems_to_isolates,
+        min_variant_support=min_edge_support_sv)
+
+    # add helpful attributes and write out graph in GML format
+    for node in G.nodes():
+        G.nodes[node]['size'] = len(G.nodes[node]['members'])
+        G.nodes[node]['centroid'] = ";".join(G.nodes[node]['centroid'])
+        G.nodes[node]['dna'] = ";".join(conv_list(G.nodes[node]['dna']))
+        G.nodes[node]['protein'] = ";".join(conv_list(
+            G.nodes[node]['protein']))
+        G.nodes[node]['genomeIDs'] = ";".join(
+            [str(m) for m in G.nodes[node]['members']])
+        G.nodes[node]['geneIDs'] = ";".join(G.nodes[node]['seqIDs'])
+        G.nodes[node]['degrees'] = G.degree[node]
+        G.nodes[node]['members'] = list(G.nodes[node]['members'])
+        G.nodes[node]['seqIDs'] = list(G.nodes[node]['seqIDs'])
+
+    for edge in G.edges():
+        G.edges[edge[0], edge[1]]['genomeIDs'] = ";".join(
+            [str(m) for m in G.edges[edge[0], edge[1]]['members']])
+        G.edges[edge[0],
+                edge[1]]['members'] = list(G.edges[edge[0],
+                                                   edge[1]]['members'])
+
+    nx.write_gml(G, output_dir + "final_graph.gml")
+
+    # write out merged gene_data and combined_DNA_CDS files
+    with open(output_dir + "gene_data.csv", 'w') as outdata, \
+    open(output_dir + "combined_DNA_CDS.fasta", 'w') as outdna:
+        for i, d in enumerate(directories):
+            with open(d + "gene_data.csv", 'r') as infile:
+                header = next(infile)
+                if i == 0: outdata.write(header)
+                for line in infile:
+                    line = line.strip().split(",")
+                    if line[2] not in id_mapping[i]:
+                        continue  #its been filtered
+                    line[2] = id_mapping[i][line[2]]
+                    outdata.write(",".join(line) + "\n")
+                    outdna.write(">" + line[2] + "\n")
+                    outdna.write(line[5] + "\n")
+
+    # #Write out core/pan-genome alignments
+    if aln == "pan":
+        if not quiet: print("generating pan genome MSAs...")
+        generate_pan_genome_alignment(G, temp_dir, output_dir, n_cpu, alr,
+                                      isolate_names)
+        core_nodes = get_core_gene_nodes(G, core, len(isolate_names))
+        concatenate_core_genome_alignments(core_nodes, output_dir)
+    elif aln == "core":
+        if not quiet: print("generating core genome MSAs...")
+        generate_core_genome_alignment(G, temp_dir, output_dir, n_cpu, alr,
+                                       isolate_names, core, len(isolate_names))
+    return
 
 
 def get_options():
@@ -366,162 +549,25 @@ def main():
     args.output_dir = os.path.join(args.output_dir, "")
     args.directories = [os.path.join(d, "") for d in args.directories]
 
-    # Create temporary directory
+    # create temporary directory
     temp_dir = os.path.join(tempfile.mkdtemp(dir=args.output_dir), "")
 
-    print(
-        "Merging graphs is still under active development and may change frequently!"
-    )
-
-    # Load graphs
-    print("Loading graphs...")
-    graphs, isolate_names, id_mapping = load_graphs(
-        [d + "final_graph.gml" for d in args.directories], n_cpu=args.n_cpu)
-
-    # cluster centroids
-    print("Clustering centroids...")
-    clusters, seqid_to_centroid, orig_ids, ids_len_stop = cluster_centroids(
-        graphs=graphs,
-        outdir=temp_dir,
-        directories=args.directories,
-        id_mapping=id_mapping,
-        len_dif_percent=args.len_dif_percent,
-        identity_threshold=args.id,
-        n_cpu=args.n_cpu)
-
-    # perform initial merge
-    print("Performing inital merge...")
-    G = simple_merge_graphs(graphs, clusters)
-
-    print("Number of nodes in merged graph: ", G.number_of_nodes())
-
-    print("Collapsing at DNA...")
-    G = collapse_families(G,
-                          seqid_to_centroid=seqid_to_centroid,
-                          outdir=temp_dir,
-                          dna_error_threshold=0.98,
-                          correct_mistranslations=True,
-                          length_outlier_support_proportion=args.
-                          length_outlier_support_proportion,
-                          n_cpu=args.n_cpu,
-                          quiet=args.quiet)[0]
-
-    print("Number of nodes in merged graph: ", G.number_of_nodes())
-
-    print("Collapsing at families...")
-    G = collapse_families(G,
-                          seqid_to_centroid=seqid_to_centroid,
-                          outdir=temp_dir,
-                          family_threshold=args.family_threshold,
-                          correct_mistranslations=False,
-                          length_outlier_support_proportion=args.
-                          length_outlier_support_proportion,
-                          n_cpu=args.n_cpu,
-                          quiet=args.quiet)[0]
-
-    print("Number of nodes in merged graph: ", G.number_of_nodes())
-
-    # Generate output
-    print("Generating output...")
-
-    # if requested merge paralogs
-    if args.merge_paralogs:
-        G = merge_paralogs(G)
-
-    G.graph['isolateNames'] = isolate_names
-    mems_to_isolates = {}
-    for i, iso in enumerate(isolate_names):
-        mems_to_isolates[i] = iso
-
-    if not args.quiet:
-        print("writing output...")
-
-    # write out roary like gene_presence_absence.csv
-    # get original annotaiton IDs, lengths and whether or
-    # not an internal stop codon is present
-    orig_ids = {}
-    ids_len_stop = {}
-    for i, d in enumerate(args.directories):
-        with open(d + "gene_data.csv", 'r') as infile:
-            next(infile)
-            for line in infile:
-                line = line.split(",")
-                if line[2] not in id_mapping[i]: continue  #its been filtered
-                orig_ids[id_mapping[i][line[2]]] = line[3]
-                ids_len_stop[id_mapping[i][line[2]]] = (len(line[4]),
-                                                        "*" in line[4][1:-3])
-
-    G = generate_roary_gene_presence_absence(G,
-                                             mems_to_isolates=mems_to_isolates,
-                                             orig_ids=orig_ids,
-                                             ids_len_stop=ids_len_stop,
-                                             output_dir=args.output_dir)
-    #Write out presence_absence summary
-    generate_summary_stats(output_dir=args.output_dir)
-
-    # write pan genome reference fasta file
-    generate_pan_genome_reference(G,
-                                  output_dir=args.output_dir,
-                                  split_paralogs=False)
-
-    # write out common structural differences in a matrix format
-    generate_common_struct_presence_absence(
-        G,
-        output_dir=args.output_dir,
-        mems_to_isolates=mems_to_isolates,
-        min_variant_support=args.min_edge_support_sv)
-
-    # add helpful attributes and write out graph in GML format
-    for node in G.nodes():
-        G.nodes[node]['size'] = len(G.nodes[node]['members'])
-        G.nodes[node]['centroid'] = ";".join(G.nodes[node]['centroid'])
-        G.nodes[node]['dna'] = ";".join(conv_list(G.nodes[node]['dna']))
-        G.nodes[node]['protein'] = ";".join(conv_list(
-            G.nodes[node]['protein']))
-        G.nodes[node]['genomeIDs'] = ";".join(
-            [str(m) for m in G.nodes[node]['members']])
-        G.nodes[node]['geneIDs'] = ";".join(G.nodes[node]['seqIDs'])
-        G.nodes[node]['degrees'] = G.degree[node]
-        G.nodes[node]['members'] = list(G.nodes[node]['members'])
-        G.nodes[node]['seqIDs'] = list(G.nodes[node]['seqIDs'])
-
-    for edge in G.edges():
-        G.edges[edge[0], edge[1]]['genomeIDs'] = ";".join(
-            [str(m) for m in G.edges[edge[0], edge[1]]['members']])
-        G.edges[edge[0],
-                edge[1]]['members'] = list(G.edges[edge[0],
-                                                   edge[1]]['members'])
-
-    nx.write_gml(G, args.output_dir + "final_graph.gml")
-
-    # write out merged gene_data and combined_DNA_CDS files
-    with open(args.output_dir + "gene_data.csv", 'w') as outdata, \
-    open(args.output_dir + "combined_DNA_CDS.fasta", 'w') as outdna:
-        for i, d in enumerate(args.directories):
-            with open(d + "gene_data.csv", 'r') as infile:
-                header = next(infile)
-                if i == 0: outdata.write(header)
-                for line in infile:
-                    line = line.strip().split(",")
-                    if line[2] not in id_mapping[i]:
-                        continue  #its been filtered
-                    line[2] = id_mapping[i][line[2]]
-                    outdata.write(",".join(line) + "\n")
-                    outdna.write(">" + line[2] + "\n")
-                    outdna.write(line[5] + "\n")
-
-    # #Write out core/pan-genome alignments
-    if args.aln == "pan":
-        if not args.quiet: print("generating pan genome MSAs...")
-        generate_pan_genome_alignment(G, temp_dir, args.output_dir, args.n_cpu,
-                                      args.alr, isolate_names)
-        core_nodes = get_core_gene_nodes(G, args.core, len(isolate_names))
-        concatenate_core_genome_alignments(core_nodes, args.output_dir)
-    elif args.aln == "core":
-        if not args.quiet: print("generating core genome MSAs...")
-        generate_core_genome_alignment(G, temp_dir, args.output_dir,
-                                       args.n_cpu, args.alr, isolate_names,
-                                       args.core, len(isolate_names))
+    # run the main merge script
+    merge_graphs(directories=args.directories,
+                 temp_dir=temp_dir,
+                 len_dif_percent=args.len_dif_percent,
+                 pid=args.id,
+                 family_threshold=args.family_threshold,
+                 length_outlier_support_proportion=args.
+                 length_outlier_support_proportion,
+                 merge_paralogs=args.merge_paralogs,
+                 output_dir=args.output_dir,
+                 min_edge_support_sv=args.min_edge_support_sv,
+                 aln=args.aln,
+                 alr=args.alr,
+                 core=args.core,
+                 n_cpu=args.n_cpu,
+                 quiet=args.quiet)
 
     return
 
