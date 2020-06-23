@@ -9,6 +9,10 @@
 
 - [Quality Control](/quality/quality_control.md)
 
+- Merging Graphs
+    - [Add Single Genomes](/merge/add_single.md)
+    - [Merge multiple Panaroo graphs](/merge/merge_graphs.md)
+
 - Post-processing
     - [Pangenome Association Study](/post/pwas.md)
     - [Structural Variant Analysis](/post/sv.md)

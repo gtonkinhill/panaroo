@@ -17,8 +17,10 @@ from .generate_network import generate_network
 from .isvalid import *
 from .merge_graphs import merge_graphs
 
-def get_options(): #options for integrating (combination of merge graph and cdhit options
-   
+
+def get_options(
+):  #options for integrating (combination of merge graph and cdhit options
+
     import argparse
 
     description = 'Integrate new gff file into pre-existing graph'
@@ -26,7 +28,7 @@ def get_options(): #options for integrating (combination of merge graph and cdhi
                                      prog='panaroo_integrate')
 
     io_opts = parser.add_argument_group('Input/output')
-    
+
     io_opts.add_argument(
         "-d",
         "--input_dir",
@@ -34,15 +36,14 @@ def get_options(): #options for integrating (combination of merge graph and cdhi
         required=True,
         help="input directory for gml of pre-existing panaroo output",
         type=str)
-    
-    io_opts.add_argument(
-        "-i",
-        "--input_gff",
-        dest="input_gff",
-        required=True,
-        help="input gff file of new genome to be integrated",
-        type=str)
-        
+
+    io_opts.add_argument("-i",
+                         "--input_gff",
+                         dest="input_gff",
+                         required=True,
+                         help="input gff file of new genome to be integrated",
+                         type=str)
+
     io_opts.add_argument("-o",
                          "--out_dir",
                          dest="output_dir",
@@ -112,7 +113,7 @@ def get_options(): #options for integrating (combination of merge graph and cdhi
         type=str,
         choices=['core', 'pan'],
         default=None)
-    
+
     core.add_argument(
         "--aligner",
         dest="alr",
@@ -121,22 +122,23 @@ def get_options(): #options for integrating (combination of merge graph and cdhi
         type=str,
         choices=['prank', 'clustal', 'mafft'],
         default="mafft")
-    
+
     core.add_argument("--core_threshold",
                       dest="core",
                       help="Core-genome sample threshold (default=0.95)",
                       type=float,
                       default=0.95)
-    
+
     graph = parser.add_argument_group('Graph correction')
-    
-    graph.add_argument("--all_seq_in_graph",
-                       dest="all_seq_in_graph",
-                       help=("Retains all DNA sequence for each gene cluster in the graph " +
-                             "output. Off by default as it uses a large amount of space."),
-                       action='store_true',
-                       default=False)
-        
+
+    graph.add_argument(
+        "--all_seq_in_graph",
+        dest="all_seq_in_graph",
+        help=("Retains all DNA sequence for each gene cluster in the graph " +
+              "output. Off by default as it uses a large amount of space."),
+        action='store_true',
+        default=False)
+
     # Other options
     parser.add_argument("-t",
                         "--threads",
@@ -144,133 +146,157 @@ def get_options(): #options for integrating (combination of merge graph and cdhi
                         help="number of threads to use (default=1)",
                         type=int,
                         default=1)
-    
+
     parser.add_argument("--quiet",
                         dest="quiet",
                         help="suppress additional output",
                         action='store_true',
                         default=False)
-                        
-    parser.add_argument("--dirty",
-                          dest="dirty",
-                          help="keep temporary directory containing cluster files and cdhit output",
-                          action='store_true',
-                          default=False)
-                          
+
+    parser.add_argument(
+        "--dirty",
+        dest="dirty",
+        help=
+        "keep temporary directory containing cluster files and cdhit output",
+        action='store_true',
+        default=False)
+
     parser.add_argument("--version'",
                         action="version",
                         version='%(prog)s ' + __version__)
 
     args = parser.parse_args()
-   
+
     return (args)
+
 
 def replace_all(text, dic):
     for i, j in dic.items():
         text = text.replace(i, j)
     return text
 
-def reformat_network(single_gml, output_dir, isolateName): #Generate network output needs to be reformatted for single gff inputs
-    
+
+def reformat_network(single_gml, output_dir, isolateName):
     """Reformats the output of generate_network() for linear graphs to allow input into merge_graphs()"""
     for adj in single_gml._adj:
         for x in single_gml._adj[adj]:
             y = single_gml._adj[adj][x]
-        
+
             y.pop('members')
             zero = {'members': 0}
             y.update(zero)
-        
-            genomes = {'genomeIDs' : '0'}
+
+            genomes = {'genomeIDs': '0'}
             y.update(genomes)
-        
+
     for node in single_gml._node:
         y = single_gml._node[node]
         y.pop('members')
-        
-        zero = {'members': 0} #members are assigned intbitset[0]. needs to be 0
+
+        zero = {
+            'members': 0
+        }  #members are assigned intbitset[0]. needs to be 0
         y.update(zero)
-        
+
         to_replace = {"[": "", "]": "", "'": ""}
-        y['centroid'] = replace_all(str(y['centroid']),to_replace)
-        y['dna'] = replace_all(str(y['dna']),to_replace)
-        y['protein'] = replace_all(str(y['protein']),to_replace)
-        
+        y['centroid'] = replace_all(str(y['centroid']), to_replace)
+        y['dna'] = replace_all(str(y['dna']), to_replace)
+        y['protein'] = replace_all(str(y['protein']), to_replace)
+
         y['hasEnd'] = int(y['hasEnd'])
         y['mergedDNA'] = int(y['mergedDNA'])
         y['paralog'] = int(y['paralog'])
-        
+
         y['longCentroidID'] = list(y['longCentroidID'])
         y['seqIDs'] = list(y['seqIDs'])
-    
-    single_gml.graph.update({'isolateNames' : 'x'}) # isolateName from gff filename
+
+    single_gml.graph.update({'isolateNames':
+                             'x'})  # isolateName from gff filename
     nx.write_gml(single_gml, output_dir + "final_graph.gml")
-    
+
     return single_gml
 
-def main(): #Takes a single GFF input, generates a graph and merges with a pre-existing graph
+
+def main():
+    #Takes a single GFF input, generates a graph and merges with a pre-existing graph
     args = get_options()
-    
+
     # create directory if it isn't present already
     if not os.path.exists(args.output_dir):
         os.mkdir(args.output_dir)
-         
+
     args.input_dir = os.path.join(args.input_dir, "")
     args.output_dir = os.path.join(args.output_dir, "")
-        
+
     # Create temporary directory
     temp_dir = os.path.join(tempfile.mkdtemp(dir=args.output_dir), "")
-    
+
     directories = [args.input_dir, temp_dir]
-    
+
     gff_file = [args.input_gff]
- 
+
     filename = os.path.basename(args.input_gff).split(".")[0]
-    
-    print("Processing input")
-    process_prokka_input(gff_list = gff_file,
-                         output_dir = temp_dir,
-                         quiet = args.quiet, 
-                         n_cpu = args.n_cpu) 
-    
+
+    if not args.quiet: print("Processing input")
+    process_prokka_input(gff_list=gff_file,
+                         output_dir=temp_dir,
+                         quiet=args.quiet,
+                         n_cpu=args.n_cpu)
+
     cd_hit_out = temp_dir + "combined_protein_cdhit_out.txt"
-    
+
     run_cdhit(input_file=temp_dir + "combined_protein_CDS.fasta",
               output_file=cd_hit_out,
               id=args.id,
               quiet=args.quiet,
               n_cpu=args.n_cpu)
-    
-    print("Generating network")
-    
-    single_gml, centroid_contexts_single, seqid_to_centroid_single = generate_network(cluster_file=cd_hit_out + ".clstr",
-                                                                                    data_file=temp_dir + "gene_data.csv",
-                                                                                    prot_seq_file=temp_dir + "combined_protein_CDS.fasta", 
-                                                                                    all_dna=args.all_seq_in_graph)
-    print("Reformatting network")
-    reformat_network(single_gml = single_gml,
-                     output_dir = temp_dir,
-                     isolateName = filename)
-    
-    merge_graphs(directories, args.n_cpu, temp_dir, args.len_dif_percent,args.id,
-                 args.family_threshold, args.length_outlier_support_proportion, args.quiet,
-                 args.merge_paralogs, args.output_dir, args.min_edge_support_sv, args.aln,
-                 args.alr, args.core)
-    
+
+    if not args.quiet: print("Generating network")
+    single_gml, centroid_contexts_single, seqid_to_centroid_single = generate_network(
+        cluster_file=cd_hit_out + ".clstr",
+        data_file=temp_dir + "gene_data.csv",
+        prot_seq_file=temp_dir + "combined_protein_CDS.fasta",
+        all_dna=args.all_seq_in_graph)
+
+    if not args.quiet: print("Reformatting network")
+    reformat_network(single_gml=single_gml,
+                     output_dir=temp_dir,
+                     isolateName=filename)
+
+    merge_graphs(directories=directories,
+                 temp_dir=temp_dir,
+                 len_dif_percent=args.len_dif_percent,
+                 pid=args.id,
+                 family_threshold=args.family_threshold,
+                 length_outlier_support_proportion=args.
+                 length_outlier_support_proportion,
+                 merge_paralogs=args.merge_paralogs,
+                 output_dir=args.output_dir,
+                 min_edge_support_sv=args.min_edge_support_sv,
+                 aln=args.aln,
+                 alr=args.alr,
+                 core=args.core,
+                 merge_single=True,
+                 depths=[1],
+                 n_cpu=args.n_cpu,
+                 quiet=args.quiet)
+
     G = nx.read_gml(args.output_dir + "final_graph.gml")
-    
-    for index, name in enumerate(G.graph['isolateNames']): #Corrects isolate name for single gff being returned as list
+
+    for index, name in enumerate(
+            G.graph['isolateNames']
+    ):  #Corrects isolate name for single gff being returned as list
         if name == 'x':
             G.graph['isolateNames'][index] = filename
-            
+
     nx.write_gml(G, args.output_dir + "final_graph.gml")
 
     #remove temporary directory if dirty = True
     if not args.dirty:
         shutil.rmtree(temp_dir)
-    
+
     sys.exit(0)
+
 
 if __name__ == '__main__':
     main()
-

@@ -176,14 +176,15 @@ def cluster_centroids(graphs,
         for node in G.nodes():
             G.nodes[node]["centroid"] = list(
                 set([
-                    seqid_to_centroid[sid] for sid in G.nodes[node]['seqIDs'] if "refound" not in sid
+                    seqid_to_centroid[sid] for sid in G.nodes[node]['seqIDs']
+                    if "refound" not in sid
                 ]))
             for sid in G.nodes[node]["centroid"]:
                 centroids_to_nodes[sid].append(node)
             G.nodes[node]["dna"] = [
                 centroid_to_seqs[sid][1] for sid in G.nodes[node]["centroid"]
             ]
-            
+
             G.nodes[node]["protein"] = [
                 centroid_to_seqs[sid][0] for sid in G.nodes[node]["centroid"]
             ]
@@ -201,7 +202,7 @@ def cluster_centroids(graphs,
             for nA, nB in itertools.combinations(centroids_to_nodes[centroid],
                                                  2):
                 tempG.add_edge(nA, nB)
-    
+
     clusters = [list(comp) for comp in nx.connected_components(tempG)]
 
     return clusters, seqid_to_centroid, orig_ids, ids_len_stop
@@ -239,60 +240,88 @@ def simple_merge_graphs(graphs, clusters):
 
     return merged_G
 
-def merge_graphs(directories, n_cpu, temp_dir, len_dif_percent, Id, family_threshold, length_outlier_support_proportion, quiet, merge_paralogs, output_dir, min_edge_support_sv, aln, alr, core):
+
+def merge_graphs(directories,
+                 temp_dir,
+                 len_dif_percent,
+                 pid,
+                 family_threshold,
+                 length_outlier_support_proportion,
+                 merge_paralogs,
+                 output_dir,
+                 min_edge_support_sv,
+                 aln,
+                 alr,
+                 core,
+                 merge_single=False,
+                 depths=[1,2,3],
+                 n_cpu=1,
+                 quiet=False):
 
     print(
         "Merging graphs is still under active development and may change frequently!"
     )
     # Load graphs
-    print("Loading graphs...")
+    if not quiet: print("Loading graphs...")
     graphs, isolate_names, id_mapping = load_graphs(
         [d + "final_graph.gml" for d in directories], n_cpu=n_cpu)
 
+    search_genome_ids = None
+    if merge_single:
+        search_genome_ids = [len(isolate_names)-1]
+
     # cluster centroids
-    print("Clustering centroids...")
+    if not quiet: print("Clustering centroids...")
     clusters, seqid_to_centroid, orig_ids, ids_len_stop = cluster_centroids(
         graphs=graphs,
         outdir=temp_dir,
         directories=directories,
         id_mapping=id_mapping,
         len_dif_percent=len_dif_percent,
-        identity_threshold=Id,
+        identity_threshold=pid,
         n_cpu=n_cpu)
 
     # perform initial merge
-    print("Performing inital merge...")
+    if not quiet: print("Performing inital merge...")
     G = simple_merge_graphs(graphs, clusters)
 
-    print("Number of nodes in merged graph: ", G.number_of_nodes())
+    if not quiet:
+        print("Number of nodes in merged graph: ", G.number_of_nodes())
 
-    print("Collapsing at DNA...")
-    G = collapse_families(G,
-                          seqid_to_centroid=seqid_to_centroid,
-                          outdir=temp_dir,
-                          dna_error_threshold=0.98,
-                          correct_mistranslations=True,
-                          length_outlier_support_proportion=
-                          length_outlier_support_proportion,
-                          n_cpu=n_cpu,
-                          quiet=quiet)[0]
+    if not quiet: print("Collapsing at DNA...")
+    G = collapse_families(
+        G,
+        seqid_to_centroid=seqid_to_centroid,
+        outdir=temp_dir,
+        dna_error_threshold=0.98,
+        correct_mistranslations=True,
+        length_outlier_support_proportion=length_outlier_support_proportion,
+        n_cpu=n_cpu,
+        quiet=quiet,
+        depths=depths,
+        search_genome_ids=search_genome_ids)[0]
 
-    print("Number of nodes in merged graph: ", G.number_of_nodes())
+    if not quiet:
+        print("Number of nodes in merged graph: ", G.number_of_nodes())
 
-    print("Collapsing at families...")
-    G = collapse_families(G,
-                          seqid_to_centroid=seqid_to_centroid,
-                          outdir=temp_dir,
-                          family_threshold=family_threshold,
-                          correct_mistranslations=False,
-                          length_outlier_support_proportion= length_outlier_support_proportion,
-                          n_cpu=n_cpu,
-                          quiet=quiet)[0]
+    if not quiet: print("Collapsing at families...")
+    G = collapse_families(
+        G,
+        seqid_to_centroid=seqid_to_centroid,
+        outdir=temp_dir,
+        family_threshold=family_threshold,
+        correct_mistranslations=False,
+        length_outlier_support_proportion=length_outlier_support_proportion,
+        n_cpu=n_cpu,
+        quiet=quiet,
+        depths=depths,
+        search_genome_ids=search_genome_ids)[0]
 
-    print("Number of nodes in merged graph: ", G.number_of_nodes())
+    if not quiet:
+        print("Number of nodes in merged graph: ", G.number_of_nodes())
 
     # Generate output
-    print("Generating output...")
+    if not quiet: print("Generating output...")
 
     # if requested merge paralogs
     if merge_paralogs:
@@ -361,7 +390,7 @@ def merge_graphs(directories, n_cpu, temp_dir, len_dif_percent, Id, family_thres
         G.edges[edge[0],
                 edge[1]]['members'] = list(G.edges[edge[0],
                                                    edge[1]]['members'])
-            
+
     nx.write_gml(G, output_dir + "final_graph.gml")
 
     # write out merged gene_data and combined_DNA_CDS files
@@ -383,18 +412,17 @@ def merge_graphs(directories, n_cpu, temp_dir, len_dif_percent, Id, family_thres
     # #Write out core/pan-genome alignments
     if aln == "pan":
         if not quiet: print("generating pan genome MSAs...")
-        generate_pan_genome_alignment(G, temp_dir, output_dir, n_cpu,
-                                      alr, isolate_names)
+        generate_pan_genome_alignment(G, temp_dir, output_dir, n_cpu, alr,
+                                      isolate_names)
         core_nodes = get_core_gene_nodes(G, core, len(isolate_names))
         concatenate_core_genome_alignments(core_nodes, output_dir)
     elif aln == "core":
-        print('yes')
         if not quiet: print("generating core genome MSAs...")
-        generate_core_genome_alignment(G, temp_dir, output_dir,
-                                       n_cpu, alr, isolate_names,
-                                       core, len(isolate_names))
+        generate_core_genome_alignment(G, temp_dir, output_dir, n_cpu, alr,
+                                       isolate_names, core, len(isolate_names))
     return
-    
+
+
 def get_options():
     import argparse
 
@@ -521,24 +549,26 @@ def main():
     args.output_dir = os.path.join(args.output_dir, "")
     args.directories = [os.path.join(d, "") for d in args.directories]
 
-    # Create temporary directory
+    # create temporary directory
     temp_dir = os.path.join(tempfile.mkdtemp(dir=args.output_dir), "")
 
-    merge_graphs(args.directories,
-                args.n_cpu,
-                temp_dir,
-                args.len_dif_percent,
-                args.id,
-                args.family_threshold,
-                args.length_outlier_support_proportion,
-                args.quiet,
-                args.merge_paralogs,
-                args.output_dir,
-                args.min_edge_support_sv,
-                args.aln,
-                args.alr,
-                args.core)
-    
+    # run the main merge script
+    merge_graphs(directories=args.directories,
+                 temp_dir=temp_dir,
+                 len_dif_percent=args.len_dif_percent,
+                 pid=args.id,
+                 family_threshold=args.family_threshold,
+                 length_outlier_support_proportion=args.
+                 length_outlier_support_proportion,
+                 merge_paralogs=args.merge_paralogs,
+                 output_dir=args.output_dir,
+                 min_edge_support_sv=args.min_edge_support_sv,
+                 aln=args.aln,
+                 alr=args.alr,
+                 core=args.core,
+                 n_cpu=args.n_cpu,
+                 quiet=args.quiet)
+
     return
 
 
