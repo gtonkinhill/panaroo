@@ -81,7 +81,7 @@ def get_gene_sequences(gff_file_name, file_number):
 
     with StringIO(split[1]) as temp_fasta:
         sequences = list(SeqIO.parse(temp_fasta, 'fasta'))
-
+    
     parsed_gff = gff.create_db(clean_gff_string(split[0]),
                                dbfn=":memory:",
                                force=True,
@@ -127,6 +127,7 @@ def get_gene_sequences(gff_file_name, file_number):
                 scaffold_genes[scaffold_id] = scaffold_genes.get(
                     scaffold_id, [])
                 scaffold_genes[scaffold_id].append(gene_record)
+        
     for scaffold in scaffold_genes:
         scaffold_genes[scaffold] = sorted(scaffold_genes[scaffold],
                                           key=lambda x: x[0])
@@ -140,7 +141,7 @@ def get_gene_sequences(gff_file_name, file_number):
                 gene_index][1]
 
     gff_file.close()
-
+    
     return sequence_dictionary, translate_sequences(sequence_dictionary)
 
 
@@ -159,10 +160,12 @@ def translate_sequences(sequence_dic):
             print(sequence_record)
             print(protien_sequence)
             # raise ValueError("Premature stop codon in a gene!")
-        protein_record = SeqRecord(Seq(protien_sequence),
-                                   id=strain_id,
-                                   description=strain_id)
-        protein_list.append(protein_record)
+        #Remove sequence if there are premature stop codons 
+        if "*" not in protien_sequence:
+            protein_record = SeqRecord(Seq(protien_sequence),
+                                       id=strain_id,
+                                       description=strain_id)
+            protein_list.append(protein_record)
     return protein_list
 
 
@@ -228,5 +231,4 @@ def process_prokka_input(gff_list, output_dir, quiet, n_cpu):
 if __name__ == "__main__":
     #used for debugging purpopses
     import sys
-    thing = process_prokka_input([open(f, 'r') for f in sys.argv[1:]], "./",
-                                 2)
+    thing = process_prokka_input([open(f, 'r') for f in sys.argv[1:]], "./", 2)
