@@ -55,7 +55,6 @@ setup(
     entry_points={
         'console_scripts': [
             'panaroo = panaroo.__main__:main',
-            'panaroo-msa = panaroo.post_run_alignment_gen:main',
             'run_prokka = panaroo.run_prokka:main',
             'panaroo-qc = panaroo.generate_qc_plots:main',
             'panaroo-merge = panaroo.merge_graphs:main',
@@ -63,7 +62,9 @@ setup(
             'panaroo-spydrpick = panaroo.spydrpick:main',
             'panaroo-img = panaroo.estimate_img_params:main',
             'panaroo-fmg = panaroo.estimate_many_genes_params:main',
-            'panaroo-gene-neighbourhood = panaroo.get_neighborhood:main'
+            'panaroo-msa = panaroo.post_run_alignment_gen:main',
+            'panaroo-gene-neighbourhood = panaroo.get_neighborhood:main',
+            'panaroo-integrate = panaroo.integrate:main'
         ],
     },
 )
