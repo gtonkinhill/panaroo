@@ -32,28 +32,49 @@ def generate_db(gene_data_file, graph_file, outdir, min_support, quiet=False):
 
     # name clustes based on genes
     centroids_to_gene_name = {}
-    for cluster in clusters:
+    centroids_to_gene_id = {}
+    for gid, cluster in enumerate(clusters):
         name = set()
         for sid in cluster:
             name |= centroids_to_genes[sid]
         name = "~~~".join(list(name))
         for sid in cluster:
             centroids_to_gene_name[sid] = name
+            centroids_to_gene_id[sid] = str(gid)
 
-    # run through gene_data and pull out the sequences
-    with open(outdir+ 'ariba_db.fa', 'w') as ariba_fasta, \
-        open(outdir + 'ariba_meta.tsv', 'w') as ariba_meta, \
+    # run through gene_data and pull out the sequences in ariba format
+    # with open(outdir+ 'ariba_db.fa', 'w') as ariba_fasta, \
+    #     open(outdir + 'ariba_meta.tsv', 'w') as ariba_meta, \
+    #     open(gene_data_file, 'r') as infile:
+    #     for line in infile:
+    #         line = line.strip().split(',')
+    #         if line[2] in centroids_to_gene_name:
+    #             seqname = line[3] + ';' + line[2]
+    #             ariba_fasta.write('>' + seqname + '\n')
+    #             ariba_fasta.write(line[5] + '\n')
+
+    #             ariba_meta.write('\t'.join([seqname, '1', '0', '.', 
+    #                 centroids_to_gene_name[line[2]], 
+    #                 ';'.join(centroids_to_description[line[2]])]) + '\n')
+
+
+    # run through gene_data and pull out the sequences in srst2
+    # [clusterUniqueIdentifier]__[clusterSymbol]__[alleleSymbol]__[alleleUniqueIdentifier]
+    gene_count = Counter()
+    with open(outdir+ 'srst2_db.fa', 'w') as srst2_fasta, \
         open(gene_data_file, 'r') as infile:
         for line in infile:
             line = line.strip().split(',')
             if line[2] in centroids_to_gene_name:
                 seqname = line[3] + ';' + line[2]
-                ariba_fasta.write('>' + seqname + '\n')
-                ariba_fasta.write(line[5] + '\n')
+                srst2_fasta.write('>' + "__".join([
+                    centroids_to_gene_id[line[2]], 
+                    centroids_to_gene_name[line[2]],
+                    seqname, 
+                    str(gene_count[centroids_to_gene_id[line[2]]])]) + '\n')
+                srst2_fasta.write(line[5] + '\n')
+                gene_count[centroids_to_gene_id[line[2]]] += 1
 
-                ariba_meta.write('\t'.join([seqname, '1', '0', '.', 
-                    centroids_to_gene_name[line[2]], 
-                    ';'.join(centroids_to_description[line[2]])]) + '\n')
     return
 
 
