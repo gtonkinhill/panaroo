@@ -119,19 +119,24 @@ def output_dna_and_protein(node, isolate_list, temp_directory, outdir):
                                                          "") + ";" + seq_id
         if seq_id in sequence_ids:
             prot_stop_codon = all_proteins[seq_ind].seq.find("*")
+            
+            #Remove all instances N from DNA sequences
+            new_dna_seq = Seq(str(all_dna[seq_id].seq).replace("N", "-"),
+                              alphabet = IUPAC.unambiguous_dna)
+            
             if prot_stop_codon > -1:
                 output_protein.append(
                     SeqRecord(all_proteins[seq_ind].seq[:prot_stop_codon], 
                               id=isolate_name, description=""))
                 output_dna.append(
-                    SeqRecord(all_dna[seq_ind].seq[:(prot_stop_codon*3)], 
+                    SeqRecord(new_dna_seq.seq[:(prot_stop_codon*3)], 
                               id=isolate_name, description=""))
             else:
                 output_dna.append(
                     SeqRecord(all_dna[seq_ind].seq, 
                               id=isolate_name, description=""))
                 output_protein.append(
-                    SeqRecord(all_proteins[seq_ind].seq, 
+                    SeqRecord(new_dna_seq.seq, 
                               id=isolate_name, description=""))
             isolate_no += 1
     
