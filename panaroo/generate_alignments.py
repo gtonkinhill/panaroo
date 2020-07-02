@@ -113,7 +113,7 @@ def output_dna_and_protein(node, isolate_list, temp_directory, outdir):
         #check to make sure protien and DNA are same id
         if seq_id != all_dna[seq_ind].id:
             raise ValueError("DNA and protien sequence IDs do not match!")
-        
+        #Get isolate names
         isolate_num = int(seq_id.split('_')[0])
         isolate_name = isolate_list[isolate_num].replace(";",
                                                          "") + ";" + seq_id
@@ -134,16 +134,27 @@ def output_dna_and_protein(node, isolate_list, temp_directory, outdir):
                     SeqRecord(all_proteins[seq_ind].seq, 
                               id=isolate_name, description=""))
             isolate_no += 1
-    #Put gene of interest sequences in a generator, with corrected isolate names
-    output_dna = (x for x in output_dna)
-    output_protein = (x for x in output_protein)
-    #set filename to gene name
-    prot_outname = temp_directory + node["name"] + ".fasta"
-    dna_outname = "unaligned_dna_sequences/" + node["name"] + ".fasta"
-    #Write them to disk
-    SeqIO.write(output_protein, prot_outname, 'fasta')
-    SeqIO.write(output_dna, dna_outname, 'fasta')
-    return (prot_outname, dna_outname)
+    
+    #only output genes with more than one isolate in them
+    if isolate_no > 1:
+        #Put gene of interest sequences in a generator, with corrected isolate names
+        output_dna = (x for x in output_dna)
+        output_protein = (x for x in output_protein)
+        #set filename to gene name
+        prot_outname = temp_directory + node["name"] + ".fasta"
+        dna_outname = "unaligned_dna_sequences/" + node["name"] + ".fasta"
+        #Write them to disk
+        SeqIO.write(output_protein, prot_outname, 'fasta')
+        SeqIO.write(output_dna, dna_outname, 'fasta')
+        output_files = (prot_outname, dna_outname)
+    else:
+        output_singleton = (x for x in output_dna)
+        #set filename, write
+        singleton_outname = "aligned_gene_sequences/" + node["name"] +".aln.fas"
+        SeqIO.write(output_singleton, singleton_outname, 'fasta')
+        output_files = (None, None)
+        
+    return output_files
 
 
 def get_alignment_commands(fastafile_name, outdir, aligner, threads):
