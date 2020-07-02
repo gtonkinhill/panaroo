@@ -2,7 +2,7 @@ import os
 import shutil
 import tempfile
 import argparse
-
+from tqdm import tqdm
 import mappy as mp
 import pyfastx
 from collections import defaultdict, Counter
@@ -79,17 +79,10 @@ from itertools import zip_longest, chain
 
 def grouper(iterable, n, fillvalue=None):
     "Collect data into fixed-length chunks or blocks"
-    # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
     args = [iter(iterable)] * n
     return zip_longest(*args)
 
-def mpile(seqs):
-    if seqs is None: return([])
-    thrbuf = mp.ThreadBuffer()
-    return([(hit.ctg, hit.r_st-1, hit.r_en) for 
-        hit in a.map(seqs[1], buf=thrbuf) if hit.NM<=3])
-
-def generate_coverage(read1, read2, ref, pwid=0.98, ncpu=1, chunk_size=500000, quiet=FALSE):
+def generate_coverage(read1, read2, mapping, ref, pwid=0.95, ncpu=1, chunk_size=500000, quiet=False):
 
     if not quiet: print("Building index and data structures...")
 
@@ -97,16 +90,33 @@ def generate_coverage(read1, read2, ref, pwid=0.98, ncpu=1, chunk_size=500000, q
     for name, seq in pyfastx.Fasta(ref, build_index=False):
         seq_cov[name] = np.zeros(len(seq), dtype=int)
 
-    nreads=0
-    read_len
+    nreads = 0
+    read_len = 0
     for r in mp.fastx_read(read1):
         nreads+=1
-        read_len = len(r[1])
+        read_len += len(r[1])
     read_len /= nreads
-    min_chain_score = int(pwid*read_len)
+    min_chain_score = int(0.9*read_len)
+    min_mis_match = int(read_len-pwid*read_len)
 
-    a = mp.Aligner(ref, preset='sr', n_threads=ncpu, best_n=100000, min_chain_score=min_chain_score)  # load or build index
+    a = mp.Aligner(ref, preset='sr', n_threads=ncpu, best_n=1000, min_chain_score=min_chain_score)  # load or build index 
     if not a: raise Exception("ERROR: failed to load/build index")
+
+    def mpile(seqs):
+        if seqs is None: return([])
+        thrbuf = mp.ThreadBuffer()
+        hits = []
+        chrom=None
+        for hit in a.map(seqs[1], buf=thrbuf):
+            if (hit.NM<=min_mis_match) and ('S' not in hit.cigar_str) and ('H' not in hit.cigar_str):
+                if chrom is None:
+                    chrom=mapping[hit.ctg]
+                    hits.append((hit.ctg, hit.r_st-1, hit.r_en))
+                elif mapping[hit.ctg] == chrom:
+                    hits.append((hit.ctg, hit.r_st-1, hit.r_en))
+                else:
+                    break
+        return(hits)
 
     if not quiet: print("Aligning reads...")
     pool = ThreadPool(ncpu)
@@ -137,11 +147,12 @@ def del_dups(seq):
     return (seq)
 
 def find_genes(coverage, mapping, cov_threshold, 
-        prefix, outdir, fold_threshold=None, quiet=False):
+        prefix, outdir, fold_threshold=2, quiet=False):
 
     # get the best hit for each gene cluster (assumes srst2 format)
+    if not quiet: print("Finding best hits...")
     best_hits = {}
-    for gene in coverage:
+    for gene in tqdm(coverage, disable=quiet):
         name = mapping[gene]
         cluster = tuple(name.split('__')[:2])
         if cluster in best_hits:
@@ -149,39 +160,30 @@ def find_genes(coverage, mapping, cov_threshold,
                 continue
         best_hits[cluster] = (name, coverage[gene])
 
-    # get all clusters
-    all_clusters = []
-    for hit in mapping.values():
-        all_clusters.append(tuple(hit.split('__')[:2]))
-    all_clusters = del_dups(all_clusters)
-
+    if not quiet: print("writing output...")
     # output coverage information
     output_file = outdir + prefix + "_gene_coverage.csv"
     with open(output_file, 'w') as outfile:
         outfile.write("gene,position,depth\n")
         for cluster in best_hits:
             for pos,depth in enumerate(best_hits[cluster][1]):
-                outfile.write(','.join([cluster, str(pos), str(depth)]) + '\n')
-
-    # set fold threshold if not given
-    fold_threshold = []
-    for cluster in best_hits:
-        fold_threshold.append(np.mean(best_hits[cluster][1][best_hits[cluster][1]>0]))
-    fold_threshold = 0.1*np.mean(fold_threshold)
+                outfile.write(','.join([cluster[0], 
+                    str(pos), str(depth)]) + '\n')
 
     # output cluster presence/absence
     output_file = outdir + prefix + "_gene_pa.csv"
     with open(output_file, 'w') as outfile:
         outfile.write("gene,found,coverage\n")
-        for cluster in all_clusters:
+        for cluster in best_hits.keys():
+            clust_name = cluster[0]+'__'+cluster[1]
             if cluster in best_hits:
                 cov = np.sum(best_hits[cluster][1]>=fold_threshold)/float(len(best_hits[cluster][1]))
                 if cov > cov_threshold:
-                    outfile.write(cluster + ',1,' + str(cov) + '\n')
+                    outfile.write(clust_name + ',1,' + str(cov) + '\n')
                 else:
-                    outfile.write(cluster + ',0,' + str(cov) + '\n')
+                    outfile.write(clust_name + ',0,' + str(cov) + '\n')
             else:
-                outfile.write(cluster + ',0,0\n')
+                outfile.write(clust_name + ',0,0\n')
     
     return
 
@@ -227,7 +229,7 @@ def get_options():
                          dest="min_cov",
                          help="minimum coverage to call a gene (default=0.9)",
                          type=float,
-                         default=0.99)
+                         default=0.90)
     filter_opts.add_argument("--min_fold",
                          dest="min_fold",
                          help="read depth matching reference required to as 'covered' (default=2)",
@@ -235,9 +237,9 @@ def get_options():
                          default=2)
     filter_opts.add_argument("--min_pwid",
                          dest="pwid",
-                         help="minimum identity between read and reference (default=0.98)",
+                         help="minimum identity between read and reference (default=0.95) can not be less than 0.9 (hardcoded)",
                          type=float,
-                         default=0.98)
+                         default=0.95)
 
 
     # Other options
@@ -261,6 +263,8 @@ def get_options():
 def main():
     args = get_options()
 
+    print("Calling genes from reads is still under active development and may change frequently!")
+
     # make sure trailing forward slash is present
     args.output_dir = os.path.join(args.output_dir, "")
 
@@ -272,12 +276,14 @@ def main():
     # clean database and remove sequences shorter than 300bp.
     temp_db = temp_dir + "temp_db.fasta"
     mapping = {}
+    mapping_clust = {}
     with open(temp_db, 'w') as outfile:
         index = 0
         for name, seq in pyfastx.Fasta(args.db, build_index=False):
             if len(seq)<=100: continue 
             outfile.write('>' + str(index) + '\n' + seq + '\n')
             mapping[str(index)] = name
+            mapping_clust[str(index)] = name.split("__")[0]
             index += 1
 
     # align reads
@@ -285,22 +291,21 @@ def main():
             read1=args.r1, 
             read2=args.r2,
             ref=temp_db,
+            mapping=mapping_clust,
             pwid=args.pwid, 
             ncpu=args.n_cpu, 
             chunk_size=500000, 
             quiet=args.quiet)
 
-    # call genes
-    found_genes, all_clusters = find_genes(coverage=coverage,
-        mapping=mapping,
-        cov_threshold=args.min_cov, 
-        fold_threshold=args.min_fold,
-        quiet=args.quiet)
-
-    # write output
+    # call genes and write output
     prefix = os.path.basename(args.r1).split('.')[0].strip('_1')
     prefix += '_' + os.path.basename(args.db).split('.')[0]
-    save_results(found_genes, all_clusters, prefix, args.output_dir)
+    find_genes(coverage, mapping, 
+        cov_threshold=args.min_cov,
+        prefix=prefix, 
+        outdir=args.output_dir, 
+        fold_threshold=args.min_fold, 
+        quiet=args.quiet)
 
     # clean up
     shutil.rmtree(temp_dir)
