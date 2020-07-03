@@ -129,14 +129,14 @@ def output_dna_and_protein(node, isolate_list, temp_directory, outdir):
                     SeqRecord(all_proteins[seq_ind].seq[:prot_stop_codon], 
                               id=isolate_name, description=""))
                 output_dna.append(
-                    SeqRecord(new_dna_seq.seq[:(prot_stop_codon*3)], 
+                    SeqRecord(new_dna_seq[:(prot_stop_codon*3)], 
                               id=isolate_name, description=""))
             else:
                 output_dna.append(
                     SeqRecord(all_dna[seq_ind].seq, 
                               id=isolate_name, description=""))
                 output_protein.append(
-                    SeqRecord(new_dna_seq.seq, 
+                    SeqRecord(new_dna_seq, 
                               id=isolate_name, description=""))
             isolate_no += 1
     
