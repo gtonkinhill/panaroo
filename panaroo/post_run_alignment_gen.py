@@ -105,7 +105,7 @@ def main():
         generate_pan_genome_alignment(G, temp_dir, args.output_dir, args.n_cpu,
                                       args.alr, args.codons, isolate_names)
 
-        core_nodes = get_core_gene_nodes(G, args.core, len(isoalte_names))
+        core_nodes = get_core_gene_nodes(G, args.core, len(isolate_names))
         concatenate_core_genome_alignments(core_nodes, args.output_dir)
     elif args.aln == "core":
         if args.verbose: print("generating core genome MSAs...")
