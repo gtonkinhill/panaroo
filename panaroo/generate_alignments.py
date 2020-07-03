@@ -121,7 +121,7 @@ def output_dna_and_protein(node, isolate_list, temp_directory, outdir):
             prot_stop_codon = all_proteins[seq_ind].seq.find("*")
             
             #Remove all instances N from DNA sequences
-            new_dna_seq = Seq(str(all_dna[seq_id].seq).replace("N", "-"),
+            new_dna_seq = Seq(str(all_dna[seq_ind].seq).replace("N", "-"),
                               alphabet = IUPAC.unambiguous_dna)
             
             if prot_stop_codon > -1:
