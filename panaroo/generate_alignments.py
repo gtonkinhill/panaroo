@@ -294,7 +294,8 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files, outd
         try:
             alignment = codonalign.build(protein_alignments[index], dna_sequences[index])
             codon_alignments.append(alignment)
-        except:
+        except IndexError as e:
+            print e
             print(index)
             print(protein_sequence_files[index])
             print(dna_sequence_files[index])
