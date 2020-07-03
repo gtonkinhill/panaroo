@@ -287,14 +287,17 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files, outd
     #        (protein_alignments[index], list(dna_sequences[index])) 
     #        for index in range(len(protein_alignments)))
     
+
     #do it single threaded for debugging;
+    codon_alignments = []
     for index in range(len(protein_alignments)):
         try:
-            codonalign.build(protein_alignments[index], dna_sequences[index])
+            alignment = codonalign.build(protein_alignments[index], dna_sequences[index])
+            codon_alignments.append(alignment)
         except:
             print(index)
-            print(protein_alignments[index].id)
-            print(dna_sequences[index].id)
+            print(protein_sequence_files[index])
+            print(dna_sequence_files[index])
     
     
     #Remove <unknown description> from codon alignments
