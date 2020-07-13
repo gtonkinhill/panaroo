@@ -228,7 +228,7 @@ def search_gff(node_search_dict,
     for node in node_search_dict:
         node_search_dict[node] = sorted(node_search_dict[node])
 
-    split = gff_handle.read().split("##FASTA\n")
+    split = gff_handle.read().replace(',','').split("##FASTA\n")
     node_locs = {}
 
     if len(split) != 2:

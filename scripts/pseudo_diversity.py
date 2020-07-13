@@ -89,7 +89,7 @@ def add_diversity(gfffile,
     outfile = open(outputfile, 'w')
 
     with open(gfffile, 'r') as infile:
-        lines = infile.read()
+        lines = infile.read().replace(',','')
 
     split = lines.split('##FASTA')
     if len(split) != 2:

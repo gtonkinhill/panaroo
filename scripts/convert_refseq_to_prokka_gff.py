@@ -21,7 +21,7 @@ def convert(gfffile, outputfile, fastafile, is_ignore_overlapping):
 
     #Split file and parse
     with open(gfffile, 'r') as infile:
-        lines = infile.read()
+        lines = infile.read().replace(',','')
 
     if fastafile is None:
         split = lines.split('##FASTA')

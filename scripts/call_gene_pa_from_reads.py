@@ -298,7 +298,7 @@ def main():
             quiet=args.quiet)
 
     # call genes and write output
-    prefix = os.path.basename(args.r1).split('.')[0].strip('_1')
+    prefix = os.path.basename(args.r1).split('.')[0].strip('1').strip('_')
     prefix += '_' + os.path.basename(args.db).split('.')[0]
     find_genes(coverage, mapping, 
         cov_threshold=args.min_cov,

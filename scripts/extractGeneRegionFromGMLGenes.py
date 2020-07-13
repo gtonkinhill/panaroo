@@ -34,7 +34,7 @@ def clean_gff_string(
 def get_gene_coordinates(
     gff_file, contig, genes, gene1, l
 ):  #Takes a GFF file, splits into CDS and FASTA and identifies the coordinates of the 2 genes
-    gff = open(gff_file).read()  #Import the GFF file
+    gff = open(gff_file).read().replace(',','')  #Import the GFF file
     split = gff.split("##FASTA")
 
     geneCoordinates = []  #Will be filled with the coordinates of the 2 genes
@@ -82,7 +82,7 @@ def get_gene_coordinates(
 def get_gene_coordinates_single(
     gff_file, contig, gene, l
 ):  #Takes a GFF file, splits into CDS and FASTA and identifies the coordinates of the 2 genes
-    gff = open(gff_file).read()  #Import the GFF file
+    gff = open(gff_file).read().replace(',','')  #Import the GFF file
     split = gff.split("##FASTA")
 
     geneCoordinates = []  #Will be filled with the coordinates of the 2 genes
