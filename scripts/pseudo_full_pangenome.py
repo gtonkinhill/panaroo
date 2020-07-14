@@ -186,7 +186,7 @@ def add_diversity(gfffile, nisolates, effective_pop_size, gain_rate, loss_rate,
                   mutation_rate, n_sim_genes, prefix, max_core):
 
     with open(gfffile, 'r') as infile:
-        lines = infile.read()
+        lines = infile.read().replace(',','')
 
     split = lines.split('##FASTA')
     if len(split) != 2:

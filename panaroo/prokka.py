@@ -68,11 +68,15 @@ def clean_gff_string(gff_string):
 
 def get_gene_sequences(gff_file_name, file_number):
     #Get name and separate the prokka GFF into separate GFF and FASTA files
+    if ',' in gff_file_name:
+        print("Problem reading GFF3 file: ", gff_file_name)
+        raise RuntimeError("Error reading prokka input!")
+
     gff_file = open(gff_file_name, 'r')
     sequence_dictionary = OrderedDict()
 
     #Split file and parse
-    lines = gff_file.read()
+    lines = gff_file.read().replace(',','')
     split = lines.split('##FASTA')
 
     if len(split) != 2:
