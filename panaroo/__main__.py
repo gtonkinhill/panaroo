@@ -103,7 +103,7 @@ Does not delete any genes and only performes merge and refinding\
         type=float)
     matching.add_argument("--len_dif_percent",
                           dest="len_dif_percent",
-                          help="length difference cutoff (default=0.95)",
+                          help="length difference cutoff (default=0.98)",
                           type=float)
     matching.add_argument("--merge_paralogs",
                           dest="merge_paralogs",
@@ -145,7 +145,7 @@ Does not delete any genes and only performes merge and refinding\
         "--edge_support_threshold",
         dest="edge_support_threshold",
         help=(
-            "minimum support required to keep and edge that has been flagged" +
+            "minimum support required to keep an edge that has been flagged" +
             " as a possible mis-assembly"),
         type=float)
     graph.add_argument(
