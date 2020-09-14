@@ -66,7 +66,7 @@ def clean_gff_string(gff_string):
     return cleaned_gff
 
 
-def get_gene_sequences(gff_file_name, file_number):
+def get_gene_sequences(gff_file_name, file_number, filter_seqs):
     #Get name and separate the prokka GFF into separate GFF and FASTA files
     if ',' in gff_file_name:
         print("Problem reading GFF3 file: ", gff_file_name)
@@ -76,7 +76,7 @@ def get_gene_sequences(gff_file_name, file_number):
     sequence_dictionary = OrderedDict()
 
     #Split file and parse
-    lines = gff_file.read().replace(',','')
+    lines = gff_file.read().replace(',', '')
     split = lines.split('##FASTA')
 
     if len(split) != 2:
@@ -120,6 +120,14 @@ def get_gene_sequences(gff_file_name, file_number):
                     gene_description = gene_description.replace(",", "")
                 except KeyError:
                     gene_description = ""
+
+                #clean entries if requested
+                if ((len(gene_sequence) % 3 > 0) or
+                    (len(gene_sequence) < 34)) or ("*" in str(
+                        gene_sequence.translate())[:-1]):
+                    print('invalid gene! file - id: ', gff_file_name, ' - ',
+                          entry.id)
+                    if filter_seqs: continue
 
                 gene_record = (entry.start,
                                SeqRecord(gene_sequence,
@@ -201,7 +209,7 @@ def output_files(dna_dictionary, protien_list, prot_handle, dna_handle,
     return None
 
 
-def process_prokka_input(gff_list, output_dir, quiet, n_cpu):
+def process_prokka_input(gff_list, output_dir, filter_seqs, quiet, n_cpu):
     try:
         protienHandle = open(output_dir + "combined_protein_CDS.fasta", 'w+')
         DNAhandle = open(output_dir + "combined_DNA_CDS.fasta", 'w+')
@@ -215,7 +223,7 @@ def process_prokka_input(gff_list, output_dir, quiet, n_cpu):
         ]
         for job in tqdm(job_list, disable=quiet):
             gene_sequence_list = Parallel(n_jobs=n_cpu)(
-                delayed(get_gene_sequences)(gff, gff_no)
+                delayed(get_gene_sequences)(gff, gff_no, filter_seqs)
                 for gff_no, gff in job)
             for i, gene_seq in enumerate(gene_sequence_list):
                 output_files(gene_seq[0], gene_seq[1], protienHandle,
@@ -232,5 +240,4 @@ def process_prokka_input(gff_list, output_dir, quiet, n_cpu):
 if __name__ == "__main__":
     #used for debugging purpopses
     import sys
-    thing = process_prokka_input([open(f, 'r') for f in sys.argv[1:]], "./",
-                                 2)
+    thing = process_prokka_input([open(f, 'r') for f in sys.argv[1:]], "./", 2)

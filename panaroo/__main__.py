@@ -89,6 +89,15 @@ Does not delete any genes and only performes merge and refinding\
         choices=['strict', 'moderate', 'sensitive'],
         required=True)
 
+    mode_opts.add_argument(
+        "--remove-invalid-genes",
+        dest="filter_invalid",
+        action='store_true',
+        default=False,
+        help=(
+            "removes annotations that do not conform to the expected Prokka" +
+            " format such as those including premature stop codons."))
+
     matching = parser.add_argument_group('Matching')
     matching.add_argument("-c",
                           "--threshold",
@@ -269,8 +278,8 @@ def main():
         print("pre-processing gff3 files...")
 
     # convert input GFF3 files into summary files
-    process_prokka_input(args.input_files, args.output_dir, (not args.verbose),
-                         args.n_cpu)
+    process_prokka_input(args.input_files, args.output_dir, args.filter_invalid,
+                         (not args.verbose), args.n_cpu)
 
     # Cluster protein sequences using cdhit
     cd_hit_out = args.output_dir + "combined_protein_cdhit_out.txt"
