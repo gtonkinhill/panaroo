@@ -12,7 +12,7 @@ Panaroo can generate multiple sequence alignments from the resulting gene cluste
 Thus to align all genes present in at least 98% of isolates using clustal and 10 cpus you would run Panaroo as
 
 ```
-panaroo -i *.gff -o ./results/ --mode strict -a core --aligner clustal --core_threshold 0.98 -t 10
+panaroo -i *.gff -o ./results/ --clean-mode strict -a core --aligner clustal --core_threshold 0.98 -t 10
 ```
 
 #### Cluster Thresholds
@@ -24,7 +24,7 @@ Thus we recommend using the defaults for `--threshold` (0.98) and `--len_dif_per
 If you wish to adjust the level at which Panaroo colapses genes into putitive families we suggest changing the family sequence identity level (default 0.7). Thus to run Panaroo using a more relaxed threshold of 50% identity you could run
 
 ```
-panaroo -i *.gff -o ./results/ --mode strict -f 0.5
+panaroo -i *.gff -o ./results/ --clean-mode strict -f 0.5
 ```
 
 #### Paralogs
@@ -32,7 +32,7 @@ panaroo -i *.gff -o ./results/ --mode strict -f 0.5
 Panaroo splits paralogs into seperate clusters by default. Merging paralogs can be enabled by running Panraoo as
 
 ```
-panaroo -i *.gff -o ./results/  --mode strict --merge_paralogs
+panaroo -i *.gff -o ./results/  --clean-mode strict --merge_paralogs
 ```
 
 #### Refinding Genes
@@ -44,7 +44,7 @@ As such missing genes are often the results of assembly fragmentation, the refin
 Thus to refind genes that match at least 50% of the sequence within a radius of 1000 nucleotides you could run
 
 ```
-panaroo -i *.gff -o ./results/ --mode strict --refind_prop_match 0.5 --search_radius 1000
+panaroo -i *.gff -o ./results/ --clean-mode strict --refind_prop_match 0.5 --search_radius 1000
 ```
 
 
@@ -52,9 +52,10 @@ panaroo -i *.gff -o ./results/ --mode strict --refind_prop_match 0.5 --search_ra
 
 ```
 usage: panaroo [-h] -i INPUT_FILES [INPUT_FILES ...] -o OUTPUT_DIR
-               --clean-mode {strict,moderate,sensitive} [-c ID]
-               [-f FAMILY_THRESHOLD] [--len_dif_percent LEN_DIF_PERCENT]
-               [--merge_paralogs] [--search_radius SEARCH_RADIUS]
+               --clean-mode {strict,moderate,sensitive}
+               [--remove-invalid-genes] [-c ID] [-f FAMILY_THRESHOLD]
+               [--len_dif_percent LEN_DIF_PERCENT] [--merge_paralogs]
+               [--search_radius SEARCH_RADIUS]
                [--refind_prop_match REFIND_PROP_MATCH]
                [--min_trailing_support MIN_TRAILING_SUPPORT]
                [--trailing_recursive TRAILING_RECURSIVE]
@@ -109,6 +110,10 @@ Mode:
                         interest as these are often hard to disguish from
                         contamination. Results will likely include  higher
                         number of spurious annotations.
+  --remove-invalid-genes
+                        removes annotations that do not conform to the
+                        expected Prokka format such as those including
+                        premature stop codons.
 
 Matching:
   -c ID, --threshold ID
@@ -117,7 +122,7 @@ Matching:
                         protein family sequence identity threshold
                         (default=0.7)
   --len_dif_percent LEN_DIF_PERCENT
-                        length difference cutoff (default=0.95)
+                        length difference cutoff (default=0.98)
   --merge_paralogs      don't split paralogs
 
 Refind:
@@ -136,8 +141,8 @@ Graph correction:
                         number of times to perform recursive trimming of low
                         support nodes near the end of contigs
   --edge_support_threshold EDGE_SUPPORT_THRESHOLD
-                        minimum support required to keep and edge that has
-                        been flagged as a possible mis-assembly
+                        minimum support required to keep an edge that has been
+                        flagged as a possible mis-assembly
   --length_outlier_support_proportion LENGTH_OUTLIER_SUPPORT_PROPORTION
                         proportion of genomes supporting a gene with a length
                         more than 1.5x outside the interquatile range for

@@ -6,6 +6,7 @@
     - [Installation](/gettingstarted/installation.md)
     - [Parameters](/gettingstarted/params.md)
     - [Output](/gettingstarted/output.md)
+    - [Citation](/gettingstarted/citation.md)
 
 - [Quality Control](/quality/quality_control.md)
 

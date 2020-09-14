@@ -7,7 +7,13 @@ Using GFFs in the same format as output by Prokka run:
 
 ```
 mkdir results
-panaroo -i *.gff -o results --mode strict
+panaroo -i *.gff -o results --clean-mode strict
+```
+
+If you are using GFFs from RefSeq they can occasionally include annotations that do not conform the expected. This is usually due to a premature stop codon or a gene of invalid length. By default Panaroo will fail to parse these annotations. However, you can set Panaroo to ignore invalid annotaion by enabling the `remove-invalid-genes` flag 
+
+```
+panaroo -i *.gff -o results --clean-mode strict --remove-invalid-genes
 ```
 
 ## Mode
@@ -17,7 +23,7 @@ By default Panaroo runs in its strictest (most conservative) mode. We have found
 Very rare plasmids are difficult to distguish from contamination. Thus, if you are interested in retaining such plasmids at the expense of added contamination we recommend running panaroo using its most sensitive mode
 
 ```
-panaroo -i *.gff -o results --mode sensitive
+panaroo -i *.gff -o results --clean-mode sensitive
 ```
 
 
