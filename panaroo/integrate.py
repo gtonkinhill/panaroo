@@ -50,6 +50,15 @@ def get_options(
                          required=True,
                          help="location of a new output directory",
                          type=str)
+    
+    io_opts.add_argument(
+        "--remove-invalid-genes",
+        dest="filter_invalid",
+        action='store_true',
+        default=False,
+        help=(
+            "removes annotations that do not conform to the expected Prokka" +
+            " format such as those including premature stop codons."))
 
     matching = parser.add_argument_group('Matching')
 
@@ -240,6 +249,7 @@ def main():
     if not args.quiet: print("Processing input")
     process_prokka_input(gff_list=gff_file,
                          output_dir=temp_dir,
+                         filter_seqs=args.filter_invalid,
                          quiet=args.quiet,
                          n_cpu=args.n_cpu)
 
