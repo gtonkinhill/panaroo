@@ -247,7 +247,7 @@ def merge_graphs(directories,
                  pid,
                  family_threshold,
                  length_outlier_support_proportion,
-                 merge_paralogs,
+                 merge_para,
                  output_dir,
                  min_edge_support_sv,
                  aln,
@@ -323,14 +323,14 @@ def merge_graphs(directories,
     # Generate output
     if not quiet: print("Generating output...")
 
-    # if requested merge paralogs
-    if merge_paralogs:
-        G = merge_paralogs(G)
-
     G.graph['isolateNames'] = isolate_names
     mems_to_isolates = {}
     for i, iso in enumerate(isolate_names):
         mems_to_isolates[i] = iso
+
+    # if requested merge paralogs
+    if merge_para:
+        G = merge_paralogs(G)
 
     if not quiet:
         print("writing output...")
@@ -560,7 +560,7 @@ def main():
                  family_threshold=args.family_threshold,
                  length_outlier_support_proportion=args.
                  length_outlier_support_proportion,
-                 merge_paralogs=args.merge_paralogs,
+                 merge_para=args.merge_paralogs,
                  output_dir=args.output_dir,
                  min_edge_support_sv=args.min_edge_support_sv,
                  aln=args.aln,
