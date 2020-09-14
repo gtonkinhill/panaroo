@@ -7,7 +7,6 @@ from Bio import SeqIO
 from Bio import AlignIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from Bio.Alphabet import generic_dna
 import itertools as iter
 from tqdm import tqdm
 
@@ -137,8 +136,7 @@ def generate_pan_genome_reference(G, output_dir, split_paralogs=False):
         if not split_paralogs and G.nodes[node]['centroid'][0] in centroids:
             continue
         records.append(
-            SeqRecord(Seq(max(G.nodes[node]['dna'], key=lambda x: len(x)),
-                          generic_dna),
+            SeqRecord(Seq(max(G.nodes[node]['dna'], key=lambda x: len(x))),
                       id=G.nodes[node]['name'],
                       description=""))
         for centroid in G.nodes[node]['centroid']:
