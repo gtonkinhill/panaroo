@@ -280,7 +280,7 @@ def main():
                  family_threshold=args.family_threshold,
                  length_outlier_support_proportion=args.
                  length_outlier_support_proportion,
-                 merge_paralogs=args.merge_paralogs,
+                 merge_para=args.merge_paralogs,
                  output_dir=args.output_dir,
                  min_edge_support_sv=args.min_edge_support_sv,
                  aln=args.aln,
