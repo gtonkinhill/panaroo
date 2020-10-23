@@ -160,4 +160,16 @@ def remove_member_from_node(G, node, member):
     ])
     G.nodes[node]['size'] -= 1
 
+    # remove member from edges of node
+    edges_to_remove = []
+    for e in G.edges(node):
+        if member in G.edges[e]['members']:
+            if G.edges[e]['size'] == 1:
+                edges_to_remove.append(e)
+            else:
+                G.edges[e]['members'].discard(member)
+                G.edges[e]['size'] -= 1
+    for e in edges_to_remove:
+        G.remove_edge(*e)
+
     return G

@@ -15,6 +15,7 @@ from Bio.Align.Applications import MafftCommandline
 from Bio.Align.Applications import ClustalOmegaCommandline
 import Bio.Application
 
+
 def check_aligner_install(aligner):
     """Checks for the presence of the specified aligned in $PATH
 
@@ -26,7 +27,6 @@ def check_aligner_install(aligner):
         presence (bool)
             True/False aligner present
     """
-  
     if aligner == "clustal":
         command = "clustalo --help"
     elif aligner == "prank":
@@ -36,13 +36,15 @@ def check_aligner_install(aligner):
     else:
         sys.stderr.write("Incorrect aligner specification\n")
         sys.exit()
-        
+
     p = str(
-        subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, 
+        subprocess.run(command,
+                       stdout=subprocess.PIPE,
+                       stderr=subprocess.PIPE,
                        shell=True))
     present = False
-    
-    if aligner == "clustal":    
+
+    if aligner == "clustal":
         find_ver = re.search(r'Clustal Omega - \d+\.\d+\.\d+', p)
     elif aligner == "prank":
         find_ver = re.search(r'prank v\.\d+\.', p)
@@ -50,10 +52,9 @@ def check_aligner_install(aligner):
         find_ver = re.search(r'MAFFT v\d+\.\d+', p)
     if find_ver != None:
         present = True
-    
+
     if present == False:
-        sys.stderr.write("Need specified aligner to be installed " +
-                         "\n")
+        sys.stderr.write("Need specified aligner to be installed " + "\n")
         sys.exit(1)
 
     return present
