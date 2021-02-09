@@ -55,7 +55,7 @@ def generate_roary_gene_presence_absence(G, mems_to_isolates, orig_ids,
                 len_mode = max(G.nodes[node]['lengths'],
                                key=G.nodes[node]['lengths'].count)
                 name = '~~~'.join(
-                    G.nodes[node]['annotation'].strip().strip(';').split(';'))
+                    [gn for gn in G.nodes[node]['annotation'].strip().strip(';').split(';') if gn!=''])
                 name = ''.join(e for e in name if e.isalnum() or e in ["_", "~"])
                 if name not in used_gene_names:
                     entry = [name]
