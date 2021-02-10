@@ -308,7 +308,7 @@ def generate_summary_stats(output_dir):
     total_genes = 0
     #Iterate through GPA and summarise
     for gene in gene_presence_absence:
-        proportion_present = float(gene.split(',')[4]) / noSamples * 100.0
+        proportion_present = float(gene.split(',')[3]) / noSamples * 100.0
         if proportion_present >= 99:
             noCore += 1
         elif proportion_present >= 95:
