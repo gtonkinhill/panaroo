@@ -43,6 +43,6 @@ jobs:
       run: pip install .
 
     - name: Validation Tests
-      run: pytest -W ignore -q --datafolder="${{ github.workspace }}/travis_test_data/
+      run: pytest -W ignore -q --datafolder="${{ github.workspace }}/travis_test_data/"
 
 
