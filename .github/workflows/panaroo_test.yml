@@ -1,0 +1,50 @@
+name: panaroo-CI
+
+on:
+  push:
+    branches:
+    - master
+    - devel
+  pull_request:
+    branches:
+    - master
+    - devel
+  schedule:
+    - cron:  '* * 1 * *'
+
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.7, 3.8, 3.9]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install cd-hit
+        sudo apt-get install mafft
+        wget https://github.com/marbl/Mash/releases/download/v2.2/mash-Linux64-v2.2.tar
+        tar -xvf mash-Linux64-v2.2.tar
+        sudo cp ./mash-Linux64-v2.2/mash /usr/bin/mash
+        python --version
+        pip install -U pip
+        pip install -U pytest
+        wget https://github.com/gtonkinhill/panaroo_test_data/releases/download/v0.0.2/travis_test_data.zip
+        unzip travis_test_data.zip
+        
+    - name: Install
+      run: pip install .
+
+    - name: Validation Tests
+      run: pytest -W ignore -q --datafolder="${{ github.workspace }}/travis_test_data/"
+
+
