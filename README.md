@@ -1,6 +1,6 @@
 # panaroo
 
-[![Travis-CI Build Status](https://travis-ci.com/gtonkinhill/panaroo.svg?token=sFfw198f325BoK14Aor2&branch=master)](https://travis-ci.com/gtonkinhill/panaroo)
+[![Build Status](https://github.com/gtonkinhill/panaroo/workflows/panaroo-CI/badge.svg)](https://github.com/gtonkinhill/panaroo/actions)
 
 An updated pipeline for pangenome investigation
 
