@@ -34,8 +34,8 @@ def generate_roary_gene_presence_absence(G, mems_to_isolates, orig_ids,
             "Accessory Order with Fragment", "QC", "Min group size nuc",
             "Max group size nuc", "Avg group size nuc"
         ] + isolates
-        roary_csv_outfile.write(",".join(header) + "\n")
-        csv_outfile.write(",".join(header[:3]) + "\n")
+        roary_csv_outfile.write(",".join(header + isolates) + "\n")
+        csv_outfile.write(",".join(header[:3] + isolates) + "\n")
         Rtab_outfile.write("\t".join((["Gene"] + isolates)) + "\n")
 
         # Iterate through coponents writing out to file
@@ -54,9 +54,12 @@ def generate_roary_gene_presence_absence(G, mems_to_isolates, orig_ids,
                 count += 1
                 len_mode = max(G.nodes[node]['lengths'],
                                key=G.nodes[node]['lengths'].count)
-                name = '~~~'.join(
-                    [gn for gn in G.nodes[node]['annotation'].strip().strip(';').split(';') if gn!=''])
-                name = ''.join(e for e in name if e.isalnum() or e in ["_", "~"])
+                name = '~~~'.join([
+                    gn for gn in G.nodes[node]['annotation'].strip().strip(
+                        ';').split(';') if gn != ''
+                ])
+                name = ''.join(e for e in name
+                               if e.isalnum() or e in ["_", "~"])
                 if name not in used_gene_names:
                     entry = [name]
                     used_gene_names.add(name)
@@ -146,6 +149,7 @@ def generate_pan_genome_reference(G, output_dir, split_paralogs=False):
         SeqIO.write(records, outfile, "fasta")
 
     return
+
 
 def generate_common_struct_presence_absence(G,
                                             output_dir,
