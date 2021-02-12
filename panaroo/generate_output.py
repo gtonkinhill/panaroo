@@ -34,7 +34,7 @@ def generate_roary_gene_presence_absence(G, mems_to_isolates, orig_ids,
             "Accessory Order with Fragment", "QC", "Min group size nuc",
             "Max group size nuc", "Avg group size nuc"
         ] + isolates
-        roary_csv_outfile.write(",".join(header + isolates) + "\n")
+        roary_csv_outfile.write(",".join(header) + "\n")
         csv_outfile.write(",".join(header[:3] + isolates) + "\n")
         Rtab_outfile.write("\t".join((["Gene"] + isolates)) + "\n")
 
