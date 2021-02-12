@@ -64,7 +64,8 @@ setup(
             'panaroo-fmg = panaroo.estimate_many_genes_params:main',
             'panaroo-msa = panaroo.post_run_alignment_gen:main',
             'panaroo-gene-neighbourhood = panaroo.get_neighborhood:main',
-            'panaroo-integrate = panaroo.integrate:main'
+            'panaroo-integrate = panaroo.integrate:main',
+            'panaroo-filter-pa = panaroo.filter_pa:main'
         ],
     },
 )

@@ -15,6 +15,7 @@
     - [Merge multiple Panaroo graphs](/merge/merge_graphs.md)
 
 - Post-processing
+    - [Filter presence/absence matrix](/post/filter.md)
     - [Pangenome Association Study](/post/pwas.md)
     - [Structural Variant Analysis](/post/sv.md)
     - [Graph Gene Neighborhood](/post/gene_neighbourhood.md)

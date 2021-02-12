@@ -4,12 +4,12 @@ from .isvalid import *
 from .__init__ import __version__
 
 
-def filter_pa(pa_file, outdir, ftype):
+def filter_pa(pa_file, outdir, ftypes):
     basename = os.path.splitext(pa_file)[0]
 
     with open(pa_file, 'r') as infile, \
-        open(outdir + basename + '_filt_' + ftype + '.csv', 'w') as pa_out, \
-        open(outdir + basename + '_filt_' + ftype + '.Rtab', 'w') as rtab_out:
+        open(outdir + basename + '_filt_' + '_'.join(ftypes) + '.csv', 'w') as pa_out, \
+        open(outdir + basename + '_filt_' + '_'.join(ftypes) + '.Rtab', 'w') as rtab_out:
         header = next(infile)
         pa_out.write(header)
         header = ['Gene'] + header.strip().split(',')[3:]
@@ -19,9 +19,9 @@ def filter_pa(pa_file, outdir, ftype):
             line = line.strip().split(',')
             # perform filtering
             for i, gene in enumerate(line[3:]):
-                if ((ftype=='frag') and (';' in gene)) or \
-                   ((ftype=='pseudo') and ('stop' in gene)) or \
-                    ((ftype=='length') and ('len' in gene)):
+                if (('frag' in ftypes) and (';' in gene)) or \
+                   (('pseudo' in ftypes) and ('stop' in gene)) or \
+                    (('length' in ftypes) and ('len' in gene)):
                     line[3 + i] = ''
 
             # write to filtered files
@@ -37,7 +37,7 @@ def get_options(args):
     import argparse
 
     description = 'Filters the Panaroo gene_presence_absence.csv file to exclude sequences '
-    description += 'classed as length outliers, pseudo genes or fragemented.'
+    description += 'classed as length outliers, pseudo genes or fragmented.'
     parser = argparse.ArgumentParser(description=description,
                                      prog='panaroo_filter_pa')
 
@@ -76,10 +76,11 @@ def main():
     # make sure trailing forward slash is present
     args.output_dir = os.path.join(args.output_dir, "")
 
-    for filt_type in args.type.split(','):
+    filt_types = args.type.split(',')
+    for filt_type in filt_types:
         if filt_type not in ['pseudo', 'length', 'frag']:
             raise ValueError("invalid input for 'type' parameter!")
-        filter_pa(args.input_file, args.output_dir, filt_type)
+    filter_pa(args.input_file, args.output_dir, filt_types)
 
     return
 
