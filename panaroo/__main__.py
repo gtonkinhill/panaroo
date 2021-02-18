@@ -102,7 +102,7 @@ Does not delete any genes and only performes merge and refinding\
     matching.add_argument("-c",
                           "--threshold",
                           dest="id",
-                          help="sequence identity threshold (default=0.95)",
+                          help="sequence identity threshold (default=0.98)",
                           type=float)
     matching.add_argument(
         "-f",
@@ -278,8 +278,8 @@ def main():
         print("pre-processing gff3 files...")
 
     # convert input GFF3 files into summary files
-    process_prokka_input(args.input_files, args.output_dir, args.filter_invalid,
-                         (not args.verbose), args.n_cpu)
+    process_prokka_input(args.input_files, args.output_dir,
+                         args.filter_invalid, (not args.verbose), args.n_cpu)
 
     # Cluster protein sequences using cdhit
     cd_hit_out = args.output_dir + "combined_protein_cdhit_out.txt"

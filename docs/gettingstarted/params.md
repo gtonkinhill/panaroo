@@ -19,7 +19,7 @@ panaroo -i *.gff -o ./results/ --clean-mode strict -a core --aligner clustal --c
 
 The Panaroo algorithm initially performs a conservative clustering step before collapsing genes into possible families. It is usually best to use the dafault parameters for this initial clustering stage.
 
-Thus we recommend using the defaults for `--threshold` (0.98) and `--len_dif_percent` (0.95).
+Thus we recommend using the defaults for `--threshold` (0.98) and `--len_dif_percent` (0.98).
 
 If you wish to adjust the level at which Panaroo colapses genes into putitive families we suggest changing the family sequence identity level (default 0.7). Thus to run Panaroo using a more relaxed threshold of 50% identity you could run
 
