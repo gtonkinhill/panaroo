@@ -10,7 +10,7 @@ on:
     - master
     - devel
   schedule:
-    - cron:  '* * 1 * *'
+    - cron:  '1 1 1 * *'
 
 
 jobs:
