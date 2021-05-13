@@ -5,13 +5,14 @@ from collections import OrderedDict
 import gffutils as gff
 from Bio import SeqIO
 from Bio.Seq import Seq
+from Bio.Data.CodonTable import generic_by_id
 from Bio.SeqRecord import SeqRecord
 from io import StringIO
 import numpy as np
 from joblib import Parallel, delayed
 from tqdm import tqdm
 
-translation_table = np.array([[[b'K', b'N', b'K', b'N', b'X'],
+bact_translation_table = np.array([[[b'K', b'N', b'K', b'N', b'X'],
                                [b'T', b'T', b'T', b'T', b'T'],
                                [b'R', b'S', b'R', b'S', b'X'],
                                [b'I', b'I', b'M', b'I', b'X'],
@@ -43,9 +44,26 @@ reduce_array[[67, 99]] = 1
 reduce_array[[71, 103]] = 2
 reduce_array[[84, 116]] = 3
 
+def get_trans_table(table):
+    # swap to different codon table
+    if table!=11:
+        if table not in generic_by_id:
+            raise RuntimeError("Invalid codon table! Must be available" +
+                " as a generic table in BioPython")
+        translation_table = bact_translation_table.copy()
+        tb = generic_by_id[table]
+        for codon in tb.forward_table:
+            ind = reduce_array[np.fromstring(codon, dtype=np.int8)]
+            translation_table[ind[0], ind[1], ind[2]] = tb.forward_table[codon].encode('utf-8')
+        for codon in tb.stop_codons:
+            ind = reduce_array[np.fromstring(codon, dtype=np.int8)]
+            translation_table[ind[0], ind[1], ind[2]] = b'*'
+        return(translation_table)
+    else:
+        return(bact_translation_table)
 
-def translate(seq):
 
+def translate(seq, translation_table):
     indices = reduce_array[np.fromstring(seq, dtype=np.int8)]
 
     return translation_table[
@@ -66,7 +84,7 @@ def clean_gff_string(gff_string):
     return cleaned_gff
 
 
-def get_gene_sequences(gff_file_name, file_number, filter_seqs):
+def get_gene_sequences(gff_file_name, file_number, filter_seqs, table):
     #Get name and separate the prokka GFF into separate GFF and FASTA files
     if ',' in gff_file_name:
         print("Problem reading GFF3 file: ", gff_file_name)
@@ -153,18 +171,18 @@ def get_gene_sequences(gff_file_name, file_number, filter_seqs):
 
     gff_file.close()
 
-    return sequence_dictionary, translate_sequences(sequence_dictionary)
+    return sequence_dictionary, translate_sequences(sequence_dictionary, table)
 
 
 #Translate sequences and return a second dic of protien sequences
-def translate_sequences(sequence_dic):
+def translate_sequences(sequence_dic, table):
     protein_list = []
     for strain_id in sequence_dic:
         sequence_record = sequence_dic[strain_id]
         if (len(sequence_record.seq) % 3) != 0:
             raise ValueError(
                 "Coding sequence not divisible by 3, is it complete?!")
-        protien_sequence = translate(str(sequence_record.seq))
+        protien_sequence = translate(str(sequence_record.seq), table)
         if protien_sequence[-1] == "*":
             protien_sequence = protien_sequence[0:-1]
         if "*" in protien_sequence:
@@ -209,7 +227,8 @@ def output_files(dna_dictionary, protien_list, prot_handle, dna_handle,
     return None
 
 
-def process_prokka_input(gff_list, output_dir, filter_seqs, quiet, n_cpu):
+def process_prokka_input(gff_list, output_dir, filter_seqs, quiet, n_cpu, table):
+    trans_table = get_trans_table(table)
     try:
         protienHandle = open(output_dir + "combined_protein_CDS.fasta", 'w+')
         DNAhandle = open(output_dir + "combined_DNA_CDS.fasta", 'w+')
@@ -223,7 +242,7 @@ def process_prokka_input(gff_list, output_dir, filter_seqs, quiet, n_cpu):
         ]
         for job in tqdm(job_list, disable=quiet):
             gene_sequence_list = Parallel(n_jobs=n_cpu)(
-                delayed(get_gene_sequences)(gff, gff_no, filter_seqs)
+                delayed(get_gene_sequences)(gff, gff_no, filter_seqs, trans_table)
                 for gff_no, gff in job)
             for i, gene_seq in enumerate(gene_sequence_list):
                 output_files(gene_seq[0], gene_seq[1], protienHandle,

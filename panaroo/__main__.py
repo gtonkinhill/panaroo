@@ -236,6 +236,11 @@ Does not delete any genes and only performes merge and refinding\
                         help="number of threads to use (default=1)",
                         type=int,
                         default=1)
+    parser.add_argument("--codon-table",
+                        dest="table",
+                        help="the codon table to use for translation (default=11)",
+                        type=int,
+                        default=11)
     parser.add_argument("--quiet",
                         dest="verbose",
                         help="suppress additional output",
@@ -279,7 +284,8 @@ def main():
 
     # convert input GFF3 files into summary files
     process_prokka_input(args.input_files, args.output_dir,
-                         args.filter_invalid, (not args.verbose), args.n_cpu)
+                         args.filter_invalid, (not args.verbose), 
+                         args.n_cpu, args.table)
 
     # Cluster protein sequences using cdhit
     cd_hit_out = args.output_dir + "combined_protein_cdhit_out.txt"
