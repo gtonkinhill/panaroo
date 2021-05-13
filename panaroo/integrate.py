@@ -155,7 +155,11 @@ def get_options(
                         help="number of threads to use (default=1)",
                         type=int,
                         default=1)
-
+    parser.add_argument("--codon-table",
+                        dest="table",
+                        help="the codon table to use for translation (default=11)",
+                        type=int,
+                        default=11)
     parser.add_argument("--quiet",
                         dest="quiet",
                         help="suppress additional output",
@@ -251,7 +255,8 @@ def main():
                          output_dir=temp_dir,
                          filter_seqs=args.filter_invalid,
                          quiet=args.quiet,
-                         n_cpu=args.n_cpu)
+                         n_cpu=args.n_cpu,
+                         table=args.table)
 
     cd_hit_out = temp_dir + "combined_protein_cdhit_out.txt"
 
