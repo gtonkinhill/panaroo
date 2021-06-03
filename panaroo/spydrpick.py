@@ -5,7 +5,7 @@ from .isvalid import *
 from .__init__ import __version__
 import dendropy as dpy
 from collections import defaultdict, Counter
-
+from tqdm import tqdm
 
 def read_presence_absence(filename):
     # load matrix into binary array
@@ -108,15 +108,15 @@ def spydrpick(pa_matrix, weights=None, keep_quantile=0.9, chunk_size=100):
                       (1 - pa_matrix[sample_rows, :]), 1 - pa_matrix) +
              0.5) / (n_eff + 2.0)
 
-    mi_1 = (np.sum(weights * pa_matrix, 1) + 0.5) / (n_eff + 0.5)
-    mi_1 = mi_1[:, np.newaxis]
-    mi_0 = (np.sum(weights * (1 - pa_matrix), 1) + 0.5) / (n_eff + 0.5)
-    mi_0 = mi_0[:, np.newaxis]
+    mi_1y = mi_11 + mi_10
+    mi_0y = mi_01 + mi_00
+    mi_x1 = mi_11 + mi_01
+    mi_x0 = mi_10 + mi_00
 
-    mi = mi_00 * (np.log(mi_00) - np.matrix.flatten(np.log(mi_1) - np.log(mi_0)))
-    mi += mi_01 * (np.log(mi_01) - np.matrix.flatten(np.log(mi_1) - np.log(mi_0)))
-    mi += mi_10 * (np.log(mi_10) - np.matrix.flatten(np.log(mi_1) - np.log(mi_0)))
-    mi += mi_11 * (np.log(mi_11) - np.matrix.flatten(np.log(mi_1) - np.log(mi_0)))
+    mi = mi_00 * (np.log(mi_00) - np.log(mi_0y) - np.log(mi_x0))
+    mi += mi_01 * (np.log(mi_01) - np.log(mi_0y) - np.log(mi_x1))
+    mi += mi_10 * (np.log(mi_10) - np.log(mi_1y) - np.log(mi_x0))
+    mi += mi_11 * (np.log(mi_11) - np.log(mi_1y) - np.log(mi_x1))
 
     threshold = np.quantile(mi, keep_quantile)
 
@@ -124,6 +124,7 @@ def spydrpick(pa_matrix, weights=None, keep_quantile=0.9, chunk_size=100):
     hitsA = []
     hitsB = []
     mis = []
+
     for i in range(0, ngenes, chunk_size):
         # calculate co-occurence matrix using matrix algebra
         mi_11 = (np.inner(weights * pa_matrix[i:(i + 100), :], pa_matrix) +
@@ -137,21 +138,27 @@ def spydrpick(pa_matrix, weights=None, keep_quantile=0.9, chunk_size=100):
                           (1 - pa_matrix[i:(i + 100), :]), 1 - pa_matrix) +
                  0.5) / (n_eff + 2.0)
 
-        mi = mi_00 * (np.log(mi_00) - np.matrix.flatten(np.log(mi_1) - np.log(mi_0)))
-        mi += mi_01 * (np.log(mi_01) - np.matrix.flatten(np.log(mi_1) - np.log(mi_0)))
-        mi += mi_10 * (np.log(mi_10) - np.matrix.flatten(np.log(mi_1) - np.log(mi_0)))
-        mi += mi_11 * (np.log(mi_11) - np.matrix.flatten(np.log(mi_1) - np.log(mi_0)))
+        mi_1y = mi_11 + mi_10
+        mi_0y = mi_01 + mi_00
+        mi_x1 = mi_11 + mi_01
+        mi_x0 = mi_10 + mi_00
+
+        mi = mi_00 * (np.log(mi_00) - np.log(mi_0y) - np.log(mi_x0))
+        mi += mi_01 * (np.log(mi_01) - np.log(mi_0y) - np.log(mi_x1))
+        mi += mi_10 * (np.log(mi_10) - np.log(mi_1y) - np.log(mi_x0))
+        mi += mi_11 * (np.log(mi_11) - np.log(mi_1y) - np.log(mi_x1))
 
         np.fill_diagonal(mi, threshold - 1)
 
-        hitA, hitB = np.where(mi >= threshold)
+        hitA, hitB = np.where(mi > threshold)
         mi = mi[hitA, hitB]
         hitA += i
+        keep = hitA!=hitB
 
         # append current chunk output
-        hitsA.append(hitA)
-        hitsB.append(hitB)
-        mis.append(mi)
+        hitsA.append(hitA[keep])
+        hitsB.append(hitB[keep])
+        mis.append(mi[keep])
 
     hitsA = np.concatenate(hitsA, axis=0)
     hitsB = np.concatenate(hitsB, axis=0)
@@ -175,6 +182,36 @@ def tukey_outlier(hitsA, hitsB, mis):
     outliers[mis > (Q3 + 3 * (Q3 - Q1))] = 2
 
     return outliers
+
+
+def aracne(hitsA, hitsB, mis):
+    # build structures to speed up filtering
+    allg = set(hitsA) | set(hitsB)
+
+    d = {}
+    for a,b,m in zip(hitsA, hitsB, mis):
+        d[(a,b)] = m
+        d[(b,a)] = m
+
+    # aracne algorithm
+    bad_pairs = set()
+    nhitsA = []
+    nhitsB = []
+    nmis = []
+    for a,b,m in tqdm(zip(hitsA, hitsB, mis)):
+        bad = False
+        for c in allg:
+            if c in [a,b]: continue
+            if (a, c) not in d: continue
+            if (b, c) not in d: continue
+            if (m < d[(a, c)]) and (m < d[(b, c)]):
+                bad = True
+        if not bad:
+            nhitsA.append(a)
+            nhitsB.append(b)
+            nhitsA.append(m)
+
+    return (nhitsA, nhitsB, nmis)
 
 
 def get_options():
@@ -222,6 +259,15 @@ def get_options():
         "the quantile used to determine a threshold for keeping MI values (default=0.9)."
     )
 
+    parser.add_argument(
+        "--aracne",
+        dest="aracne",
+        default=False,
+        action='store_true',
+        help=
+        "turn on the Aracne stage of the algorithm (see the Spydrpick paper for details)."
+    )
+
     parser.add_argument('--version',
                         action='version',
                         version='%(prog)s ' + __version__)
@@ -258,6 +304,9 @@ def main():
                                   chunk_size=100)
 
     outliers = tukey_outlier(hitsA, hitsB, mis)
+
+    if args.aracne:
+        hitsA, hitsB, mis = aracne(hitsA, hitsB, mis)
 
     with open(args.output_dir + "gene_pa_spydrpick.csv", 'w') as outfile:
         outfile.write("GeneA,GeneB,MI,outlier\n")

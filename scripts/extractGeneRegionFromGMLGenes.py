@@ -10,11 +10,13 @@ import argparse
 
 
 def getGFFTranslation(
-    translationFile
+    G, gff_files
 ):  #Takes a file containing GFF file name and sample name and returns a dictionary with sample name keys and GFF file name objects
     gffDict = {}
-    for line in translationFile:  #Iterate through the files
-        gffDict[line.strip().split("\t")[1]] = line.strip().split("\t")[0]
+    for i, name in enumerate(G.graph['isolateNames']):
+        for fname in gff_files:
+            if name in fname:
+                gffDict[str(i)] = fname
     return gffDict
 
 
@@ -138,8 +140,10 @@ if __name__ == "__main__":
         default="1000")
     parser.add_argument(
         "-t",
-        help=
-        "Translation file that maps the names of the GFF files onto the sample names in panaroo, tab delimited, e.g. sample1_assembly.fasta TAB 0"
+        required=True,
+        help=("Original input GFF3 files used to run Panaroo."),
+        type=str,
+        nargs='+'
     )
     parser.add_argument("-o", help="Output file")
     args = parser.parse_args()
@@ -149,9 +153,8 @@ if __name__ == "__main__":
     gene1 = args.g[0]  #The name of the first gene
     gene2 = args.g[1]  #The name of the second gene
 
-    gffTranslation = open(args.t).readlines(
-    )  #Import the GFF files and their translated sample names
-    gffFiles = getGFFTranslation(gffTranslation)
+    #Import the GFF files and their translated sample names
+    gffFiles = getGFFTranslation(geneGraph, args.t)
 
     outFile = open(args.o, "w")
 
