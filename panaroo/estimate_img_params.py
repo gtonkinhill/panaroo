@@ -215,7 +215,7 @@ def f_fixed_spec(treetable, v1, u1, gess=None, v2=None, u2=None):
     treetable[:, 8] = np.exp(-v2 * treetable[:, 3])
 
     nn = treetable.shape[0]  #number of nodes
-    ng = int((nn + 1) / 2)  #number of genomes if bifurcating tree
+    ng = int(nn/2 + 1)  #number of genomes if bifurcating tree
     nd = np.zeros(nn,
                   dtype=int)  #number of descendent nodes not counting itself
     ndg = np.zeros(nn, dtype=int)  #number of descendent genomes
@@ -539,6 +539,7 @@ def main():
 
     options = {"maxiter": 1e4}
 
+    tree_table=None
     if args.model == 'coalescent':
         # result = optimize.minimize(f_theory_dist,
         #                         bounds=bounds,
@@ -619,7 +620,7 @@ def main():
             print(p[0] + ": " + str(p[1]))
         print("*********************************\n\n")
 
-    with open(args.output_dir + "infered_parameters.csv", 'w') as outfile:
+    with open(args.output_dir + "inferred_parameters.csv", 'w') as outfile:
         outfile.write("parameter,value\n")
         for p in result_summary:
             outfile.write(p[0] + "," + str(p[1]) + "\n")

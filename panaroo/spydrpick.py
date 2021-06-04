@@ -160,11 +160,16 @@ def spydrpick(pa_matrix, weights=None, keep_quantile=0.9, chunk_size=100):
         hitsB.append(hitB[keep])
         mis.append(mi[keep])
 
-    hitsA = np.concatenate(hitsA, axis=0)
-    hitsB = np.concatenate(hitsB, axis=0)
-    mis = np.concatenate(mis, axis=0)
+    hits = set()
+    for a,b,m in zip(np.concatenate(hitsA, axis=0), 
+                    np.concatenate(hitsB, axis=0),
+                    np.concatenate(mis, axis=0)):
+        if a<=b:
+            hits.add((a,b,m))
+        else:
+            hits.add((b,a,m))
 
-    return (hitsA, hitsB, mis)
+    return hits
 
 
 def tukey_outlier(hitsA, hitsB, mis):
@@ -298,10 +303,10 @@ def main():
     else:
         weights = None
     
-    hitsA, hitsB, mis = spydrpick(pa_matrix,
+    hitsA, hitsB, mis = zip(*spydrpick(pa_matrix,
                                   weights=weights,
                                   keep_quantile=args.quantile,
-                                  chunk_size=100)
+                                  chunk_size=100))
 
     outliers = tukey_outlier(hitsA, hitsB, mis)
 
