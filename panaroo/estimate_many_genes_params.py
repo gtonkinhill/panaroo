@@ -290,6 +290,7 @@ def main():
         node.label = nnodes
         nnodes += 1
     for node in tree.postorder_internal_node_iter():
+        if node.label=='Root': node.edge.length = 1e-9 # add small edge length to deal with root branch
         node.label = nnodes
         nnodes += 1
     tree_array = np.zeros((nnodes, 7))
@@ -307,6 +308,7 @@ def main():
 
     nleaves = len(leaves)
     for i, node in enumerate(tree.postorder_internal_node_iter()):
+        # if node.label=='Root': continue
         if node.edge.length <= 0: 
             print('edge length: ', node.edge.length)
             raise RuntimeError('Tree edge length must > 0!')
@@ -319,9 +321,6 @@ def main():
         tree_array[j][4] = children[0].edge.length
         tree_array[j][5] = children[1].edge.length
         tree_array[j][6] = node.edge.length
-
-    for i in range(tree_array.shape[0]):
-        print(tree_array[i][6])
 
     outfile = open(args.outputfile, 'w')
 
