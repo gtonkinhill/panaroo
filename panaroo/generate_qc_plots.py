@@ -65,7 +65,7 @@ def get_mash_dist(input_gffs, outdir, n_cpu=1, quiet=True):
     return dist_mat, file_names
 
 
-def plot_MDS(dist_mat, file_names, outdir):
+def plot_MDS(dist_mat, file_names, outdir, no_plot=False):
 
     # get MDS projection
     mds = manifold.MDS(n_components=2, dissimilarity="precomputed")
@@ -77,6 +77,8 @@ def plot_MDS(dist_mat, file_names, outdir):
         contig_out.write("sample\tcoordx\tcoordy\n")
         for i, coord in zip(file_names, coords):
             contig_out.write("%s\t%s\t%s\n" % (i, coord[0], coord[1]))
+
+    if no_plot: return
 
     # find margins for plot
     c_min = np.min(coords) - abs(np.quantile(coords, 0.05))
@@ -126,7 +128,7 @@ def plot_MDS(dist_mat, file_names, outdir):
     return
 
 
-def plot_ngenes(input_gffs, outdir):
+def plot_ngenes(input_gffs, outdir, no_plot=True):
 
     # get simplified file names
     file_names = [
@@ -147,6 +149,9 @@ def plot_ngenes(input_gffs, outdir):
         genes_out.write("sample\tno_genes\n")
         for i, j in zip(file_names, ngenes):
             genes_out.write("%s\t%s\n" % (i, j))
+
+    if no_plot: return
+
     # generate static plot
     plt.style.use('ggplot')
     fig = plt.figure()
@@ -183,7 +188,7 @@ def plot_ngenes(input_gffs, outdir):
     return
 
 
-def plot_ncontigs(input_gffs, outdir):
+def plot_ncontigs(input_gffs, outdir, no_plot=False):
 
     # get simplified file names
     file_names = [
@@ -206,6 +211,9 @@ def plot_ncontigs(input_gffs, outdir):
         contig_out.write("sample\tno_contigs\n")
         for i, j in zip(file_names, ncontigs):
             contig_out.write("%s\t%s\n" % (i, j))
+
+    if no_plot: return
+    
     plt.style.use('ggplot')
     fig = plt.figure()
     plt.barh(np.arange(len(ncontigs)), ncontigs)

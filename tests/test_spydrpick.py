@@ -16,6 +16,6 @@ def test_spydrpick(datafolder):
     assert np.all((np.array(mis) - np.array([
         0.316377019, 0.04316844491, 0.04316844491, 
         0.316377019, 0.04316844491, 0.3163770193
-    ]) < 1e-7))
+    ]) < 1e-4))
 
     return
