@@ -105,9 +105,9 @@ def merge_node_cluster(G,
         for neighbour in G.neighbors(node):
             if neighbour in merge_nodes: continue
             if G.has_edge(newNode, neighbour):
-                G[newNode][neighbour]['size'] += G[node][neighbour]['size']
                 G[newNode][neighbour]['members'] |= G[node][neighbour][
                     'members']
+                G[newNode][neighbour]['size'] = len(G[newNode][neighbour]['members'])
             else:
                 G.add_edge(newNode,
                            neighbour,
@@ -129,7 +129,7 @@ def delete_node(G, node):
         for n1, n2 in itertools.combinations(mem_edges, 2):
             if G.has_edge(n1, n2):
                 G[n1][n2]['members'] |= intbitset([mem])
-                G[n1][n2]['size'] += 1
+                G[n1][n2]['size'] = len(G[n1][n2]['members'])
             else:
                 G.add_edge(n1, n2, size=1, members=intbitset([mem]))
 
@@ -148,7 +148,7 @@ def remove_member_from_node(G, node, member):
         for n1, n2 in itertools.combinations(mem_edges, 2):
             if G.has_edge(n1, n2):
                 G[n1][n2]['members'] |= intbitset([member])
-                G[n1][n2]['size'] += 1
+                G[n1][n2]['size'] = len(G[n1][n2]['members'])
             else:
                 G.add_edge(n1, n2, size=1, members=intbitset([member]))
 
@@ -164,11 +164,11 @@ def remove_member_from_node(G, node, member):
     edges_to_remove = []
     for e in G.edges(node):
         if member in G.edges[e]['members']:
-            if G.edges[e]['size'] == 1:
+            if len(G.edges[e]['members']) == 1:
                 edges_to_remove.append(e)
             else:
                 G.edges[e]['members'].discard(member)
-                G.edges[e]['size'] -= 1
+                G.edges[e]['size'] = len(G.edges[e]['members'])
     for e in edges_to_remove:
         G.remove_edge(*e)
 

@@ -296,6 +296,9 @@ def main():
     leaves = []
     node_index = {}
     for i, node in enumerate(tree.leaf_node_iter()):
+        if node.edge.length <= 0: 
+            print('edge length: ', node.edge.length)
+            raise RuntimeError('Tree edge length must > 0!')
         leaves.append(i)
         node_index[node.label] = i
         tree_array[i][0] = -1
@@ -304,6 +307,9 @@ def main():
 
     nleaves = len(leaves)
     for i, node in enumerate(tree.postorder_internal_node_iter()):
+        if node.edge.length <= 0: 
+            print('edge length: ', node.edge.length)
+            raise RuntimeError('Tree edge length must > 0!')
         j = i + nleaves
         node_index[node.label] = j
         children = node.child_nodes()
@@ -313,6 +319,9 @@ def main():
         tree_array[j][4] = children[0].edge.length
         tree_array[j][5] = children[1].edge.length
         tree_array[j][6] = node.edge.length
+
+    for i in range(tree_array.shape[0]):
+        print(tree_array[i][6])
 
     outfile = open(args.outputfile, 'w')
 
