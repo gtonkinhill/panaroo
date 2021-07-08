@@ -13,9 +13,12 @@ def test_spydrpick(datafolder):
                                     keep_quantile=0,
                                     chunk_size=100))
 
-    assert np.all((np.array(mis) - np.array([
-        0.316377019, 0.04316844491, 0.04316844491, 
-        0.316377019, 0.04316844491, 0.3163770193
-    ]) < 1e-4))
+    res = np.zeros((4,4))
+    res[hitsA,hitsB] = mis
+
+    assert np.all((res - np.array([[0.        , 0.31637702, 0.31637702, 0.04316844],
+       [0.        , 0.        , 0.31637702, 0.04316844],
+       [0.        , 0.        , 0.        , 0.04316844],
+       [0.        , 0.        , 0.        , 0.        ]]) < 1e-4))
 
     return
