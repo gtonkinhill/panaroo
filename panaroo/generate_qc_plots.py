@@ -348,7 +348,7 @@ def plot_mash_contam(mash_contam_file, outdir):
     return
 
 
-def generate_qc_plot(method, input_files, outdir, n_cpu, ref_db=None):
+def generate_qc_plot(method, input_files, outdir, n_cpu, ref_db=None, no_plot=False):
 
     # plot MDS
     if method in ["mds", "all"]:
@@ -356,15 +356,15 @@ def generate_qc_plot(method, input_files, outdir, n_cpu, ref_db=None):
                                              outdir=outdir,
                                              n_cpu=n_cpu,
                                              quiet=True)
-        plot_MDS(dist_mat, file_names, outdir)
+        plot_MDS(dist_mat, file_names, outdir, no_plot)
 
     # plot number of genes
     if method in ["ngenes", "all"]:
-        plot_ngenes(input_gffs=input_files, outdir=outdir)
+        plot_ngenes(input_gffs=input_files, outdir=outdir, no_plot=no_plot)
 
     # plot number of contigs
     if method in ["ncontigs", "all"]:
-        plot_ncontigs(input_gffs=input_files, outdir=outdir)
+        plot_ncontigs(input_gffs=input_files, outdir=outdir, no_plot=no_plot)
 
     # plot contamination scatter plot
     if (method in ["contam", "all"]):
@@ -380,7 +380,8 @@ def generate_qc_plot(method, input_files, outdir, n_cpu, ref_db=None):
                                                mash_ref=ref_db,
                                                n_cpu=n_cpu,
                                                outdir=outdir)
-            plot_mash_contam(mash_contam_file=mash_contam_file, outdir=outdir)
+            if not no_plot:
+                plot_mash_contam(mash_contam_file=mash_contam_file, outdir=outdir)
 
     return
 
@@ -420,6 +421,11 @@ def get_options(args):
                         help="the type of graph to generate (default='all')",
                         choices={'all', 'mds', 'ngenes', 'ncontigs', 'contam'},
                         default="all")
+    parser.add_argument("--no_plot",
+                        dest="no_plot",
+                        help="don't generate the plots. Will only create the data tables",
+                        action='store_true',
+                        default=False)
     parser.add_argument(
         "--ref_db",
         dest="ref_db",
@@ -446,7 +452,8 @@ def main():
                      input_files=args.input_files,
                      outdir=args.output_dir,
                      n_cpu=args.n_cpu,
-                     ref_db=args.ref_db)
+                     ref_db=args.ref_db,
+                     no_plot=args.no_plot)
 
     return
 
