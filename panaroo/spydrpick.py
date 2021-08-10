@@ -169,7 +169,16 @@ def spydrpick(pa_matrix, weights=None, keep_quantile=0.9, chunk_size=100):
         else:
             hits.add((b,a,m))
 
-    return hits
+    hitsA = np.zeros(len(hits), dtype=int)
+    hitsB = np.zeros(len(hits), dtype=int)
+    mis = np.zeros(len(hits))
+
+    for i,hit in enumerate(hits):
+        hitsA[i] = hit[0]
+        hitsB[i] = hit[1]
+        mis[i] = hit[2]
+
+    return (hitsA, hitsB, mis)
 
 
 def tukey_outlier(hitsA, hitsB, mis):
@@ -189,7 +198,7 @@ def tukey_outlier(hitsA, hitsB, mis):
     return outliers
 
 
-def aracne(hitsA, hitsB, mis):
+def aracne(hitsA, hitsB, mis, outliers):
     # build structures to speed up filtering
     allg = set(hitsA) | set(hitsB)
 
@@ -203,7 +212,8 @@ def aracne(hitsA, hitsB, mis):
     nhitsA = []
     nhitsB = []
     nmis = []
-    for a,b,m in tqdm(zip(hitsA, hitsB, mis)):
+    noutliers = []
+    for a,b,m,o in tqdm(zip(hitsA, hitsB, mis, outliers)):
         bad = False
         for c in allg:
             if c in [a,b]: continue
@@ -215,8 +225,12 @@ def aracne(hitsA, hitsB, mis):
             nhitsA.append(a)
             nhitsB.append(b)
             nhitsA.append(m)
+            noutliers.append(o)
 
-    return (nhitsA, nhitsB, nmis)
+    return (np.array(nhitsA), 
+            np.array(nhitsB), 
+            np.array(nmis),
+            np.array(noutliers))
 
 
 def get_options():
@@ -303,15 +317,15 @@ def main():
     else:
         weights = None
     
-    hitsA, hitsB, mis = zip(*spydrpick(pa_matrix,
+    hitsA, hitsB, mis = spydrpick(pa_matrix,
                                   weights=weights,
                                   keep_quantile=args.quantile,
-                                  chunk_size=100))
+                                  chunk_size=100)
 
     outliers = tukey_outlier(hitsA, hitsB, mis)
 
     if args.aracne:
-        hitsA, hitsB, mis = aracne(hitsA, hitsB, mis)
+        hitsA, hitsB, mis, outliers = aracne(hitsA, hitsB, mis, outliers)
 
     with open(args.output_dir + "gene_pa_spydrpick.csv", 'w') as outfile:
         outfile.write("GeneA,GeneB,MI,outlier\n")

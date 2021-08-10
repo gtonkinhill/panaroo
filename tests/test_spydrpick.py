@@ -8,10 +8,10 @@ def test_spydrpick(datafolder):
     pa_matrix = np.array([[1, 1, 1, 0, 0, 0], [1, 1, 1, 0, 0, 0],
                             [0, 0, 0, 1, 1, 1], [1, 1, 1, 1, 1, 0]])
 
-    hitsA, hitsB, mis = zip(*spydrpick(pa_matrix,
+    hitsA, hitsB, mis = spydrpick(pa_matrix,
                                     weights=None,
                                     keep_quantile=0,
-                                    chunk_size=100))
+                                    chunk_size=100)
 
     res = np.zeros((4,4))
     res[hitsA,hitsB] = mis
