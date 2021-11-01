@@ -97,7 +97,7 @@ def spydrpick(pa_matrix, weights=None, keep_quantile=0.9, chunk_size=100):
     n_eff = np.sum(weights)
 
     # determine threshold for storing results
-    sample_rows = np.random.randint(0, ngenes, size=min(100, ngenes))
+    sample_rows = np.random.randint(0, ngenes, size=min(100000, ngenes))
     mi_11 = (np.inner(weights * pa_matrix[sample_rows, :], pa_matrix) +
              0.5) / (n_eff + 2.0)
     mi_10 = (np.inner(weights * pa_matrix[sample_rows, :], 1 - pa_matrix) +
@@ -118,13 +118,13 @@ def spydrpick(pa_matrix, weights=None, keep_quantile=0.9, chunk_size=100):
     mi += mi_10 * (np.log(mi_10) - np.log(mi_1y) - np.log(mi_x0))
     mi += mi_11 * (np.log(mi_11) - np.log(mi_1y) - np.log(mi_x1))
 
-    threshold = np.quantile(mi, keep_quantile)
+    np.fill_diagonal(mi, np.nan)
+    threshold = np.nanquantile(mi, keep_quantile)
 
     # operate in chunks to speed things up
     hitsA = []
     hitsB = []
     mis = []
-
     for i in range(0, ngenes, chunk_size):
         # calculate co-occurence matrix using matrix algebra
         mi_11 = (np.inner(weights * pa_matrix[i:(i + 100), :], pa_matrix) +
@@ -148,9 +148,8 @@ def spydrpick(pa_matrix, weights=None, keep_quantile=0.9, chunk_size=100):
         mi += mi_10 * (np.log(mi_10) - np.log(mi_1y) - np.log(mi_x0))
         mi += mi_11 * (np.log(mi_11) - np.log(mi_1y) - np.log(mi_x1))
 
-        np.fill_diagonal(mi, threshold - 1)
-
-        hitA, hitB = np.where(mi > threshold)
+        np.fill_diagonal(mi, -np.inf)
+        hitA, hitB = np.where(mi - threshold >= -1e-4)
         mi = mi[hitA, hitB]
         hitA += i
         keep = hitA!=hitB
