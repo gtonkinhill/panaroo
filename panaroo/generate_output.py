@@ -60,9 +60,9 @@ def generate_roary_gene_presence_absence(G, mems_to_isolates, orig_ids,
                 ])
                 name = ''.join(e for e in name
                                if e.isalnum() or e in ["_", "~"])
-                if name not in used_gene_names:
+                if name.lower() not in used_gene_names:
                     entry = [name]
-                    used_gene_names.add(name)
+                    used_gene_names.add(name.lower())
                     G.nodes[node]['name'] = name
                 else:
                     G.nodes[node]['name'] = "group_" + str(unique_id_count)
