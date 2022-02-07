@@ -204,6 +204,8 @@ def create_new_gffs(list_of_isolate_names, parsed_gffs, pp_isolate_genes,
                         original_gene_data = original_gene_data[0]
                     #Get various other metadata for gene required for GFF3
                     gene_name = G.nodes[pangenome_gene]["annotation"]
+                    if gene_name == "":
+                        gene_name = "No_name"
                     if G.nodes[pangenome_gene]["paralog"] == 1:
                         has_paralog = "True"
                     else:
