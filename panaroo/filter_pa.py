@@ -26,7 +26,7 @@ def filter_pa(pa_file, outdir, ftypes):
 
             # write to filtered files
             pa_out.write(','.join(line) + '\n')
-            rtab_out.write(','.join(
+            rtab_out.write('\t'.join(
                 [line[0]] + ['0' if g == '' else '1'
                              for g in line[3:]]) + '\n')
 
