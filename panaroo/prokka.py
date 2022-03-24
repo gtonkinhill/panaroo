@@ -141,10 +141,11 @@ def get_gene_sequences(gff_file_name, file_number, filter_seqs, table):
 
                 #clean entries if requested
                 if ((len(gene_sequence) % 3 > 0) or
-                    (len(gene_sequence) < 34)) or ("*" in str(
-                        gene_sequence.translate())[:-1]):
+                    (len(gene_sequence) < 34)) or ("*" in translate(str(gene_sequence), table)[:-1]):
                     print('invalid gene! file - id: ', gff_file_name, ' - ',
                           entry.id)
+                    print('Length:', len(gene_sequence), ', Has stop:', ("*" in str(
+                        gene_sequence.translate())[:-1]))
                     if filter_seqs: continue
 
                 gene_record = (entry.start,
