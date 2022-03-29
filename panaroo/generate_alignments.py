@@ -360,7 +360,7 @@ if __name__ == '__main__':
     dna_sequences = os.listdir(panaroo_output_dir.rstrip("/") +'/'+ "unaligned_dna_sequences/")
     protein_sequences = os.listdir(panaroo_output_dir.rstrip("/") +'/'+ "aligned_protein_sequences/")
     
-    codon_alignments = reverse_translate_sequences(protein_sequences, dna_sequences,
-                                                   "./", threads)
+    codon_alignments = reverse_translate_sequences(protein_sequences, dna_sequences, "./", threads)
+    
     AlignIO.write(codon_alignments[0], "codon_alignments_test.fasta", "fasta")
         

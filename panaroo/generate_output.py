@@ -250,8 +250,10 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
         unaligned_sequence_files = Parallel(n_jobs=threads)(
             delayed(output_sequence)(G.nodes[x], isolates, temp_dir, output_dir)
             for x in tqdm(G.nodes()))
+
         #remove single sequence files
         unaligned_sequence_files = filter(None, unaligned_sequence_files)
+
         #Get Biopython command calls for each output gene sequences
         commands = [
             get_alignment_commands(fastafile, output_dir, aligner, threads)
@@ -375,6 +377,7 @@ def generate_core_genome_alignment(G, temp_dir, output_dir, threads, aligner,
             for x in tqdm(core_genes))
         #remove single sequence files
         unaligned_sequence_files = filter(None, unaligned_sequence_files)
+
         #Get alignment commands
         commands = [
             get_alignment_commands(fastafile, output_dir, aligner, threads)
@@ -383,7 +386,7 @@ def generate_core_genome_alignment(G, temp_dir, output_dir, threads, aligner,
         #Run alignment commands
         multi_align_sequences(commands, output_dir + "aligned_gene_sequences/",
                               threads, aligner)
-        
+
     #Concatenate them together to produce the two output files
     concatenate_core_genome_alignments(core_gene_names, output_dir)
     return
