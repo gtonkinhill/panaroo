@@ -10,6 +10,7 @@ from Bio import SeqIO
 from Bio import AlignIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
+from Bio.Align import MultipleSeqAlignment
 
 from Bio.Align.Applications import PrankCommandline
 from Bio.Align.Applications import MafftCommandline
@@ -17,7 +18,6 @@ from Bio.Align.Applications import ClustalOmegaCommandline
 import Bio.Application
 
 from Bio import codonalign
-from Bio.Alphabet import IUPAC
 
 def check_aligner_install(aligner):
     """Checks for the presence of the specified aligned in $PATH
@@ -95,16 +95,14 @@ def output_sequence(node, isolate_list, temp_directory, outdir):
     SeqIO.write(output_sequences, outname, 'fasta')
     return outname
 
-def output_dna_and_protein(node, isolate_list, temp_directory, outdir):
+def output_dna_and_protein(node, isolate_list, temp_directory, outdir, 
+                           all_proteins, all_dna):
     #Get the name of the sequences for the gene of interest
     sequence_ids = node["seqIDs"]
     output_dna = []
     output_protein = []
     #Counter for the number of sequences to avoid aliging single sequences
     isolate_no = 0
-    #Look for gene sequences among all genes (from disk)
-    all_proteins = list(SeqIO.parse(outdir + "combined_protein_CDS.fasta", 'fasta'))
-    all_dna = list(SeqIO.parse(outdir + "combined_DNA_CDS.fasta", 'fasta'))
     
     for seq_ind in range(len(all_proteins)):
         
@@ -112,6 +110,8 @@ def output_dna_and_protein(node, isolate_list, temp_directory, outdir):
         
         #check to make sure protien and DNA are same id
         if seq_id != all_dna[seq_ind].id:
+            print("Protein: "+seq_id)
+            print("DNA: " + all_dna[seq_ind].id)
             raise ValueError("DNA and protien sequence IDs do not match!")
         #Get isolate names
         isolate_num = int(seq_id.split('_')[0])
@@ -120,26 +120,23 @@ def output_dna_and_protein(node, isolate_list, temp_directory, outdir):
         if seq_id in sequence_ids:
             prot_stop_codon = all_proteins[seq_ind].seq.find("*")
             
-            #Remove all instances N from DNA sequences
-            new_dna_seq = Seq(str(all_dna[seq_ind].seq).replace("N", "-"),
-                              alphabet = IUPAC.unambiguous_dna)
             
             if prot_stop_codon > -1:
                 output_protein.append(
                     SeqRecord(all_proteins[seq_ind].seq[:prot_stop_codon], 
                               id=isolate_name, description=""))
                 output_dna.append(
-                    SeqRecord(new_dna_seq[:(prot_stop_codon*3)], 
+                    SeqRecord(all_dna[seq_ind].seq[:(prot_stop_codon*3)], 
                               id=isolate_name, description=""))
             else:
                 output_dna.append(
-                    SeqRecord(new_dna_seq, 
+                    SeqRecord(all_dna[seq_ind].seq, 
                               id=isolate_name, description=""))
                 output_protein.append(
                     SeqRecord(all_proteins[seq_ind].seq, 
                               id=isolate_name, description=""))
             isolate_no += 1
-    
+
     #only output genes with more than one isolate in them
     if isolate_no > 1:
         #Put gene of interest sequences in a generator, with corrected isolate names
@@ -147,15 +144,16 @@ def output_dna_and_protein(node, isolate_list, temp_directory, outdir):
         output_protein = (x for x in output_protein)
         #set filename to gene name
         prot_outname = temp_directory + node["name"] + ".fasta"
-        dna_outname = "unaligned_dna_sequences/" + node["name"] + ".fasta"
+        dna_outname = outdir + "unaligned_dna_sequences/" + node["name"] + ".fasta"
         #Write them to disk
         SeqIO.write(output_protein, prot_outname, 'fasta')
         SeqIO.write(output_dna, dna_outname, 'fasta')
         output_files = (prot_outname, dna_outname)
+        
     else:
         output_singleton = (x for x in output_dna)
         #set filename, write
-        singleton_outname = "aligned_gene_sequences/" + node["name"] +".aln.fas"
+        singleton_outname = outdir + "aligned_gene_sequences/" + node["name"] +".aln.fas"
         SeqIO.write(output_singleton, singleton_outname, 'fasta')
         output_files = (None, None)
         
@@ -262,10 +260,16 @@ def multi_align_sequences(commands, outdir, threads, aligner):
 
     return True
 
+def replace_last(string, find, replace):
+    reversed = string[::-1]
+    replaced = reversed.replace(find[::-1], replace[::-1], 1)
+    return replaced[::-1]
+
+
 def reverse_translate_sequences(protein_sequence_files, dna_sequence_files, outdir, threads):
     #Check that the dna and protein files match up
     for index in range(len(protein_sequence_files)):
-        gene_id = protein_sequence_files[index].split(".")[0]
+        gene_id = protein_sequence_files[index].split('/')[-1].split(".")[0]
         if gene_id in dna_sequence_files[index]:
             continue
         else:
@@ -275,11 +279,90 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files, outd
     
     #Read in files (multithreaded)
     dna_sequences = Parallel(n_jobs=threads, prefer="threads")(
-            delayed(SeqIO.parse)(x, "fasta", alphabet=IUPAC.unambiguous_dna) 
+            delayed(SeqIO.parse)(x, "fasta",) 
             for x in dna_sequence_files)  
     protein_alignments = Parallel(n_jobs=threads, prefer="threads")(
-            delayed(AlignIO.read)(outdir + x, "fasta", alphabet=IUPAC.protein) 
+            delayed(AlignIO.read)(x, "fasta") 
             for x in protein_sequence_files)
+    
+    #Check than protein and DNA lenghths match, remove Xs from protein seqs
+    #so that they match DNA sequences with N's stripped
+    
+    clean_dna = []
+    clean_proteins = []
+    
+    for index in range(len(dna_sequences)):
+        dna = list(dna_sequences[index])
+        protein = protein_alignments[index]
+        seqids_to_remove = []
+        appended = False
+        for seq_index in range(len(dna)):
+            #Need to take protein without proceeding or trailing gaps
+            nogapped_protein_seq = str(protein[seq_index].seq).replace("-", "")
+            translated_dna = dna[seq_index].seq.translate()
+            truncated_translated = dna[seq_index].seq[:(len(translated_dna)*3)].translate()
+            if len(dna[seq_index].seq) != (len(nogapped_protein_seq)*3):
+                
+                #Check if panaroo's rapid translation table has added a mysterly
+                #amino acid at the start or end
+                if nogapped_protein_seq[-1] == "X":
+                    notrailing_x_seq = Seq(replace_last(str(protein[seq_index].seq), 
+                                                        "X", "-"))
+                    protein[seq_index].seq = notrailing_x_seq
+                    continue
+                elif nogapped_protein_seq[0] == "X":
+                    nopre_x_seq = Seq(str(protein[seq_index].seq[0:]).replace("X", "-", 1))
+                    protein[seq_index].seq = nopre_x_seq
+                    continue
+                
+                #Check if the length discrepancy is due to a stop codon in dna
+                elif str(dna[seq_index].seq[-3:]) in ["TAA", "TGA", "TAG"]:
+                    continue
+                
+                #Check if the two sequences in frame, or is there frameshift?
+                elif str(translated_dna) != nogapped_protein_seq:
+                    frame_2_forward = dna[seq_index].seq[1:]
+                    frame_3_forward = dna[seq_index].seq[2:]
+                    if str(frame_2_forward.translate()) == nogapped_protein_seq:
+                        dna[seq_index].seq = frame_2_forward
+                    elif str(frame_3_forward.translate()) == nogapped_protein_seq:
+                        dna[seq_index].seq = frame_3_forward    
+                
+                #Check if there is an incomplete codon at the end of the dna
+                elif truncated_translated == translated_dna:
+                    dna[seq_index].seq = dna[seq_index].seq[:(len(translated_dna)*3)]
+                
+                else:
+                    print("DNA: "+str(dna[seq_index].id))
+                    print(dna[seq_index].seq)
+                    print("Protein: " + str(protein[seq_index].id))
+                    print(protein[seq_index].seq)
+                    print("DNA and protein lengths differ for above id, Codon Alignment impsosible, omitting sequence")
+                    seqids_to_remove = seqids_to_remove + list(set([dna[seq_index].id, protein[seq_index].id]))
+        
+        if (len(seqids_to_remove) > 0) and (appended==False):
+            clean_nucs = []
+            clean_prots = []
+            for sequence in dna:
+                if sequence.id in seqids_to_remove:
+                    continue
+                else:
+                    clean_nucs.append(sequence)
+            for sequence in protein:
+                if sequence.id in seqids_to_remove:
+                    continue
+                else:
+                    clean_prots.append(sequence)
+            
+            clean_alignment = MultipleSeqAlignment(clean_prots)
+            clean_dna.append(clean_nucs)
+            clean_proteins.append(clean_alignment)                
+        else:
+            clean_dna.append(dna)
+            clean_proteins.append(protein)                   
+
+                    
+    
     #build codon alignments
     
     #codon_alignments = Parallel(n_jobs=threads, prefer="threads")(
@@ -289,11 +372,17 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files, outd
     
 
     #do it single threaded for debugging;
+    
     codon_alignments = []
-    for index in range(len(protein_alignments)):
+    for index in range(len(clean_proteins)):
         try:
-            alignment = codonalign.build(protein_alignments[index], dna_sequences[index])
+            alignment = codonalign.build(clean_proteins[index], clean_dna[index])
             codon_alignments.append(alignment)
+        except RuntimeError as e:
+            print(e)
+            print(index)
+            print(protein_sequence_files[index])
+            print(dna_sequence_files[index])
         except IndexError as e:
             print(e)
             print(index)

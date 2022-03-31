@@ -212,10 +212,16 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
             os.mkdir(output_dir + "unaligned_dna_sequences")
         except FileExistsError:
             None
+            
+        proteins = list(SeqIO.parse(output_dir + "combined_protein_CDS.fasta", 'fasta'))
+        nucleotides = list(SeqIO.parse(output_dir + "combined_DNA_CDS.fasta", 'fasta'))
+        
         #Multithread writing protien and dna sequences to disk (temp directory) so aligners can find them
-        output_files = Parallel(n_jobs=threads)(
-            delayed(output_dna_and_protein)(G.nodes[x], isolates, temp_dir, output_dir)
-            for x in tqdm(G.nodes()))
+        output_files = []
+        for gene in G.nodes():
+            output = output_dna_and_protein(G.nodes[gene], isolates, temp_dir, 
+                                            output_dir, proteins, nucleotides)
+            output_files.append(output)
         
         filtered_output_files  = [x for x in output_files if x[0]]
         
@@ -242,7 +248,7 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
         
         #Reverse translate and output codon alignments
         codon_alignments = reverse_translate_sequences(protein_sequences, 
-                                                       unaligned_dna_files, 
+                                                       unaligned_dna_files,
                                                        output_dir, 
                                                        threads)
     else:
@@ -339,7 +345,7 @@ def generate_core_genome_alignment(G, temp_dir, output_dir, threads, aligner,
             os.mkdir(output_dir + "unaligned_dna_sequences")
         except FileExistsError:
             None
-                #Multithread writing protien and dna sequences to disk (temp directory) so aligners can find them
+        #Multithread writing protien and dna sequences to disk (temp directory) so aligners can find them
         unaligned_protein_files = Parallel(n_jobs=threads)(
             delayed(output_protein)(G.nodes[x], isolates, temp_dir, output_dir)
             for x in tqdm(core_genes))
