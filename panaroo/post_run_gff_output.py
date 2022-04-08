@@ -3,6 +3,7 @@
 import os
 import networkx as nx
 from joblib import Parallel, delayed
+from tqdm import tqdm
 from io import StringIO
 from Bio import SeqIO
 from Bio.Seq import Seq
@@ -171,75 +172,68 @@ def process_refound_gene(refound_id, pangenome_id, parsed_gff, output_dir, G):
                 strand, ".", gff_attributes]
     return "\t".join(gff_line)
 
-def create_new_gffs(list_of_isolate_names, parsed_gffs, pp_isolate_genes,
+def create_new_gffs(isolate_index, parsed_gffs, pp_isolate_genes,
                     gene_name_dic, outdir, gff_format, G):
-    new_gffs = {}
-    #For each isolate
-    for isolate_index in range(len(list_of_isolate_names)):
-        #set up variables, add original GFF3 header to output
-        new_gff_body_lines = []
-        new_gff_body_lines.append(parsed_gffs[isolate_index]["header"])
-        parsed_original_gffbody = parse_gff_body(parsed_gffs[isolate_index]["body"])
-        pangenome_isolate_genes = 0
-        #Need to go through all the pangenome genes
-        for pangenome_gene in pp_isolate_genes[str(isolate_index)]:
-            pangenome_isolate_genes += 1
-            #And all the genes from this isolate with the pan-genome gene
-            for gene in pp_isolate_genes[str(isolate_index)][pangenome_gene]:
-                if "refound" in gene:
-                    #Deal with refound genes seperately, don't need original gff
-                    refound_line = process_refound_gene(gene, pangenome_gene, parsed_gffs[isolate_index], outdir, G)
-                    new_gff_body_lines.append(refound_line)
-                else:
-                    #Identify original annotation
-                    original_gene_data = list(filter(lambda isolategff: 
-                                      isolategff['ID'] == gene_name_dic[gene],
-                                      parsed_original_gffbody))
-                    #Check that this is 1:1
-                    if len(original_gene_data) > 1:
-                        print("Uh Oh, too much data")
-                        print(original_gene_data)
-                        
-                    else:
-                        original_gene_data = original_gene_data[0]
-                    #Get various other metadata for gene required for GFF3
-                    gene_name = G.nodes[pangenome_gene]["annotation"]
-                    if gene_name == "":
-                        gene_name = "No_name"
-                    if G.nodes[pangenome_gene]["paralog"] == 1:
-                        has_paralog = "True"
-                    else:
-                        has_paralog = "False"
-                    gene_description = G.nodes[pangenome_gene]["description"]
+
+    #set up variables, add original GFF3 header to output
+    new_gff_body_lines = []
+    new_gff_body_lines.append(parsed_gffs[isolate_index]["header"])
+    parsed_original_gffbody = parse_gff_body(parsed_gffs[isolate_index]["body"])
+    pangenome_isolate_genes = 0
+    #Need to go through all the pangenome genes
+    for pangenome_gene in pp_isolate_genes[str(isolate_index)]:
+        pangenome_isolate_genes += 1
+        #And all the genes from this isolate with the pan-genome gene
+        for gene in pp_isolate_genes[str(isolate_index)][pangenome_gene]:
+            if "refound" in gene:
+                #Deal with refound genes seperately, don't need original gff
+                refound_line = process_refound_gene(gene, pangenome_gene, parsed_gffs[isolate_index], outdir, G)
+                new_gff_body_lines.append(refound_line)
+            else:
+                #Identify original annotation
+                original_gene_data = list(filter(lambda isolategff: 
+                                  isolategff['ID'] == gene_name_dic[gene],
+                                  parsed_original_gffbody))
+                #Check that this is 1:1
+                if len(original_gene_data) > 1:
+                    print("Uh Oh, too much data")
+                    print(original_gene_data)
                     
-                    new_attributes = ";".join(["ID="+gene,
-                                              "name="+gene_name,
-                                              "description="+gene_description,
-                                              "prepanaroo_ID="+original_gene_data["ID"],
-                                              "eC_number="+original_gene_data.get("eC_number", str(None)),
-                                              "prepanaroo_inference="+original_gene_data["inference"],
-                                              "has_pangenome_paralog="+has_paralog])
-                    new_gene_line = "\t".join([original_gene_data["seqid"], 
-                                          "Panaroo", 
-                                          original_gene_data["type"],
-                                          original_gene_data["start"],
-                                          original_gene_data["end"],
-                                          original_gene_data["score"],
-                                          original_gene_data["strand"],
-                                          original_gene_data["phase"],
-                                          new_attributes])
-                    new_gff_body_lines.append(new_gene_line)
-        #print("Number of pg genes iterated through:")
-        #print(pangenome_isolate_genes)
-        #print("Final number of genes in new gff:")
-        #print(len(new_gff_body_lines))            
-        #Add FASTA portion of prokka-style GFF files
-        if gff_format == "prokka":
-            new_gff_body_lines.append("##FASTA")
-            new_gff_body_lines.append(parsed_gffs[isolate_index]["fasta"])
-        new_gffs[list_of_isolate_names[isolate_index]] =  new_gff_body_lines
+                else:
+                    original_gene_data = original_gene_data[0]
+                #Get various other metadata for gene required for GFF3
+                gene_name = G.nodes[pangenome_gene]["annotation"]
+                if gene_name == "":
+                    gene_name = "No_name"
+                if G.nodes[pangenome_gene]["paralog"] == 1:
+                    has_paralog = "True"
+                else:
+                    has_paralog = "False"
+                gene_description = G.nodes[pangenome_gene]["description"]
+                
+                new_attributes = ";".join(["ID="+gene,
+                                          "name="+gene_name,
+                                          "description="+gene_description,
+                                          "prepanaroo_ID="+original_gene_data["ID"],
+                                          "eC_number="+original_gene_data.get("eC_number", str(None)),
+                                          "prepanaroo_inference="+original_gene_data["inference"],
+                                          "has_pangenome_paralog="+has_paralog])
+                new_gene_line = "\t".join([original_gene_data["seqid"], 
+                                      "Panaroo", 
+                                      original_gene_data["type"],
+                                      original_gene_data["start"],
+                                      original_gene_data["end"],
+                                      original_gene_data["score"],
+                                      original_gene_data["strand"],
+                                      original_gene_data["phase"],
+                                      new_attributes])
+                new_gff_body_lines.append(new_gene_line)
+
+    if gff_format == "prokka":
+        new_gff_body_lines.append("##FASTA")
+        new_gff_body_lines.append(parsed_gffs[isolate_index]["fasta"])
     
-    return new_gffs
+    return new_gff_body_lines
 
 def output_gff(isolate_name, gff_lines, outdir):
     gff = "\n".join(gff_lines)
@@ -301,13 +295,14 @@ def main():
     #create and output new GFF files, multithreaded
     if args.verbose:
         print("Creating new gff files...")
-    #new_gffs = Parallel(n_jobs=args.n_cpu, prefer="threads")(
-        #delayed(create_new_gffs)(isolate_names, parsed_gffs, isolate_genes,
-        #            gene_names, args.output_dir, args.format, G))
+    new_gffs = Parallel(n_jobs=args.n_cpu, prefer="threads")(
+        delayed(create_new_gffs)(x, parsed_gffs, isolate_genes,
+                    gene_names, args.output_dir, args.format, G) for x in 
+                    tqdm(range(len(isolate_names))))
     
     #temporarily single threaded, need to refactor the gff function
-    new_gffs = create_new_gffs(isolate_names, parsed_gffs, isolate_genes,
-                    gene_names, args.output_dir, args.format, G) 
+    #new_gffs = create_new_gffs(isolate_names, parsed_gffs, isolate_genes,
+    #                gene_names, args.output_dir, args.format, G) 
     
     if args.verbose:
         print("Writing output...")
