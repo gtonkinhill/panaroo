@@ -306,8 +306,8 @@ def main():
         print("Writing output...")
     if not os.path.exists(args.output_dir+"postpanaroo_gffs"):
         os.mkdir(args.output_dir+"postpanaroo_gffs")
-    for isolate_name in new_gffs:
-        output_gff(isolate_name, new_gffs[isolate_name], args.output_dir)
+    for index in range(len(new_gffs)):   
+        output_gff(isolate_names[index], new_gffs[index], args.output_dir)
 
     # remove temporary directory
     #shutil.rmtree(temp_dir)
