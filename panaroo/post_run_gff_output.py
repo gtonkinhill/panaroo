@@ -70,8 +70,10 @@ def get_options():
     args = parser.parse_args()
     return (args)
 
-def parse_all_gffs(list_of_isolate_names, input_list):
+def parse_all_gffs(list_of_isolate_names, input_list, verbose):
     ordered_parsed_gffs = []
+    if verbose == True:
+        list_of_isolate_names = tqdm(list_of_isolate_names)
     for isolate_id in list_of_isolate_names:
         parsed_gff = {}
         #get the right file in the original processing order
@@ -252,15 +254,18 @@ def main():
     # Create temporary directory
     #temp_dir = os.path.join(tempfile.mkdtemp(dir=args.output_dir), "")
 
-    # Load isolate names
+    # Load isolate names, initial ID to clustering ID mapping
     if args.verbose:
         print("Loading panaroo output and input gff files...")
     seen = set()
     isolate_names = []
+    gene_names = {}
     with open(args.output_dir + "gene_data.csv", 'r') as infile:
         next(infile)
         for line in infile:
-            iso = line.split(",")[0]
+            splitinfo = line.split(",")
+            iso = splitinfo[0]
+            gene_names[splitinfo[2]] = splitinfo[3]
             if iso not in seen:
                 isolate_names.append(iso)
                 seen.add(iso)
@@ -268,9 +273,15 @@ def main():
     # Load graph
     G = nx.read_gml(args.output_dir + "final_graph.gml")
 
+    #parse input GFFs for headers, start/stop positions, FASTA
+    parsed_gffs = parse_all_gffs(isolate_names, args.input_files, args.verbose)
+
     #Transform isolates-per-gene to localgeneids per pangenomeid per isolate
+    if args.verbose:
+        print("Cross-referencing input gffs and the pangenome...")
+
     isolate_genes = {}
-    for pangenome_gene_id in G.nodes:
+    for pangenome_gene_id in tqdm(G.nodes):
         for isolate_id in G.nodes[pangenome_gene_id]["genomeIDs"].split(";"):
             isolate_genes[isolate_id] = isolate_genes.get(isolate_id, {})
             for isolate_geneid in G.nodes[pangenome_gene_id]["seqIDs"]:
@@ -278,19 +289,6 @@ def main():
                     isolate_genes[isolate_id][pangenome_gene_id] = isolate_genes[isolate_id].get(
                         pangenome_gene_id, []) + [isolate_geneid]
             
-    
-    #Get initial ID to clustering ID mapping
-    if args.verbose:
-        print("Cross-referencing input gffs and the pangenome...")
-    gene_names = {}
-    with open(args.output_dir + "gene_data.csv", 'r') as infile:
-        next(infile)
-        for line in infile:
-            splitinfo = line.split(",")
-            gene_names[splitinfo[2]] = splitinfo[3]
-    
-    #parse input GFFs for headers, start/stop positions, FASTA
-    parsed_gffs = parse_all_gffs(isolate_names, args.input_files)
     
     #create and output new GFF files, multithreaded
     if args.verbose:
