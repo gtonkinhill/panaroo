@@ -8,6 +8,10 @@ from io import StringIO
 from Bio import SeqIO
 from Bio.Seq import Seq
 
+#debugging purposes
+import numpy as np
+from time import time
+
 
 import isvalid
 #from .__init__ import __version__
@@ -182,17 +186,26 @@ def create_new_gffs(isolate_index, parsed_gffs, pp_isolate_genes,
     new_gff_body_lines.append(parsed_gffs[isolate_index]["header"])
     parsed_original_gffbody = parse_gff_body(parsed_gffs[isolate_index]["body"])
     pangenome_isolate_genes = 0
+    global_loop_start = time()
     #Need to go through all the pangenome genes
     for pangenome_gene in pp_isolate_genes[str(isolate_index)]:
         pangenome_isolate_genes += 1
+        gene_times = []
+        refound_times = []
+        nonrefound_times = []
         #And all the genes from this isolate with the pan-genome gene
         for gene in pp_isolate_genes[str(isolate_index)][pangenome_gene]:
+            gene_loop_start = time()
             if "refound" in gene:
+                refound_start = time()
                 #Deal with refound genes seperately, don't need original gff
                 refound_line = process_refound_gene(gene, pangenome_gene, parsed_gffs[isolate_index], outdir, G)
                 new_gff_body_lines.append(refound_line)
+                refound_end = time()
+                refound_times.append(refound_end-refound_start)
             else:
                 #Identify original annotation
+                nonrefound_start = time()
                 original_gene_data = list(filter(lambda isolategff: 
                                   isolategff['ID'] == gene_name_dic[gene],
                                   parsed_original_gffbody))
@@ -200,7 +213,7 @@ def create_new_gffs(isolate_index, parsed_gffs, pp_isolate_genes,
                 if len(original_gene_data) > 1:
                     print("Uh Oh, too much data")
                     print(original_gene_data)
-                    
+
                 else:
                     original_gene_data = original_gene_data[0]
                 #Get various other metadata for gene required for GFF3
@@ -212,7 +225,7 @@ def create_new_gffs(isolate_index, parsed_gffs, pp_isolate_genes,
                 else:
                     has_paralog = "False"
                 gene_description = G.nodes[pangenome_gene]["description"]
-                
+
                 new_attributes = ";".join(["ID="+gene,
                                           "name="+gene_name,
                                           "description="+gene_description,
@@ -230,11 +243,21 @@ def create_new_gffs(isolate_index, parsed_gffs, pp_isolate_genes,
                                       original_gene_data["phase"],
                                       new_attributes])
                 new_gff_body_lines.append(new_gene_line)
-
+                nonrefound_end = time()
+                nonrefound_times.append(nonrefound_end-nonrefound_start)
+        gene_loop_end = time()
+        gene_times.append(gene_loop_end-gene_loop_start)
+                
+    global_loop_end = time()
+    global_iteration_length = {global_loop_end - global_loop_start}
+    print("One iteration of an isolate took: " + str(global_iteration_length) + " seconds")
+    print("Average per-gene time: " + str(np.mean(gene_times)))
+    print("Average non-refound time: " + str(np.mean(nonrefound_times)))
+    print("Average refound time: " + str(np.mean(refound_times)))
     if gff_format == "prokka":
         new_gff_body_lines.append("##FASTA")
         new_gff_body_lines.append(parsed_gffs[isolate_index]["fasta"])
-    
+
     return new_gff_body_lines
 
 def output_gff(isolate_name, gff_lines, outdir):
