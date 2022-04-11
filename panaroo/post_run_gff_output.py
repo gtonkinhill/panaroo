@@ -127,15 +127,10 @@ def parse_gff_body(gff_body_list):
 
     return parsed_gff
     
-def process_refound_gene(refound_id, pangenome_id, parsed_gff, output_dir, G):
+def process_refound_gene(refound_id, pangenome_id, parsed_gff, refound_seqs, 
+                         output_dir, G):
     #Get the refound sequence
-    with open(output_dir + "gene_data.csv", 'r') as infile:
-       next(infile)
-       for line in infile:
-           splitline = line.split(",")
-           geneid = splitline[2]
-           if refound_id == geneid:
-               refound_seq = Seq(splitline[5])
+    refound_seq = refound_seqs[refound_id]
     #Parse it so that there is easy reverse-translation
     isolate_raw_fasta =  StringIO(parsed_gff["fasta"]) 
     isolate_fasta = SeqIO.parse(isolate_raw_fasta, "fasta")
@@ -179,7 +174,7 @@ def process_refound_gene(refound_id, pangenome_id, parsed_gff, output_dir, G):
     return "\t".join(gff_line)
 
 def create_new_gffs(isolate_index, parsed_gffs, pp_isolate_genes,
-                    gene_name_dic, outdir, gff_format, G):
+                    gene_name_dic, refound_seqs, outdir, gff_format, G):
 
     #set up variables, add original GFF3 header to output
     new_gff_body_lines = []
@@ -187,19 +182,21 @@ def create_new_gffs(isolate_index, parsed_gffs, pp_isolate_genes,
     parsed_original_gffbody = parse_gff_body(parsed_gffs[isolate_index]["body"])
     pangenome_isolate_genes = 0
     global_loop_start = time()
+    gene_times = []
+    refound_times = []
+    nonrefound_times = []
     #Need to go through all the pangenome genes
     for pangenome_gene in pp_isolate_genes[str(isolate_index)]:
         pangenome_isolate_genes += 1
-        gene_times = []
-        refound_times = []
-        nonrefound_times = []
         #And all the genes from this isolate with the pan-genome gene
         for gene in pp_isolate_genes[str(isolate_index)][pangenome_gene]:
             gene_loop_start = time()
             if "refound" in gene:
                 refound_start = time()
                 #Deal with refound genes seperately, don't need original gff
-                refound_line = process_refound_gene(gene, pangenome_gene, parsed_gffs[isolate_index], outdir, G)
+                refound_line = process_refound_gene(gene, pangenome_gene, 
+                                                    parsed_gffs[isolate_index], 
+                                                    refound_seqs, outdir, G)
                 new_gff_body_lines.append(refound_line)
                 refound_end = time()
                 refound_times.append(refound_end-refound_start)
@@ -249,7 +246,7 @@ def create_new_gffs(isolate_index, parsed_gffs, pp_isolate_genes,
         gene_times.append(gene_loop_end-gene_loop_start)
                 
     global_loop_end = time()
-    global_iteration_length = {global_loop_end - global_loop_start}
+    global_iteration_length = global_loop_end - global_loop_start
     print("One iteration of an isolate took: " + str(global_iteration_length) + " seconds")
     print("Average per-gene time: " + str(np.mean(gene_times)))
     print("Average non-refound time: " + str(np.mean(nonrefound_times)))
@@ -283,15 +280,19 @@ def main():
     seen = set()
     isolate_names = []
     gene_names = {}
+    refound_seqs = {}
     with open(args.output_dir + "gene_data.csv", 'r') as infile:
         next(infile)
         for line in infile:
             splitinfo = line.split(",")
             iso = splitinfo[0]
             gene_names[splitinfo[2]] = splitinfo[3]
+            clusterid = splitinfo[2]
             if iso not in seen:
                 isolate_names.append(iso)
                 seen.add(iso)
+            if "refound" in splitinfo[2]:
+                refound_seqs[clusterid] = Seq(splitinfo[5])
 
     # Load graph
     G = nx.read_gml(args.output_dir + "final_graph.gml")
@@ -318,7 +319,7 @@ def main():
         print("Creating new gff files...")
     new_gffs = Parallel(n_jobs=args.n_cpu, prefer="threads")(
         delayed(create_new_gffs)(x, parsed_gffs, isolate_genes,
-                    gene_names, args.output_dir, args.format, G) for x in 
+                    gene_names, refound_seqs, args.output_dir, args.format, G) for x in 
                     tqdm(range(len(isolate_names))))
     
     #temporarily single threaded, need to refactor the gff function
