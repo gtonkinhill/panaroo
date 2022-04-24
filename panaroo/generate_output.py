@@ -216,7 +216,8 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
         proteins = list(SeqIO.parse(output_dir + "combined_protein_CDS.fasta", 'fasta'))
         nucleotides = list(SeqIO.parse(output_dir + "combined_DNA_CDS.fasta", 'fasta'))
         
-        #Multithread writing protien and dna sequences to disk (temp directory) so aligners can find them
+        #Multithread writing protien and dna sequences to disk (temp directory)
+        #Might have to stay single threaded due to OS limits on open files
         output_files = []
         for gene in G.nodes():
             output = output_dna_and_protein(G.nodes[gene], isolates, temp_dir, 
@@ -239,7 +240,10 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
                               threads, aligner)
         
         #Get the list of aligned protien files
-        protein_sequences = [output_dir + "aligned_protein_sequences/" + x.split("/")[-1].split(".")[0] + ".aln.fas" for x in unaligned_dna_files]
+        protein_sequences = [output_dir + 
+                             "aligned_protein_sequences/" + 
+                             x.split("/")[-1].split(".")[0] + 
+                             ".aln.fas" for x in unaligned_dna_files]
         
         #Check all alignments completed
         for file in protein_sequences:
@@ -247,9 +251,12 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
                 raise RuntimeError("Some alignments failed to complete!")
         
         #Reverse translate and output codon alignments
+        
         codon_alignments = reverse_translate_sequences(protein_sequences, 
                                                        unaligned_dna_files,
-                                                       output_dir, 
+                                                       output_dir,
+                                                       temp_dir,
+                                                       aligner,
                                                        threads)
     else:
         #Multithread writing gene sequences to disk (temp directory) so aligners can find them
