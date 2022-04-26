@@ -42,7 +42,6 @@ def check_aligner_install(aligner):
     else:
         sys.stderr.write("Incorrect aligner specification\n")
         sys.exit()
- time
     p = str(
         subprocess.run(command,
                        stdout=subprocess.PIPE,
