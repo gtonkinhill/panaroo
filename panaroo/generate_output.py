@@ -383,12 +383,20 @@ def generate_core_genome_alignment(G, temp_dir, output_dir, threads, aligner,
             raise RuntimeError("Some alignments failed to complete!")
         
         
+
+Alison
+
+ 
         #Reverse translate and output codon alignments
         codon_alignments = reverse_translate_sequences(protein_sequences, 
                                                        unaligned_dna_files, 
-                                                       output_dir, eqIO.parse
+                                                       output_dir, aligner
                                                        threads)
     else:
+
+Alison
+
+ 
         #Output core node sequences
         unaligned_sequence_files = Parallel(n_jobs=threads)(
             delayed(output_sequence)(G.nodes[x], isolates, temp_dir, output_dir)
