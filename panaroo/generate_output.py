@@ -218,11 +218,16 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
         
         #Multithread writing protien and dna sequences to disk (temp directory)
         #Might have to stay single threaded due to OS limits on open files
-        output_files = []
-        for gene in G.nodes():
-            output = output_dna_and_protein(G.nodes[gene], isolates, temp_dir, 
+        #output_files = []
+        #for gene in G.nodes():
+        #    output = output_dna_and_protein(G.nodes[gene], isolates, temp_dir, 
+        #                                    output_dir, proteins, nucleotides)
+        #    output_files.append(output)
+        
+        output = Parallel(n_jobs=threads)(
+            delayed(output_dna_and_protein)(G.nodes[x], isolates, temp_dir,
                                             output_dir, proteins, nucleotides)
-            output_files.append(output)
+            for x in tqdm(G.nodes()))
         
         filtered_output_files  = [x for x in output_files if x[0]]
         
@@ -343,7 +348,7 @@ def generate_core_genome_alignment(G, temp_dir, output_dir, threads, aligner,
     core_gene_names = [G.nodes[x]["name"] for x in core_genes]
 
     if codons == True:
-        #Make alternate protein/DNA directories
+        #Make alternate protein/DNA directorieseqIO.parse
         try:
             os.mkdir(output_dir + "aligned_protein_sequences")
         except FileExistsError:
@@ -381,7 +386,7 @@ def generate_core_genome_alignment(G, temp_dir, output_dir, threads, aligner,
         #Reverse translate and output codon alignments
         codon_alignments = reverse_translate_sequences(protein_sequences, 
                                                        unaligned_dna_files, 
-                                                       output_dir, 
+                                                       output_dir, eqIO.parse
                                                        threads)
     else:
         #Output core node sequences

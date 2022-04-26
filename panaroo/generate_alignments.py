@@ -312,6 +312,15 @@ def replace_last(string, find, replace):
     replaced = reversed.replace(find[::-1], replace[::-1], 1)
     return replaced[::-1]
 
+def read_sequences(handle):
+    with open(handle, 'r') as inhandle:
+        sequences = SeqIO.parse(inhandle, 'fasta')
+    return sequences
+
+def read_alignment(handle):
+    with open(handle, 'r') as inhandle:
+        alignment = AlignIO.read(inhandle, 'fasta')
+    return alignment
 
 def reverse_translate_sequences(protein_sequence_files, dna_sequence_files, 
                                 outdir, temp_directory, aligner, threads):
@@ -327,10 +336,10 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
     
     #Read in files (multithreaded)
     dna_sequences = Parallel(n_jobs=threads, prefer="threads")(
-            delayed(SeqIO.parse)(x, "fasta",) 
+            delayed(read_sequences)(x) 
             for x in dna_sequence_files)  
     protein_alignments = Parallel(n_jobs=threads, prefer="threads")(
-            delayed(AlignIO.read)(x, "fasta") 
+            delayed(read_alignment)(x) 
             for x in protein_sequence_files)
     
     #Check that protein and DNA sequences match, output 
