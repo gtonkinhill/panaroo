@@ -110,24 +110,24 @@ def output_dna_and_protein(node, isolate_list, temp_directory, outdir,
         isolate_num = int(seq_id.split('_')[0])
         isolate_name = isolate_list[isolate_num].replace(";",
                                                          "") + ";" + seq_id
-        prot_stop_codon = all_proteins[seq_id].seq.find("*")
+        #prot_stop_codon = all_proteins[seq_id].seq.find("*")
             
             
-        if prot_stop_codon > -1:
-            output_protein.append(
-                SeqRecord(all_proteins[seq_id].seq[:prot_stop_codon], 
-                          id=isolate_name, description=""))
-            output_dna.append(
-                SeqRecord(all_dna[seq_id].seq[:(prot_stop_codon*3)], 
-                          id=isolate_name, description=""))
-        else:
-            output_dna.append(
-                SeqRecord(all_dna[seq_id].seq, 
-                          id=isolate_name, description=""))
-            output_protein.append(
-                SeqRecord(all_proteins[seq_id].seq, 
-                          id=isolate_name, description=""))
-            isolate_no += 1
+        #if prot_stop_codon > -1:
+        #    output_protein.append(
+        #        SeqRecord(all_proteins[seq_id].seq[:prot_stop_codon], 
+        #                  id=isolate_name, description=""))
+        #    output_dna.append(
+        #        SeqRecord(all_dna[seq_id].seq[:(prot_stop_codon*3)], 
+        #                  id=isolate_name, description=""))
+        #else:
+        output_dna.append(
+            SeqRecord(all_dna[seq_id].seq, 
+                      id=isolate_name, description=""))
+        output_protein.append(
+            SeqRecord(all_proteins[seq_id].seq, 
+                      id=isolate_name, description=""))
+        isolate_no += 1
 
     #only output genes with more than one isolate in them
     if isolate_no > 1:
