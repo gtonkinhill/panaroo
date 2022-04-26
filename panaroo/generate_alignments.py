@@ -158,10 +158,12 @@ def output_dna_and_protein(node, isolate_list, temp_directory, outdir,
       
     files_written = time.time()
     
+    print("----------")
     print("Setup took: " + str(setup_time-function_start))
     print("Average sequence loop: " + str(np.mean(looptimes)))
     print("Getting sequences: " + str(done_sequence_creation - setup_time))
     print("Writing output: " + str(files_written-done_sequence_creation))
+    print("Gene output total time: " + str(files_written-function_start))
     return output_files
 
 
