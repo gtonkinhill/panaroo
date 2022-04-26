@@ -131,9 +131,6 @@ def output_dna_and_protein(node, isolate_list, temp_directory, outdir,
 
     #only output genes with more than one isolate in them
     if isolate_no > 1:
-        #Put gene of interest sequences in a generator, with corrected isolate names
-        output_dna = (x for x in output_dna)
-        output_protein = (x for x in output_protein)
         #set filename to gene name
         prot_outname = temp_directory + node["name"] + ".fasta"
         dna_outname = outdir + "unaligned_dna_sequences/" + node["name"] + ".fasta"
@@ -143,7 +140,7 @@ def output_dna_and_protein(node, isolate_list, temp_directory, outdir,
         output_files = (prot_outname, dna_outname)
         
     else:
-        output_singleton = (x for x in output_dna)
+        output_singleton = output_dna
         #set filename, write
         singleton_outname = outdir + "aligned_gene_sequences/" + node["name"] +".aln.fas"
         SeqIO.write(output_singleton, singleton_outname, 'fasta')
