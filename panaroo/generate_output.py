@@ -216,6 +216,11 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
         proteins = list(SeqIO.parse(output_dir + "combined_protein_CDS.fasta", 'fasta'))
         nucleotides = list(SeqIO.parse(output_dir + "combined_DNA_CDS.fasta", 'fasta'))
         
+        #transform to Dics for fast lookup
+        
+        proteins_dic = dict(zip([x.id for x in proteins], proteins))
+        nucleotides_dic = dict(zip([x.id for x in nucleotides], nucleotides))
+        
         #Multithread writing protien and dna sequences to disk (temp directory)
         #Might have to stay single threaded due to OS limits on open files
         #output_files = []
@@ -226,7 +231,8 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
         
         output = Parallel(n_jobs=threads)(
             delayed(output_dna_and_protein)(G.nodes[x], isolates, temp_dir,
-                                            output_dir, proteins, nucleotides)
+                                            output_dir, proteins_dic, 
+                                            nucleotides_dic)
             for x in tqdm(G.nodes()))
         
         filtered_output_files  = [x for x in output_files if x[0]]

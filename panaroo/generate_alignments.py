@@ -103,38 +103,30 @@ def output_dna_and_protein(node, isolate_list, temp_directory, outdir,
     output_protein = []
     #Counter for the number of sequences to avoid aliging single sequences
     isolate_no = 0
-    
-    for seq_ind in range(len(all_proteins)):
-        
-        seq_id = all_proteins[seq_ind].id
-        
-        #check to make sure protien and DNA are same id
-        if seq_id != all_dna[seq_ind].id:
-            print("Protein: "+seq_id)
-            print("DNA: " + all_dna[seq_ind].id)
-            raise ValueError("DNA and protien sequence IDs do not match!")
+            
+    for seq_id in sequence_ids:
+
         #Get isolate names
         isolate_num = int(seq_id.split('_')[0])
         isolate_name = isolate_list[isolate_num].replace(";",
                                                          "") + ";" + seq_id
-        if seq_id in sequence_ids:
-            prot_stop_codon = all_proteins[seq_ind].seq.find("*")
+        prot_stop_codon = all_proteins[seq_id].seq.find("*")
             
             
-            if prot_stop_codon > -1:
-                output_protein.append(
-                    SeqRecord(all_proteins[seq_ind].seq[:prot_stop_codon], 
-                              id=isolate_name, description=""))
-                output_dna.append(
-                    SeqRecord(all_dna[seq_ind].seq[:(prot_stop_codon*3)], 
-                              id=isolate_name, description=""))
-            else:
-                output_dna.append(
-                    SeqRecord(all_dna[seq_ind].seq, 
-                              id=isolate_name, description=""))
-                output_protein.append(
-                    SeqRecord(all_proteins[seq_ind].seq, 
-                              id=isolate_name, description=""))
+        if prot_stop_codon > -1:
+            output_protein.append(
+                SeqRecord(all_proteins[seq_id].seq[:prot_stop_codon], 
+                          id=isolate_name, description=""))
+            output_dna.append(
+                SeqRecord(all_dna[seq_id].seq[:(prot_stop_codon*3)], 
+                          id=isolate_name, description=""))
+        else:
+            output_dna.append(
+                SeqRecord(all_dna[seq_id].seq, 
+                          id=isolate_name, description=""))
+            output_protein.append(
+                SeqRecord(all_proteins[seq_id].seq, 
+                          id=isolate_name, description=""))
             isolate_no += 1
 
     #only output genes with more than one isolate in them
