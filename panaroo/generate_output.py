@@ -221,19 +221,15 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
         proteins_dic = dict(zip([x.id for x in proteins], proteins))
         nucleotides_dic = dict(zip([x.id for x in nucleotides], nucleotides))
         
-        #Multithread writing protien and dna sequences to disk (temp directory)
-        #Might have to stay single threaded due to OS limits on open files
-        #output_files = []
-        #for gene in G.nodes():
-        #    output = output_dna_and_protein(G.nodes[gene], isolates, temp_dir, 
-        #                                    output_dir, proteins, nucleotides)
-        #    output_files.append(output)
-        
-        output = Parallel(n_jobs=threads)(
-            delayed(output_dna_and_protein)(G.nodes[x], isolates, temp_dir,
+        #File output must stay single threaded. Pickling the large protein/dna
+        #objects for concurrent access, plus overhead decreases speed enormously
+        output_files = []
+        for gene in G.nodes():
+            output = output_dna_and_protein(G.nodes[gene], isolates, temp_dir, 
                                             output_dir, proteins_dic, 
                                             nucleotides_dic)
-            for x in tqdm(G.nodes()))
+            output_files.append(output)
+        
         
         filtered_output_files  = [x for x in output_files if x[0]]
         

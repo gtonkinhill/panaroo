@@ -19,8 +19,6 @@ import Bio.Application
 
 from Bio import codonalign
 
-import time #debugging
-import numpy as np # debugging
 
 def check_aligner_install(aligner):
     """Checks for the presence of the specified aligned in $PATH
@@ -100,19 +98,16 @@ def output_sequence(node, isolate_list, temp_directory, outdir):
 def output_dna_and_protein(node, isolate_list, temp_directory, outdir, 
                            all_proteins, all_dna):
     #Get the name of the sequences for the gene of interest
-    function_start = time.time()
+
     sequence_ids = node["seqIDs"]
     output_dna = []
     output_protein = []
     #Counter for the number of sequences to avoid aliging single sequences
     isolate_no = 0
-    
-    setup_time = time.time()
-    
-    looptimes = []
+
+
     
     for seq_id in sequence_ids:
-        t1 = time.time()
         #Get isolate names
         isolate_num = int(seq_id.split('_')[0])
         isolate_name = isolate_list[isolate_num].replace(";",
@@ -135,10 +130,8 @@ def output_dna_and_protein(node, isolate_list, temp_directory, outdir,
             SeqRecord(all_proteins[seq_id].seq, 
                       id=isolate_name, description=""))
         isolate_no += 1
-        t2 = time.time()
-        looptimes.append(t2-t1)
     
-    done_sequence_creation = time.time()
+
     #only output genes with more than one isolate in them
     if isolate_no > 1:
         #set filename to gene name
@@ -155,15 +148,8 @@ def output_dna_and_protein(node, isolate_list, temp_directory, outdir,
         singleton_outname = outdir + "aligned_gene_sequences/" + node["name"] +".aln.fas"
         SeqIO.write(output_singleton, singleton_outname, 'fasta')
         output_files = (None, None)
-      
-    files_written = time.time()
+
     
-    print("----------")
-    print("Setup took: " + str(setup_time-function_start))
-    print("Average sequence loop: " + str(np.mean(looptimes)))
-    print("Getting sequences: " + str(done_sequence_creation - setup_time))
-    print("Writing output: " + str(files_written-done_sequence_creation))
-    print("Gene output total time: " + str(files_written-function_start))
     return output_files
 
 
