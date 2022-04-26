@@ -307,7 +307,7 @@ def replace_last(string, find, replace):
 
 def read_sequences(handle):
     with open(handle, 'r') as inhandle:
-        sequences = SeqIO.parse(inhandle, 'fasta')
+        sequences = list(SeqIO.parse(inhandle, 'fasta'))
     return sequences
 
 def read_alignment(handle):
