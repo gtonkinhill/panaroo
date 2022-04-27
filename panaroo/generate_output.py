@@ -224,7 +224,9 @@ def get_core_gene_nodes(G, threshold, num_isolates):
     for node in G.nodes():
         if float(G.nodes[node]["size"]) / float(num_isolates) > threshold:
             core_nodes.append(node)
-    return core_nodes
+    core_names = [G.nodes[x]["name"] for x in core_nodes]
+    return core_names
+
 
 
 def concatenate_core_genome_alignments(core_names, output_dir):
