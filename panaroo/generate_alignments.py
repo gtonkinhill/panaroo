@@ -357,8 +357,8 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
             fail_condition_1 = str(translated_dna).strip("*") != str(nogapped_protein_seq)
             #fail if there is a run of > 1 unknown nucleotides
             fail_condition_2 = "NN" in str(dna[seq_index].seq)
-            #Fail if the protein contains X, codonalignment module will reject
-            fail_condition_3 = "X" in nogapped_protein_seq
+            #Fail if the translated prot contains X, codonalignment will reject
+            fail_condition_3 = "X" in translated_dna
             
             if fail_condition_1 or fail_condition_2 or fail_condition_3:
                 seqids_to_remove = seqids_to_remove + list(set([dna[seq_index].id, protein[seq_index].id]))
