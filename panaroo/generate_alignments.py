@@ -20,6 +20,9 @@ import Bio.Application
 from Bio import codonalign
 
 
+unambiguous_degenerate_codons = {"ACN":"T", "TCN":"S", "CTN":"L", "CCN":"P",
+                                 "CGN":"R", "GTN":"V", "GCN":"A", "GGN":"G"}
+
 def check_aligner_install(aligner):
     """Checks for the presence of the specified aligned in $PATH
 
@@ -357,8 +360,11 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
             fail_condition_1 = str(translated_dna).strip("*") != str(nogapped_protein_seq)
             #fail if there is a run of > 1 unknown nucleotides
             fail_condition_2 = "NN" in str(dna[seq_index].seq)
-            #Fail if the translated prot contains X, codonalignment will reject
-            fail_condition_3 = "X" in translated_dna
+            #Fail if the DNA contains degenerate codon, codonalign cannot cope
+            fail_condition_3 = False
+            for codon in unambiguous_degenerate_codons.keys():
+                if codon in dna[seq_index].seq:
+                    fail_condition_3 = True
             
             if fail_condition_1 or fail_condition_2 or fail_condition_3:
                 seqids_to_remove = seqids_to_remove + list(set([dna[seq_index].id, protein[seq_index].id]))
