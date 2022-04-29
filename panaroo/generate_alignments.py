@@ -339,7 +339,8 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
             for x in protein_sequence_files)
     
     #Check that protein and DNA sequences match, output 
-    #so that they match DNA sequences with N's stripped
+    #Remove DNA sequences that do not match and output to elsewhere, for
+    #secondary alignment to sequences aligned at the protein level
     
     clean_dna = []
     clean_proteins = []
@@ -358,17 +359,26 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
             
             #fail if the translated sequence isn't the same as the protein
             fail_condition_1 = str(translated_dna).strip("*") != str(nogapped_protein_seq)
+            
             #fail if there is a run of > 1 unknown nucleotides
-            fail_condition_2 = "NN" in str(dna[seq_index].seq)
+            if fail_condition_1 == False:
+                #only test if it hasn't already failed
+                fail_condition_2 = "NN" in str(dna[seq_index].seq)
+            
             #Fail if the DNA contains degenerate codon, codonalign cannot cope
-            fail_condition_3 = False
-            for codon in unambiguous_degenerate_codons.keys():
-                if codon in dna[seq_index].seq:
-                    fail_condition_3 = True
+            if (fail_condition_1 and fail_condition_2) == False:
+                #Most expensive test, only test things passing both
+                fail_condition_3 = False
+                #Such an expensive test, do a cheaper filtering first
+                if "N" in str(dna[seq_index.seq]):
+                    for codon in unambiguous_degenerate_codons.keys():
+                        if codon in dna[seq_index].seq:
+                            fail_condition_3 = True
             
             if fail_condition_1 or fail_condition_2 or fail_condition_3:
                 seqids_to_remove = seqids_to_remove + list(set([dna[seq_index].id, protein[seq_index].id]))
-    
+        
+        #Do the removal if 
         if (len(seqids_to_remove) > 0):
             clean_nucs = []
             clean_prots = []
@@ -404,7 +414,7 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
     #        for index in range(len(protein_alignments)))
     
 
-    #do it single threaded for debugging;
+    #do it single threaded because of the need to separate aln missing DNA seq
     
     completed_codon_alignments = {}
     missing_sequences_codon_alignments = {}
