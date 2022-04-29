@@ -378,7 +378,7 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
             if fail_condition_1 or fail_condition_2 or fail_condition_3:
                 seqids_to_remove = seqids_to_remove + list(set([dna[seq_index].id, protein[seq_index].id]))
         
-        #Do the removal if 
+        #Do the removal if any DNA sequences fail tests
         if (len(seqids_to_remove) > 0):
             clean_nucs = []
             clean_prots = []
