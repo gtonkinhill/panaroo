@@ -370,7 +370,7 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
                 #Most expensive test, only test things passing both
                 fail_condition_3 = False
                 #Such an expensive test, do a cheaper filtering first
-                if "N" in str(dna[seq_index.seq]):
+                if "N" in str(dna[seq_index].seq):
                     for codon in unambiguous_degenerate_codons.keys():
                         if codon in dna[seq_index].seq:
                             fail_condition_3 = True
