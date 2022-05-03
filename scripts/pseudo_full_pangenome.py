@@ -275,7 +275,7 @@ def add_diversity(gfffile, nisolates, effective_pop_size, gain_rate, loss_rate,
 
         # remove genes not in the accessory
         deleted_genes = 0
-        d_index = defaultdict(lambda: np.array([]))
+        d_index = defaultdict(lambda: np.array([], dtype=int))
         for g, entry in enumerate(gene_locations):
             left = entry.start - 1
             right = entry.stop
