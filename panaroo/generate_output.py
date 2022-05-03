@@ -359,15 +359,28 @@ def generate_core_genome_alignment(G, temp_dir, output_dir, threads, aligner,
             os.mkdir(output_dir + "unaligned_dna_sequences")
         except FileExistsError:
             None
-        #Multithread writing protien and dna sequences to disk (temp directory) so aligners can find them
-        unaligned_protein_files = Parallel(n_jobs=threads)(
-            delayed(output_protein)(G.nodes[x], isolates, temp_dir, output_dir)
-            for x in tqdm(core_genes))
+            
+        proteins = list(SeqIO.parse(output_dir + "combined_protein_CDS.fasta", 'fasta'))
+        nucleotides = list(SeqIO.parse(output_dir + "combined_DNA_CDS.fasta", 'fasta'))
         
-        unaligned_dna_files = Parallel(n_jobs=threads)(
-            delayed(output_sequence)(G.nodes[x], isolates, 
-                   output_dir + "unaligned_dna_sequences", output_dir)
-                    for x in tqdm(core_genes))
+        #transform to Dics for fast lookup
+        
+        proteins_dic = dict(zip([x.id for x in proteins], proteins))
+        nucleotides_dic = dict(zip([x.id for x in nucleotides], nucleotides))
+
+        #File output must stay single threaded. Pickling the large protein/dna
+        #objects for concurrent access, plus overhead decreases speed enormously
+        
+        output_files = []
+        for gene in G.nodes():
+            output = output_dna_and_protein(G.nodes[gene], isolates, temp_dir, 
+                                            output_dir, proteins_dic, 
+                                            nucleotides_dic)
+            output_files.append(output)
+        
+        
+        filtered_output_files  = [x for x in output_files if x[0]]
+        
         #Get Biopython command calls for each output gene sequences
         commands = [
             get_protein_commands(fastafile, output_dir, aligner, threads)
@@ -377,8 +390,11 @@ def generate_core_genome_alignment(G, temp_dir, output_dir, threads, aligner,
         multi_align_sequences(commands, output_dir + "aligned_protein_sequences/",
                               threads, aligner)
         
-        #Get the list of aligned protien files
-        protein_sequences = os.listdir(output_dir + "aligned_protein_sequences/")
+        #Get the list of aligned protien files from DNA to enable check
+        protein_sequences = [output_dir + 
+                             "aligned_protein_sequences/" + 
+                             x.split("/")[-1].split(".")[0] + 
+                             ".aln.fas" for x in unaligned_dna_files]
         
         #Check all alignments completed
         if len(protein_sequences) != len(unaligned_dna_files):

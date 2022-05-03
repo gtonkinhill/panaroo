@@ -515,16 +515,3 @@ def write_alignment_header(alignment_list, outdir):
             outhandle.write(entry)
         outhandle.write(footer)
     return True
-
-
-#Code to test codon alignments
-if __name__ == '__main__':
-    panaroo_output_dir = sys.argv[1]
-    threads = int(sys.argv[2])
-    dna_sequences = os.listdir(panaroo_output_dir.rstrip("/") +'/'+ "unaligned_dna_sequences/")
-    protein_sequences = os.listdir(panaroo_output_dir.rstrip("/") +'/'+ "aligned_protein_sequences/")
-    
-    codon_alignments = reverse_translate_sequences(protein_sequences, dna_sequences, "./", threads)
-    
-    AlignIO.write(codon_alignments[0], "codon_alignments_test.fasta", "fasta")
-        
