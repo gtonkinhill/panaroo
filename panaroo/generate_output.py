@@ -246,11 +246,9 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
         multi_align_sequences(commands, output_dir + "aligned_protein_sequences/",
                               threads, aligner)
         
-        #Get the list of aligned protien files
-        protein_sequences = [output_dir + 
-                             "aligned_protein_sequences/" + 
-                             x.split("/")[-1].split(".")[0] + 
-                             ".aln.fas" for x in unaligned_dna_files]
+        #Get the lists of aligned protien/dna files
+        protein_sequences = os.listdir(output_dir + "aligned_protein_sequences/")
+        unaligned_dna_files = os.listdir(output_dir + "unaligned_dna_sequences/")
         
         #Check all alignments completed
         for file in protein_sequences:
@@ -340,7 +338,7 @@ def concatenate_core_genome_alignments(core_names, output_dir):
 
 def generate_core_genome_alignment(G, temp_dir, output_dir, threads, aligner,
                                    isolates, threshold, codons, num_isolates):
-    #Make a folder for the output alignments TODO: decide whether or not to keep these
+    #Make a folder for the output alignments
     try:
         os.mkdir(output_dir + "aligned_gene_sequences")
     except FileExistsError:
@@ -359,7 +357,7 @@ def generate_core_genome_alignment(G, temp_dir, output_dir, threads, aligner,
             os.mkdir(output_dir + "unaligned_dna_sequences")
         except FileExistsError:
             None
-            
+        
         proteins = list(SeqIO.parse(output_dir + "combined_protein_CDS.fasta", 'fasta'))
         nucleotides = list(SeqIO.parse(output_dir + "combined_DNA_CDS.fasta", 'fasta'))
         
