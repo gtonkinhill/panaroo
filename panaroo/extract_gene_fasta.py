@@ -55,6 +55,12 @@ def get_options(args):
                         help="toggles the output of nucleotide sequence instead of protein sequence",
                         action='store_true',
                         default=False)
+    
+    parser.add_argument("--sampleid",
+                        dest="sampleid",
+                        help="toggles the use of sample name rather than annotation ID in output multifasta",
+                        action='store_true',
+                        default=False)
 
     parser.add_argument(
         "--version", action="version", version="%(prog)s " + __version__
