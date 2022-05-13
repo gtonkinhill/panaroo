@@ -75,9 +75,14 @@ def generate_fasta(geneids, outputfile, genedata, isdna):
                         seq = line[5]
                     else:
                         seq = line[4]
+                    if sampleid:
+                        id_column = line[0]
+                    else:
+                        id_column = line[3]
                     SeqIO.write(
                         SeqRecord(Seq(seq),
-                        id=line[3],
+                                  
+                        id=id_column,
                         description=""), 
                         outfile, "fasta")
 
