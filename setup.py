@@ -65,7 +65,8 @@ setup(
             'panaroo-msa = panaroo.post_run_alignment_gen:main',
             'panaroo-gene-neighbourhood = panaroo.get_neighborhood:main',
             'panaroo-integrate = panaroo.integrate:main',
-            'panaroo-filter-pa = panaroo.filter_pa:main'
+            'panaroo-filter-pa = panaroo.filter_pa:main',
+            'panaroo-extract-gene = panaroo.extract_gene_fasta:main'
         ],
     },
 )
