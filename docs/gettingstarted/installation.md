@@ -5,20 +5,26 @@ Conda is the simplest way to install Panaroo and all its dependencies.
 ### Conda
 
 ```
-conda install -c bioconda panaroo
+conda install -c conda-forge -c bioconda -c defaults panaroo
 ```
 
-For some systems this can install a single threaded version of the cd-hit dependency. In that case the following version can sometimes resolve the issue.
+alternatively it is often faster to use the [mamba](https://github.com/mamba-org/mamba) solver. This can be installed by running
 
 ```
-conda install -c bioconda/label/cf201901 panaroo
+conda install mamba -c conda-forge
+```
+
+Panaroo can then be installed using
+
+```
+mamba install -c conda-forge -c bioconda -c defaults panaroo
 ```
 
 ### Manual
 
-Install cd-hit using either conda or by following the instructions at https://github.com/weizhongli/cdhit
+Install cd-hit using either conda or by following these [instructions](https://github.com/weizhongli/cdhit).
 
-If you would like to build multiple sequence alignments install the corresponding aligner (MAFFT by default). MAFFT can be installed using conda or by following the instructions at https://mafft.cbrc.jp/alignment/software/source.html
+If you would like to build multiple sequence alignments install the corresponding aligner (MAFFT by default). MAFFT can be installed using conda or by following these [instructions](https://mafft.cbrc.jp/alignment/software/source.html)
 
 Alternatively cd-hit and MAFFT can be installed using apt-get on some linux systems.
 
@@ -66,3 +72,4 @@ Optional:
 * prank
 * mafft
 * clustal
+* mash

@@ -30,4 +30,17 @@ def test_qc(datafolder):
         with open(tmpoutdir + "/mash_dist.txt", 'r') as infile:
             assert len(infile.readlines()) == 3
 
+        sys.argv = [
+            "", "-i", datafolder + "aa1.gff", datafolder + "aa2.gff", "-o",
+            tmpoutdir, "--graph_type", "all", "--no_plot", "--ref_db",
+            datafolder + "test_mash_ref.msh"
+        ]
+        main()
+
+        with open(tmpoutdir + "/mash_contamination_hits.tab", 'r') as infile:
+            assert len(infile.readlines()) == 2
+
+        with open(tmpoutdir + "/mash_dist.txt", 'r') as infile:
+            assert len(infile.readlines()) == 3
+
     return

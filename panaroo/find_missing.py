@@ -27,7 +27,8 @@ def find_missing(G,
                  prop_match,
                  pairwise_id_thresh,
                  n_cpu,
-                 remove_by_consensus=False):
+                 remove_by_consensus=False,
+                 verbose=True):
 
     # Iterate over each genome file checking to see if any missing accessory genes
     #  can be found.
@@ -73,23 +74,23 @@ def find_missing(G,
         for neigh in G.neighbors(node):
             # seen_mems = set()
             for sid in sorted(G.nodes[neigh]['seqIDs']):
-                member = sid.split("_")[0]
-                # if member in seen_mems: continue
-                # seen_mems.add(member)
-                conflicts[int(member)].add((neigh, id_to_gff[sid]))
+                member = int(sid.split("_")[0])
+
+                conflicts[member].add((neigh, id_to_gff[sid]))
                 if member not in G.nodes[node]['members']:
                     if len(G.nodes[node]["dna"][G.nodes[node]
                                                 ['maxLenId']]) <= 0:
                         print(G.nodes[node]["dna"])
                         raise NameError("Problem!")
-                    search_list[int(member)][node].add(
+                    search_list[member][node].add(
                         (G.nodes[node]["dna"][G.nodes[node]['maxLenId']],
                          id_to_gff[sid]))
 
                     n_searches += 1
 
-    print("Number of searches to perform: ", n_searches)
-    print("Searching...")
+    if verbose:
+        print("Number of searches to perform: ", n_searches)
+        print("Searching...")
 
     all_hits, all_node_locs, max_seq_lengths = zip(*Parallel(n_jobs=n_cpu)(
         delayed(search_gff)(search_list[member],
@@ -100,9 +101,11 @@ def find_missing(G,
                             prop_match=prop_match,
                             pairwise_id_thresh=pairwise_id_thresh,
                             merge_id_thresh=merge_id_thresh)
-        for member, gff_handle in tqdm(enumerate(gff_file_handles))))
+        for member, gff_handle in tqdm(enumerate(gff_file_handles),
+                                       disable=(not verbose))))
 
-    print("translating hits...")
+    if verbose:
+        print("translating hits...")
 
     hits_trans_dict = {}
     for member, hits in enumerate(all_hits):
@@ -130,7 +133,7 @@ def find_missing(G,
 
             if np.sum(seq_coverage[contig_id][loc[0]:loc[1]]) >= (
                     0.5 * (max(G.nodes[node]['lengths']))):
-                if str(member) in G.nodes[node]['members']:
+                if member in G.nodes[node]['members']:
                     remove_member_from_node(G, node, member)
                 # G.nodes[node]['members'].remove(str(member))
                 # G.nodes[node]['size'] -= 1
@@ -148,7 +151,8 @@ def find_missing(G,
 
     # remove by consensus
     if remove_by_consensus:
-        print("removing by consensus...")
+        if verbose:
+            print("removing by consensus...")
         node_hit_counter = Counter()
         for member, hits in enumerate(all_hits):
             for node, dna_hit in hits:
@@ -163,7 +167,8 @@ def find_missing(G,
             if node in G.nodes():
                 delete_node(G, node)
 
-    print("Updating output...")
+    if verbose:
+        print("Updating output...")
 
     n_found = 0
     with open(dna_seq_file, 'a') as dna_out:
@@ -177,7 +182,7 @@ def find_missing(G,
                         if node in bad_nodes: continue
                         if (node, member) in bad_node_mem_pairs: continue
                         hit_protein = hits_trans_dict[member][i]
-                        G.nodes[node]['members'].add(str(member))
+                        G.nodes[node]['members'].add(member)
                         G.nodes[node]['size'] += 1
                         G.nodes[node]['dna'] = del_dups(G.nodes[node]['dna'] +
                                                         [dna_hit])
@@ -200,7 +205,8 @@ def find_missing(G,
                             [str(member) + "_refound_" + str(n_found)])
                         n_found += 1
 
-    print("Number of refound genes: ", n_found)
+    if verbose:
+        print("Number of refound genes: ", n_found)
 
     return (G)
 
@@ -215,14 +221,14 @@ def search_gff(node_search_dict,
                merge_id_thresh=0.7,
                n_cpu=1):
 
-    gff_handle = open(gff_handle_name, "rU")
+    gff_handle = open(gff_handle_name, 'r')
 
     # sort sets to fix order
     conflicts = sorted(conflicts)
     for node in node_search_dict:
         node_search_dict[node] = sorted(node_search_dict[node])
 
-    split = gff_handle.read().split("##FASTA\n")
+    split = gff_handle.read().replace(',', '').split("##FASTA\n")
     node_locs = {}
 
     if len(split) != 2:

@@ -11,7 +11,8 @@ def test_messy(datafolder):
         # run panaroo
         sys.argv = [
             "", "-i", datafolder + "aa1.gff", datafolder + "aa2.gff",
-            datafolder + "aa3.gff", datafolder + "aa4.gff", "-o", tmpoutdir
+            datafolder + "aa3.gff", datafolder + "aa4.gff", "-o", tmpoutdir, 
+            "--clean-mode", 'strict'
         ]
         main()
 

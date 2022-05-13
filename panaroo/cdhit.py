@@ -56,6 +56,7 @@ def run_cdhit(
     accurate=True,  # use the slower but more accurate options
     use_local=False,  #whether to use local or global sequence alignment
     word_length=None,
+    min_length=None,
     quiet=False):
 
     cmd = "cd-hit"
@@ -78,6 +79,9 @@ def run_cdhit(
 
     if (word_length is not None) and (not accurate):
         cmd += " -n " + str(word_length)
+
+    if min_length is not None:
+        cmd += " -l " + str(min_length)
 
     if not quiet:
         print("running cmd: " + cmd)
@@ -207,7 +211,7 @@ def cluster_nodes_cdhit(
 
     # process the output
     clusters = []
-    with open(temp_output_file.name + ".clstr", 'rU') as infile:
+    with open(temp_output_file.name + ".clstr", 'r') as infile:
         c = []
         for line in infile:
             if line[0] == ">":
@@ -337,7 +341,7 @@ def align_dna_cdhit(
     # process resulting alignment
     # process the output
     found_seq = ""
-    with open(temp_output_file.name + ".clstr", 'rU') as infile:
+    with open(temp_output_file.name + ".clstr", 'r') as infile:
         rev = False
         for line in infile:
             if "at" in line:
@@ -433,7 +437,7 @@ def iterative_cdhit(
 
         # process the output
         temp_clusters = []
-        with open(temp_output_file.name + ".clstr", 'rU') as infile:
+        with open(temp_output_file.name + ".clstr", 'r') as infile:
             c = []
             for line in infile:
                 if line[0] == ">":

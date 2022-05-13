@@ -4,21 +4,18 @@ import argparse
 from .isvalid import *
 from .__init__ import __version__
 import dendropy as dpy
-from collections import defaultdict
-
+from collections import defaultdict, Counter
+from tqdm import tqdm
 
 def read_presence_absence(filename):
     # load matrix into binary array
-    matrix_txt = np.loadtxt(filename, dtype=str, delimiter=",", comments=None)
-    sample_names = matrix_txt[0, 14:]
+    matrix_txt = np.loadtxt(filename, dtype=str, delimiter="\t", comments=None)
+    sample_names = matrix_txt[0, 1:]
     gene_names = matrix_txt[1:, 0]
-    pa_matrix = matrix_txt[1:, 14:] != ""
+    pa_matrix = matrix_txt[1:, 1:] == "1"
 
     # remove conserved genes
     keep = np.sum(pa_matrix, axis=1) != len(sample_names)
-    print(keep)
-    print(len(sample_names))
-    print(np.sum(pa_matrix, axis=1))
     pa_matrix = pa_matrix[keep, :]
     gene_names = gene_names[keep]
 
@@ -66,10 +63,12 @@ def get_weights_phylogeny(tree_file, sample_names):
 def get_weights_cluster_csv(cluster_file, sample_names):
 
     weight_dict = {}
+    cluster_count = Counter()
     with open(cluster_file, 'r') as infile:
         for line in infile:
             line = line.strip().split(",")
             weight_dict[line[0]] = line[1]
+            cluster_count[line[1]] += 1
 
     # now check sample names match up
     weights = np.zeros(len(sample_names))
@@ -78,7 +77,7 @@ def get_weights_cluster_csv(cluster_file, sample_names):
             raise ValueError(
                 "Sample name mismatch between weights and presence/absence matrix"
             )
-        weights[i] = weight_dict[name]
+        weights[i] = 1.0/cluster_count[weight_dict[name]]
 
     return weights
 
@@ -98,7 +97,7 @@ def spydrpick(pa_matrix, weights=None, keep_quantile=0.9, chunk_size=100):
     n_eff = np.sum(weights)
 
     # determine threshold for storing results
-    sample_rows = np.random.randint(0, ngenes, size=min(100, ngenes))
+    sample_rows = np.random.randint(0, ngenes, size=min(100000, ngenes))
     mi_11 = (np.inner(weights * pa_matrix[sample_rows, :], pa_matrix) +
              0.5) / (n_eff + 2.0)
     mi_10 = (np.inner(weights * pa_matrix[sample_rows, :], 1 - pa_matrix) +
@@ -109,17 +108,18 @@ def spydrpick(pa_matrix, weights=None, keep_quantile=0.9, chunk_size=100):
                       (1 - pa_matrix[sample_rows, :]), 1 - pa_matrix) +
              0.5) / (n_eff + 2.0)
 
-    mi_1 = (np.sum(weights * pa_matrix, 1) + 0.5) / (n_eff + 0.5)
-    mi_1 = mi_1[:, np.newaxis]
-    mi_0 = (np.sum(weights * (1 - pa_matrix), 1) + 0.5) / (n_eff + 0.5)
-    mi_0 = mi_0[:, np.newaxis]
+    mi_1y = mi_11 + mi_10
+    mi_0y = mi_01 + mi_00
+    mi_x1 = mi_11 + mi_01
+    mi_x0 = mi_10 + mi_00
 
-    mi = mi_00 * (np.log(mi_00) - np.log(mi_1) - np.log(mi_0))
-    mi += mi_01 * (np.log(mi_01) - np.log(mi_1) - np.log(mi_0))
-    mi += mi_10 * (np.log(mi_10) - np.log(mi_1) - np.log(mi_0))
-    mi += mi_11 * (np.log(mi_11) - np.log(mi_1) - np.log(mi_0))
+    mi = mi_00 * (np.log(mi_00) - np.log(mi_0y) - np.log(mi_x0))
+    mi += mi_01 * (np.log(mi_01) - np.log(mi_0y) - np.log(mi_x1))
+    mi += mi_10 * (np.log(mi_10) - np.log(mi_1y) - np.log(mi_x0))
+    mi += mi_11 * (np.log(mi_11) - np.log(mi_1y) - np.log(mi_x1))
 
-    threshold = np.quantile(mi, keep_quantile)
+    np.fill_diagonal(mi, np.nan)
+    threshold = np.nanquantile(mi, keep_quantile)
 
     # operate in chunks to speed things up
     hitsA = []
@@ -138,25 +138,44 @@ def spydrpick(pa_matrix, weights=None, keep_quantile=0.9, chunk_size=100):
                           (1 - pa_matrix[i:(i + 100), :]), 1 - pa_matrix) +
                  0.5) / (n_eff + 2.0)
 
-        mi = mi_00 * (np.log(mi_00) - np.log(mi_1) - np.log(mi_0))
-        mi += mi_01 * (np.log(mi_01) - np.log(mi_1) - np.log(mi_0))
-        mi += mi_10 * (np.log(mi_10) - np.log(mi_1) - np.log(mi_0))
-        mi += mi_11 * (np.log(mi_11) - np.log(mi_1) - np.log(mi_0))
+        mi_1y = mi_11 + mi_10
+        mi_0y = mi_01 + mi_00
+        mi_x1 = mi_11 + mi_01
+        mi_x0 = mi_10 + mi_00
 
-        np.fill_diagonal(mi, threshold - 1)
+        mi = mi_00 * (np.log(mi_00) - np.log(mi_0y) - np.log(mi_x0))
+        mi += mi_01 * (np.log(mi_01) - np.log(mi_0y) - np.log(mi_x1))
+        mi += mi_10 * (np.log(mi_10) - np.log(mi_1y) - np.log(mi_x0))
+        mi += mi_11 * (np.log(mi_11) - np.log(mi_1y) - np.log(mi_x1))
 
-        hitA, hitB = np.where(mi >= threshold)
+        np.fill_diagonal(mi, -np.inf)
+        hitA, hitB = np.where(mi - threshold >= -1e-4)
         mi = mi[hitA, hitB]
         hitA += i
+        keep = hitA!=hitB
 
         # append current chunk output
-        hitsA.append(hitA)
-        hitsB.append(hitB)
-        mis.append(mi)
+        hitsA.append(hitA[keep])
+        hitsB.append(hitB[keep])
+        mis.append(mi[keep])
 
-    hitsA = np.concatenate(hitsA, axis=0)
-    hitsB = np.concatenate(hitsB, axis=0)
-    mis = np.concatenate(mis, axis=0)
+    hits = set()
+    for a,b,m in zip(np.concatenate(hitsA, axis=0), 
+                    np.concatenate(hitsB, axis=0),
+                    np.concatenate(mis, axis=0)):
+        if a<=b:
+            hits.add((a,b,m))
+        else:
+            hits.add((b,a,m))
+
+    hitsA = np.zeros(len(hits), dtype=int)
+    hitsB = np.zeros(len(hits), dtype=int)
+    mis = np.zeros(len(hits))
+
+    for i,hit in enumerate(hits):
+        hitsA[i] = hit[0]
+        hitsB[i] = hit[1]
+        mis[i] = hit[2]
 
     return (hitsA, hitsB, mis)
 
@@ -178,6 +197,41 @@ def tukey_outlier(hitsA, hitsB, mis):
     return outliers
 
 
+def aracne(hitsA, hitsB, mis, outliers):
+    # build structures to speed up filtering
+    allg = set(hitsA) | set(hitsB)
+
+    d = {}
+    for a,b,m in zip(hitsA, hitsB, mis):
+        d[(a,b)] = m
+        d[(b,a)] = m
+
+    # aracne algorithm
+    bad_pairs = set()
+    nhitsA = []
+    nhitsB = []
+    nmis = []
+    noutliers = []
+    for a,b,m,o in tqdm(zip(hitsA, hitsB, mis, outliers)):
+        bad = False
+        for c in allg:
+            if c in [a,b]: continue
+            if (a, c) not in d: continue
+            if (b, c) not in d: continue
+            if (m < d[(a, c)]) and (m < d[(b, c)]):
+                bad = True
+        if not bad:
+            nhitsA.append(a)
+            nhitsB.append(b)
+            nhitsA.append(m)
+            noutliers.append(o)
+
+    return (np.array(nhitsA), 
+            np.array(nhitsB), 
+            np.array(nmis),
+            np.array(noutliers))
+
+
 def get_options():
     import argparse
 
@@ -191,7 +245,7 @@ def get_options():
         "--input",
         dest="pa_file",
         required=True,
-        help="gene presence absence file generated by Panaroo")
+        help="gene presence absence file (.Rtab) generated by Panaroo")
     io_opts.add_argument("-o",
                          "--out_dir",
                          dest="output_dir",
@@ -223,6 +277,15 @@ def get_options():
         "the quantile used to determine a threshold for keeping MI values (default=0.9)."
     )
 
+    parser.add_argument(
+        "--aracne",
+        dest="aracne",
+        default=False,
+        action='store_true',
+        help=
+        "turn on the Aracne stage of the algorithm (see the Spydrpick paper for details)."
+    )
+
     parser.add_argument('--version',
                         action='version',
                         version='%(prog)s ' + __version__)
@@ -252,13 +315,16 @@ def main():
         weights = get_weights_cluster_csv(args.cluster_file, sample_names)
     else:
         weights = None
-
+    
     hitsA, hitsB, mis = spydrpick(pa_matrix,
                                   weights=weights,
                                   keep_quantile=args.quantile,
                                   chunk_size=100)
 
     outliers = tukey_outlier(hitsA, hitsB, mis)
+
+    if args.aracne:
+        hitsA, hitsB, mis, outliers = aracne(hitsA, hitsB, mis, outliers)
 
     with open(args.output_dir + "gene_pa_spydrpick.csv", 'w') as outfile:
         outfile.write("GeneA,GeneB,MI,outlier\n")

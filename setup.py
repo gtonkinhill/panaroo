@@ -32,13 +32,14 @@ setup(
     version=find_version("panaroo/__init__.py"),
     author="Gerry Tonkin-Hill, Neil MacAlistair, Chris Ruis and Aaron Weimann",
     author_email="g.tonkinhill@gmail.com",
-    description="A pan-genome analysis pipeline",
+    description="A pangenome analysis pipeline",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/gtonkinhill/panaroo",
     install_requires=[
         'networkx', 'gffutils', 'BioPython', 'joblib', 'tqdm', 'edlib',
-        'scipy', 'numpy', 'matplotlib', 'sklearn', 'plotly', 'dendropy'
+        'scipy', 'numpy', 'matplotlib', 'sklearn', 'plotly', 'dendropy',
+        'intbitset'
     ],
     python_requires='>=3.6.0',
     packages=['panaroo'],
@@ -60,7 +61,12 @@ setup(
             'panaroo-plot-abundance = panaroo.generate_abundance_plots:main',
             'panaroo-spydrpick = panaroo.spydrpick:main',
             'panaroo-img = panaroo.estimate_img_params:main',
-            'panaroo-fmg = panaroo.estimate_many_genes_params:main'
+            'panaroo-fmg = panaroo.estimate_many_genes_params:main',
+            'panaroo-msa = panaroo.post_run_alignment_gen:main',
+            'panaroo-gene-neighbourhood = panaroo.get_neighborhood:main',
+            'panaroo-integrate = panaroo.integrate:main',
+            'panaroo-filter-pa = panaroo.filter_pa:main',
+            'panaroo-extract-gene = panaroo.extract_gene_fasta:main'
         ],
     },
 )

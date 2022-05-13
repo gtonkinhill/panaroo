@@ -20,8 +20,22 @@ def get_mash_dist(input_gffs, outdir, n_cpu=1, quiet=True):
     # build mash sketch
     mash_cmd = "mash triangle"
     mash_cmd += " -p " + str(n_cpu)
-    for gff in input_gffs:
-        mash_cmd += " " + gff.name
+
+    #Set up two lists of gffs to input into mash. This is a bit messy but
+    # allows for an arbitary number of gffs.
+    temp_output_file1 = tempfile.NamedTemporaryFile(delete=False, dir=outdir)
+    temp_output_file2 = tempfile.NamedTemporaryFile(delete=False, dir=outdir)
+    temp_output_file1.close()
+    temp_output_file2.close()
+    
+    with open(temp_output_file1.name, 'w') as outfile:
+        outfile.write(input_gffs[0])
+    with open(temp_output_file2.name, 'w') as outfile:
+        for gff in input_gffs[1:]:
+            outfile.write(gff + "\n")
+    
+    mash_cmd += " -l " + temp_output_file1.name
+    mash_cmd += " " + temp_output_file2.name
     mash_cmd += " > " + outdir + "mash_dist.txt"
 
     if not quiet:
@@ -41,13 +55,17 @@ def get_mash_dist(input_gffs, outdir, n_cpu=1, quiet=True):
 
     # get simplified file names
     file_names = [
-        os.path.splitext(os.path.basename(gff.name))[0] for gff in input_gffs
+        os.path.splitext(os.path.basename(gff))[0] for gff in input_gffs
     ]
+
+    # clean up
+    os.remove(temp_output_file1.name)
+    os.remove(temp_output_file2.name)
 
     return dist_mat, file_names
 
 
-def plot_MDS(dist_mat, file_names, outdir):
+def plot_MDS(dist_mat, file_names, outdir, no_plot=False):
 
     # get MDS projection
     mds = manifold.MDS(n_components=2, dissimilarity="precomputed")
@@ -59,6 +77,8 @@ def plot_MDS(dist_mat, file_names, outdir):
         contig_out.write("sample\tcoordx\tcoordy\n")
         for i, coord in zip(file_names, coords):
             contig_out.write("%s\t%s\t%s\n" % (i, coord[0], coord[1]))
+
+    if no_plot: return
 
     # find margins for plot
     c_min = np.min(coords) - abs(np.quantile(coords, 0.05))
@@ -108,26 +128,30 @@ def plot_MDS(dist_mat, file_names, outdir):
     return
 
 
-def plot_ngenes(input_gffs, outdir):
+def plot_ngenes(input_gffs, outdir, no_plot=True):
 
     # get simplified file names
     file_names = [
-        os.path.splitext(os.path.basename(gff.name))[0] for gff in input_gffs
+        os.path.splitext(os.path.basename(gff))[0] for gff in input_gffs
     ]
 
     # count genes
     ngenes = np.zeros(len(input_gffs))
-    for i, gff in enumerate(input_gffs):
-        gff.seek(0)
-        for line in gff:
-            if "##FASTA" in line: break
-            if "##" == line[:2]: continue
-            ngenes[i] += 1
+    for i, gff_file in enumerate(input_gffs):
+        with open(gff_file, 'r') as gff:
+            for line in gff:
+                if "##FASTA" in line: break
+                if "##" == line[:2]: continue
+                if "CDS" not in line: continue
+                ngenes[i] += 1
 
     with open(outdir + "ngenes.txt", "w") as genes_out:
         genes_out.write("sample\tno_genes\n")
         for i, j in zip(file_names, ngenes):
             genes_out.write("%s\t%s\n" % (i, j))
+
+    if no_plot: return
+
     # generate static plot
     plt.style.use('ggplot')
     fig = plt.figure()
@@ -164,29 +188,32 @@ def plot_ngenes(input_gffs, outdir):
     return
 
 
-def plot_ncontigs(input_gffs, outdir):
+def plot_ncontigs(input_gffs, outdir, no_plot=False):
 
     # get simplified file names
     file_names = [
-        os.path.splitext(os.path.basename(gff.name))[0] for gff in input_gffs
+        os.path.splitext(os.path.basename(gff))[0] for gff in input_gffs
     ]
 
     # count genes
     ncontigs = np.zeros(len(input_gffs))
-    for i, gff in enumerate(input_gffs):
-        gff.seek(0)
-        in_fasta = False
-        for line in gff:
-            if in_fasta and (line[0] == ">"):
-                ncontigs[i] += 1
-            if "##FASTA" in line:
-                in_fasta = True
+    for i, gff_file in enumerate(input_gffs):
+        with open(gff_file, 'r') as gff:
+            in_fasta = False
+            for line in gff:
+                if in_fasta and (line[0] == ">"):
+                    ncontigs[i] += 1
+                if "##FASTA" in line:
+                    in_fasta = True
 
     # generate static plot
     with open(outdir + "ncontigs.txt", "w") as contig_out:
         contig_out.write("sample\tno_contigs\n")
         for i, j in zip(file_names, ncontigs):
             contig_out.write("%s\t%s\n" % (i, j))
+
+    if no_plot: return
+    
     plt.style.use('ggplot')
     fig = plt.figure()
     plt.barh(np.arange(len(ncontigs)), ncontigs)
@@ -231,7 +258,7 @@ def run_mash_screen(gff, mash_ref, outdir):
 
     temp_output_file = tempfile.NamedTemporaryFile(delete=False, dir=outdir)
     temp_output_file.close()
-    temp_mash_cmd = mash_cmd + " " + gff.name + " > " + temp_output_file.name
+    temp_mash_cmd = mash_cmd + " " + gff + " > " + temp_output_file.name
     subprocess.run(temp_mash_cmd, shell=True, check=True)
 
     # load output
@@ -251,7 +278,7 @@ def run_mash_screen(gff, mash_ref, outdir):
 
 def get_mash_contam(input_gffs, mash_ref, n_cpu, outdir):
     file_names = [
-        os.path.splitext(os.path.basename(gff.name))[0] for gff in input_gffs
+        os.path.splitext(os.path.basename(gff))[0] for gff in input_gffs
     ]
 
     genome_hits = Parallel(n_jobs=n_cpu)(
@@ -321,7 +348,7 @@ def plot_mash_contam(mash_contam_file, outdir):
     return
 
 
-def generate_qc_plot(method, input_files, outdir, n_cpu, ref_db=None):
+def generate_qc_plot(method, input_files, outdir, n_cpu, ref_db=None, no_plot=False):
 
     # plot MDS
     if method in ["mds", "all"]:
@@ -329,15 +356,15 @@ def generate_qc_plot(method, input_files, outdir, n_cpu, ref_db=None):
                                              outdir=outdir,
                                              n_cpu=n_cpu,
                                              quiet=True)
-        plot_MDS(dist_mat, file_names, outdir)
+        plot_MDS(dist_mat, file_names, outdir, no_plot)
 
     # plot number of genes
     if method in ["ngenes", "all"]:
-        plot_ngenes(input_gffs=input_files, outdir=outdir)
+        plot_ngenes(input_gffs=input_files, outdir=outdir, no_plot=no_plot)
 
     # plot number of contigs
     if method in ["ncontigs", "all"]:
-        plot_ncontigs(input_gffs=input_files, outdir=outdir)
+        plot_ncontigs(input_gffs=input_files, outdir=outdir, no_plot=no_plot)
 
     # plot contamination scatter plot
     if (method in ["contam", "all"]):
@@ -353,7 +380,8 @@ def generate_qc_plot(method, input_files, outdir, n_cpu, ref_db=None):
                                                mash_ref=ref_db,
                                                n_cpu=n_cpu,
                                                outdir=outdir)
-            plot_mash_contam(mash_contam_file=mash_contam_file, outdir=outdir)
+            if not no_plot:
+                plot_mash_contam(mash_contam_file=mash_contam_file, outdir=outdir)
 
     return
 
@@ -372,7 +400,7 @@ def get_options(args):
         dest="input_files",
         required=True,
         help="input GFF3 files (usually output from running Prokka)",
-        type=argparse.FileType('rU'),
+        type=str,
         nargs='+')
     io_opts.add_argument("-o",
                          "--out_dir",
@@ -393,6 +421,11 @@ def get_options(args):
                         help="the type of graph to generate (default='all')",
                         choices={'all', 'mds', 'ngenes', 'ncontigs', 'contam'},
                         default="all")
+    parser.add_argument("--no_plot",
+                        dest="no_plot",
+                        help="don't generate the plots. Will only create the data tables",
+                        action='store_true',
+                        default=False)
     parser.add_argument(
         "--ref_db",
         dest="ref_db",
@@ -411,11 +444,16 @@ def main():
     # make sure trailing forward slash is present
     args.output_dir = os.path.join(args.output_dir, "")
 
+    if len(args.input_files) == 1:
+        with open(args.input_files[0]) as inhandle:
+            args.input_files = inhandle.read().splitlines()
+    
     generate_qc_plot(method=args.graph_type,
                      input_files=args.input_files,
                      outdir=args.output_dir,
                      n_cpu=args.n_cpu,
-                     ref_db=args.ref_db)
+                     ref_db=args.ref_db,
+                     no_plot=args.no_plot)
 
     return
 

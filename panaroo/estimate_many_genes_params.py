@@ -149,12 +149,15 @@ def calc_llk_fmg(params, tree_array, nleaves, presence_absence, isolates,
         llk += calc_llk_gene_numpy(
             tree_array, nleaves, l0, l1, a,
             v) - np.log(1 - np.exp(L_null) - np.exp(L_1))
+        # print('l0:', l0)
+        # print('l1:',  l1)
         # print(L_null, L_1)
         # print(1 - np.exp(L_null) - np.exp(L_1))
         # print("llka: ", calc_llk_gene_numpy(
         #     tree_array, nleaves, l0, l1, a,
         #     v))
         # print("llkb: ", llk)
+    
 
     if verbose: print("llk: ", llk)
 
@@ -290,12 +293,17 @@ def main():
         node.label = nnodes
         nnodes += 1
     for node in tree.postorder_internal_node_iter():
+        if node.label=='Root': node.edge.length = 1e-9 # add small edge length to deal with root branch
+        if node.edge.length is None: node.edge.length = 0.1
         node.label = nnodes
         nnodes += 1
     tree_array = np.zeros((nnodes, 7))
     leaves = []
     node_index = {}
     for i, node in enumerate(tree.leaf_node_iter()):
+        if node.edge.length <= 0: 
+            print('edge length: ', node.edge.length)
+            raise RuntimeError('Tree edge length must > 0!')
         leaves.append(i)
         node_index[node.label] = i
         tree_array[i][0] = -1
@@ -304,6 +312,11 @@ def main():
 
     nleaves = len(leaves)
     for i, node in enumerate(tree.postorder_internal_node_iter()):
+        # if node.label=='Root': continue
+        print(node.edge.length)
+        if node.edge.length <= 0: 
+            print('edge length: ', node.edge.length)
+            raise RuntimeError('Tree edge length must > 0!')
         j = i + nleaves
         node_index[node.label] = j
         children = node.child_nodes()

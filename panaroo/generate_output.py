@@ -7,7 +7,6 @@ from Bio import SeqIO
 from Bio import AlignIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from Bio.Alphabet import generic_dna
 import itertools as iter
 from tqdm import tqdm
 
@@ -36,7 +35,7 @@ def generate_roary_gene_presence_absence(G, mems_to_isolates, orig_ids,
             "Max group size nuc", "Avg group size nuc"
         ] + isolates
         roary_csv_outfile.write(",".join(header) + "\n")
-        csv_outfile.write(",".join(header[:3]) + "\n")
+        csv_outfile.write(",".join(header[:3] + isolates) + "\n")
         Rtab_outfile.write("\t".join((["Gene"] + isolates)) + "\n")
 
         # Iterate through coponents writing out to file
@@ -55,12 +54,15 @@ def generate_roary_gene_presence_absence(G, mems_to_isolates, orig_ids,
                 count += 1
                 len_mode = max(G.nodes[node]['lengths'],
                                key=G.nodes[node]['lengths'].count)
-                name = '_'.join(
-                    G.nodes[node]['annotation'].strip().strip(';').split(';'))
-                name = ''.join(e for e in name if e.isalnum() or e == "_")
-                if name not in used_gene_names:
+                name = '~~~'.join([
+                    gn for gn in G.nodes[node]['annotation'].strip().strip(
+                        ';').split(';') if gn != ''
+                ])
+                name = ''.join(e for e in name
+                               if e.isalnum() or e in ["_", "~"])
+                if name.lower() not in used_gene_names:
                     entry = [name]
-                    used_gene_names.add(name)
+                    used_gene_names.add(name.lower())
                     G.nodes[node]['name'] = name
                 else:
                     G.nodes[node]['name'] = "group_" + str(unique_id_count)
@@ -68,8 +70,8 @@ def generate_roary_gene_presence_absence(G, mems_to_isolates, orig_ids,
                     unique_id_count += 1
                 entry.append(G.nodes[node]['annotation'])
                 entry.append(G.nodes[node]['description'])
-                entry.append(len(G.nodes[node]['seqIDs']))
                 entry.append(G.nodes[node]['size'])
+                entry.append(len(G.nodes[node]['seqIDs']))
                 entry.append((1.0 * len(G.nodes[node]['seqIDs'])) /
                              G.nodes[node]['size'])
                 entry.append(frag)
@@ -137,33 +139,16 @@ def generate_pan_genome_reference(G, output_dir, split_paralogs=False):
         if not split_paralogs and G.nodes[node]['centroid'][0] in centroids:
             continue
         records.append(
-            SeqRecord(Seq(G.nodes[node]['dna'][0], generic_dna),
-                      id=G.nodes[node]['centroid'][0],
+            SeqRecord(Seq(max(G.nodes[node]['dna'], key=lambda x: len(x))),
+                      id=G.nodes[node]['name'],
                       description=""))
-        centroids.add(G.nodes[node]['centroid'][0])
+        for centroid in G.nodes[node]['centroid']:
+            centroids.add(centroid)
 
     with open(output_dir + "pan_genome_reference.fa", 'w') as outfile:
         SeqIO.write(records, outfile, "fasta")
 
     return
-
-
-# # TODO: come with a nice weighting to account for the number of observations
-# def generate_gene_mobility(G, output_dir):
-
-#     with open(output_dir + "gene_mobility.csv", 'w') as outfile:
-#         outfile.write("gene_id,annotation,count,degree,entropy\n")
-#         for node in G.nodes():
-#             entropy = 0
-#             for edge in G.edges(node):
-#                 p = G[edge[0]][edge[1]]['weight'] / (1.0 *
-#                                                      G.nodes[node]['size'])
-#                 entropy -= p * np.log(p)
-#             outfile.write(",".join([
-#                 G.nodes[node]['name'], G.nodes[node]['annotation'],
-#                 str(G.nodes[node]['size']),
-#                 str(G.degree[node]), "{:.5f}".format(entropy)
-#             ]) + "\n")
 
 
 def generate_common_struct_presence_absence(G,
@@ -216,6 +201,7 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
         os.mkdir(output_dir + "aligned_gene_sequences")
     except FileExistsError:
         None
+
     if codons == True:
         #Make alternate protein/DNA directories
         try:
@@ -226,15 +212,31 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
             os.mkdir(output_dir + "unaligned_dna_sequences")
         except FileExistsError:
             None
-        #Multithread writing protien and dna sequences to disk (temp directory) so aligners can find them
-        unaligned_protein_files = Parallel(n_jobs=threads)(
-            delayed(output_protein)(G.nodes[x], isolates, temp_dir, output_dir)
-            for x in tqdm(G.nodes()))
+            
+        proteins = list(SeqIO.parse(output_dir + "combined_protein_CDS.fasta", 'fasta'))
+        nucleotides = list(SeqIO.parse(output_dir + "combined_DNA_CDS.fasta", 'fasta'))
         
-        unaligned_dna_files = Parallel(n_jobs=threads)(
-            delayed(output_sequence)(G.nodes[x], isolates, 
-                   output_dir + "unaligned_dna_sequences/", output_dir)
-                    for x in tqdm(G.nodes()))
+        #transform to Dics for fast lookup
+        
+        proteins_dic = dict(zip([x.id for x in proteins], proteins))
+        nucleotides_dic = dict(zip([x.id for x in nucleotides], nucleotides))
+        
+        #File output must stay single threaded. Pickling the large protein/dna
+        #objects for concurrent access, plus overhead decreases speed enormously
+        output_files = []
+        for gene in G.nodes():
+            output = output_dna_and_protein(G.nodes[gene], isolates, temp_dir, 
+                                            output_dir, proteins_dic, 
+                                            nucleotides_dic)
+            output_files.append(output)
+        
+        
+        filtered_output_files  = [x for x in output_files if x[0]]
+        
+        
+        unaligned_protein_files = [x[0] for x in  filtered_output_files]
+        unaligned_dna_files = [x[1] for x in filtered_output_files]
+        
         #Get Biopython command calls for each output gene sequences
         commands = [
             get_protein_commands(fastafile, output_dir, aligner, threads)
@@ -249,20 +251,27 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
         unaligned_dna_files = os.listdir(output_dir + "unaligned_dna_sequences/")
         
         #Check all alignments completed
-        if len(protein_sequences) != len(unaligned_dna_files):
-            raise RuntimeError("Some alignments failed to complete!")
-        
+        for file in protein_sequences:
+            if os.path.isfile(file) == False:
+                raise RuntimeError("Some alignments failed to complete!")
         
         #Reverse translate and output codon alignments
+        
         codon_alignments = reverse_translate_sequences(protein_sequences, 
-                                                       unaligned_dna_files, 
-                                                       output_dir, 
+                                                       unaligned_dna_files,
+                                                       output_dir,
+                                                       temp_dir,
+                                                       aligner,
                                                        threads)
     else:
         #Multithread writing gene sequences to disk (temp directory) so aligners can find them
         unaligned_sequence_files = Parallel(n_jobs=threads)(
             delayed(output_sequence)(G.nodes[x], isolates, temp_dir, output_dir)
             for x in tqdm(G.nodes()))
+
+        #remove single sequence files
+        unaligned_sequence_files = filter(None, unaligned_sequence_files)
+
         #Get Biopython command calls for each output gene sequences
         commands = [
             get_alignment_commands(fastafile, output_dir, aligner, threads)
@@ -337,9 +346,9 @@ def generate_core_genome_alignment(G, temp_dir, output_dir, threads, aligner,
     #Get core nodes
     core_genes = get_core_gene_nodes(G, threshold, num_isolates)
     core_gene_names = [G.nodes[x]["name"] for x in core_genes]
-    
+
     if codons == True:
-        #Make alternate protein/DNA directories
+        #Make alternate protein/DNA directorieseqIO.parse
         try:
             os.mkdir(output_dir + "aligned_protein_sequences")
         except FileExistsError:
@@ -348,15 +357,28 @@ def generate_core_genome_alignment(G, temp_dir, output_dir, threads, aligner,
             os.mkdir(output_dir + "unaligned_dna_sequences")
         except FileExistsError:
             None
-        #Multithread writing protien and dna sequences to disk
-        unaligned_protein_files = Parallel(n_jobs=threads)(
-            delayed(output_protein)(G.nodes[x], isolates, temp_dir, output_dir)
-            for x in tqdm(core_genes))
         
-        unaligned_dna_files = Parallel(n_jobs=threads)(
-            delayed(output_sequence)(G.nodes[x], isolates, 
-                   output_dir + "unaligned_dna_sequences", output_dir)
-                    for x in tqdm(core_genes))
+        proteins = list(SeqIO.parse(output_dir + "combined_protein_CDS.fasta", 'fasta'))
+        nucleotides = list(SeqIO.parse(output_dir + "combined_DNA_CDS.fasta", 'fasta'))
+        
+        #transform to Dics for fast lookup
+        
+        proteins_dic = dict(zip([x.id for x in proteins], proteins))
+        nucleotides_dic = dict(zip([x.id for x in nucleotides], nucleotides))
+
+        #File output must stay single threaded. Pickling the large protein/dna
+        #objects for concurrent access, plus overhead decreases speed enormously
+        
+        output_files = []
+        for gene in G.nodes():
+            output = output_dna_and_protein(G.nodes[gene], isolates, temp_dir, 
+                                            output_dir, proteins_dic, 
+                                            nucleotides_dic)
+            output_files.append(output)
+        
+        
+        filtered_output_files  = [x for x in output_files if x[0]]
+        
         #Get Biopython command calls for each output gene sequences
         commands = [
             get_protein_commands(fastafile, output_dir, aligner, threads)
@@ -366,8 +388,11 @@ def generate_core_genome_alignment(G, temp_dir, output_dir, threads, aligner,
         multi_align_sequences(commands, output_dir + "aligned_protein_sequences/",
                               threads, aligner)
         
-        #Get the list of aligned protien files
-        protein_sequences = os.listdir(output_dir + "aligned_protein_sequences/")
+        #Get the list of aligned protien files from DNA to enable check
+        protein_sequences = [output_dir + 
+                             "aligned_protein_sequences/" + 
+                             x.split("/")[-1].split(".")[0] + 
+                             ".aln.fas" for x in unaligned_dna_files]
         
         #Check all alignments completed
         if len(protein_sequences) != len(unaligned_dna_files):
@@ -377,13 +402,16 @@ def generate_core_genome_alignment(G, temp_dir, output_dir, threads, aligner,
         #Reverse translate and output codon alignments
         codon_alignments = reverse_translate_sequences(protein_sequences, 
                                                        unaligned_dna_files, 
-                                                       output_dir, 
+                                                       output_dir, aligner,
                                                        threads)
     else:
         #Output core node sequences
         unaligned_sequence_files = Parallel(n_jobs=threads)(
             delayed(output_sequence)(G.nodes[x], isolates, temp_dir, output_dir)
             for x in tqdm(core_genes))
+        #remove single sequence files
+        unaligned_sequence_files = filter(None, unaligned_sequence_files)
+
         #Get alignment commands
         commands = [
             get_alignment_commands(fastafile, output_dir, aligner, threads)
@@ -392,6 +420,7 @@ def generate_core_genome_alignment(G, temp_dir, output_dir, threads, aligner,
         #Run alignment commands
         multi_align_sequences(commands, output_dir + "aligned_gene_sequences/",
                               threads, aligner)
+
     #Concatenate them together to produce the two output files
     concatenate_core_genome_alignments(core_gene_names, output_dir)
     return
@@ -409,7 +438,7 @@ def generate_summary_stats(output_dir):
     total_genes = 0
     #Iterate through GPA and summarise
     for gene in gene_presence_absence:
-        proportion_present = float(gene.split(',')[4]) / noSamples * 100.0
+        proportion_present = float(gene.split(',')[3]) / noSamples * 100.0
         if proportion_present >= 99:
             noCore += 1
         elif proportion_present >= 95:
