@@ -111,7 +111,7 @@ def main():
                     outputfile = args.output_dir + line[0] + '.fasta', 
                     genedata = args.gene_data, 
                     isdna = args.isdna,
-                    isolateod = args.isolateid)
+                    isolateid = args.isolateid)
 
     return
 
