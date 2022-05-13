@@ -56,8 +56,8 @@ def get_options(args):
                         action='store_true',
                         default=False)
     
-    parser.add_argument("--sampleid",
-                        dest="sampleid",
+    parser.add_argument("--isolateid",
+                        dest="isolateid",
                         help="toggles the use of sample name rather than annotation ID in output multifasta",
                         action='store_true',
                         default=False)
@@ -70,7 +70,7 @@ def get_options(args):
     return (args)
 
 
-def generate_fasta(geneids, outputfile, genedata, isdna):
+def generate_fasta(geneids, outputfile, genedata, isdna,isolateid):
 
     with open(outputfile, 'w') as outfile:
         with open(genedata, 'r') as infile:
@@ -81,7 +81,7 @@ def generate_fasta(geneids, outputfile, genedata, isdna):
                         seq = line[5]
                     else:
                         seq = line[4]
-                    if sampleid:
+                    if isolateid:
                         id_column = line[0]
                     else:
                         id_column = line[3]
@@ -110,7 +110,8 @@ def main():
                 generate_fasta(geneids, 
                     outputfile = args.output_dir + line[0] + '.fasta', 
                     genedata = args.gene_data, 
-                    isdna = args.isdna)
+                    isdna = args.isdna,
+                    isolateod = args.isolateid)
 
     return
 
