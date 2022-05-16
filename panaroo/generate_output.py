@@ -253,6 +253,7 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
         #Check all alignments completed
         for file in protein_sequences:
             if os.path.isfile(file) == False:
+                print(file)
                 raise RuntimeError("Some alignments failed to complete!")
         
         #Reverse translate and output codon alignments
@@ -379,6 +380,9 @@ def generate_core_genome_alignment(G, temp_dir, output_dir, threads, aligner,
         
         filtered_output_files  = [x for x in output_files if x[0]]
         
+        unaligned_protein_files = [x[0] for x in  filtered_output_files]
+        unaligned_dna_files = [x[1] for x in filtered_output_files]
+        
         #Get Biopython command calls for each output gene sequences
         commands = [
             get_protein_commands(fastafile, output_dir, aligner, threads)
@@ -395,8 +399,10 @@ def generate_core_genome_alignment(G, temp_dir, output_dir, threads, aligner,
                              ".aln.fas" for x in unaligned_dna_files]
         
         #Check all alignments completed
-        if len(protein_sequences) != len(unaligned_dna_files):
-            raise RuntimeError("Some alignments failed to complete!")
+        for file in protein_sequences:
+            if os.path.isfile(file) == False:
+                print(file)
+                raise RuntimeError("Some alignments failed to complete!")
         
         
         #Reverse translate and output codon alignments

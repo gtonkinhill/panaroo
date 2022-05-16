@@ -103,6 +103,9 @@ def output_dna_and_protein(node, isolate_list, temp_directory, outdir,
     #Get the name of the sequences for the gene of interest
 
     sequence_ids = node["seqIDs"]
+    #Make sure later steps don't iterate through a string
+    if type(sequence_ids) == str:
+        sequence_ids = [sequence_ids]
     output_dna = []
     output_protein = []
     #Counter for the number of sequences to avoid aliging single sequences
