@@ -70,7 +70,7 @@ def output_sequence(node, isolate_list, temp_directory, outdir):
     #Get the name of the sequences for the gene of interest
     sequence_ids = node["seqIDs"]
     output_sequences = []
-    #Counter for the number of sequences to avoid aliging single sequences
+    #Counter for the number of sequences for downstream check of >1
     isolate_no = 0
     #Look for gene sequences among all genes (from disk)
     for seq in SeqIO.parse(outdir + "combined_DNA_CDS.fasta", 'fasta'):
@@ -154,8 +154,7 @@ def output_dna_and_protein(node, isolate_list, temp_directory, outdir,
         singleton_outname = outdir + "aligned_gene_sequences/" + node["name"] +".aln.fas"
         SeqIO.write(output_singleton, singleton_outname, 'fasta')
         output_files = (None, None)
-
-    
+        
     return output_files
 
 
@@ -193,7 +192,10 @@ def get_alignment_commands(fastafile_name, outdir, aligner, threads):
     return (command, fastafile_name)
 
 def get_protein_commands(fastafile_name, outdir, aligner, threads):
-    geneName = fastafile_name.split('/')[-1].split('.')[0]
+    if fastafile_name != None:
+        geneName = fastafile_name.split('/')[-1].split('.')[0]
+    else:
+        return (None, None)
     if aligner == "prank":
         command = PrankCommandline(d=fastafile_name,
                                    o=geneName,
@@ -248,8 +250,13 @@ def get_align_dna_to_alignment_commands(bad_dna_seqs_file, codonalignment_file,
     return (command, bad_dna_seqs_file)
 
 def align_sequences(command, outdir, aligner):
+    #Avoid running alignments on single-isolate genes
+    if command[0] == None:
+        return None
     if aligner == "mafft":
         name = str(command[0]).split()[-1].split('/')[-1].split('.')[0]
+        if command[0] == None:
+            print(command)
         stdout, stderr = command[0]()
         with open(outdir + name + '.aln.fas', 'w+') as handle:
             handle.write(stdout)
@@ -293,7 +300,9 @@ def realign_dna_sequences(command, outdir, aligner):
     return True
     
 def multi_align_sequences(commands, outdir, threads, aligner):
-
+    for command in commands:
+        if command == None:
+            print(command)
     alignment_results = Parallel(n_jobs=threads, prefer="threads")(
         delayed(align_sequences)(x, outdir, aligner) for x in tqdm(commands))
 
@@ -335,6 +344,7 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
     
     #Read in files (multithreaded)
     dna_sequences = Parallel(n_jobs=threads, prefer="threads")(
+
             delayed(read_sequences)(x) 
             for x in dna_sequence_files)  
     protein_alignments = Parallel(n_jobs=threads, prefer="threads")(
@@ -451,7 +461,6 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
             sequence.description = ""
     
     #output successful codon alignments
-        
     write_success_failures = Parallel(n_jobs=threads, prefer="threads")(
             delayed(AlignIO.write)
             (completed_codon_alignments[x], 
