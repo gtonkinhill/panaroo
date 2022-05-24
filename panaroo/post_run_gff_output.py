@@ -293,10 +293,16 @@ def main():
     for pangenome_gene_id in tqdm(G.nodes):
         for isolate_id in G.nodes[pangenome_gene_id]["genomeIDs"].split(";"):
             isolate_genes[isolate_id] = isolate_genes.get(isolate_id, {})
-            for isolate_geneid in G.nodes[pangenome_gene_id]["seqIDs"]:
+            if type(G.nodes[pangenome_gene_id]["seqIDs"]) == list:                
+                for isolate_geneid in G.nodes[pangenome_gene_id]["seqIDs"]:
+                    if isolate_geneid.split("_")[0] == isolate_id:
+                        isolate_genes[isolate_id][pangenome_gene_id] = isolate_genes[isolate_id].get(
+                            pangenome_gene_id, []) + [isolate_geneid]
+            elif type(G.nodes[pangenome_gene_id]["seqIDs"]) == str:
+                isolate_geneid = G.nodes[pangenome_gene_id]["seqIDs"]
                 if isolate_geneid.split("_")[0] == isolate_id:
-                    isolate_genes[isolate_id][pangenome_gene_id] = isolate_genes[isolate_id].get(
-                        pangenome_gene_id, []) + [isolate_geneid]
+                        isolate_genes[isolate_id][pangenome_gene_id] = isolate_genes[isolate_id].get(
+                            pangenome_gene_id, []) + [isolate_geneid]
             
     
     #create and output new GFF files, multithreaded
