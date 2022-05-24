@@ -71,6 +71,9 @@ def get_options():
 
 def parse_all_gffs(list_of_isolate_names, input_list, verbose):
     ordered_parsed_gffs = []
+    if type(input_list) == str:
+        with open(input_list, 'r') as inhandle:
+            input_list = inhandle.read().splitlines()
     if verbose == True:
         list_of_isolate_names = tqdm(list_of_isolate_names)
     for isolate_id in list_of_isolate_names:
