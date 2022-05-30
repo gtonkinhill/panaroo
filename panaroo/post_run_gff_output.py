@@ -105,7 +105,7 @@ def parse_gff_body(gff_body_list):
     parsed_gff = []
     for gff_line in gff_body_list:
         parsed_gff_line = {}
-        initial_split = gff_line.split()
+        initial_split = gff_line.split("\t")
         parsed_gff_line["seqid"] = initial_split[0]
         parsed_gff_line["type"] = initial_split[2]
         parsed_gff_line["start"] = initial_split [3]
@@ -121,6 +121,8 @@ def parse_gff_body(gff_body_list):
                 parsed_gff_line["eC_number"] = attribute.split("=")[1]
             elif "inference=" in attribute:
                 parsed_gff_line["inference"] = attribute.split("=")[1]
+            elif "locus_tag=" in attribute:
+                parsed_gff_line["Locus_tag"] = attribute.split("=")[1]
         parsed_gff.append(parsed_gff_line)
 
     return parsed_gff
@@ -163,11 +165,12 @@ def process_refound_gene(refound_id, pangenome_id, parsed_gff, refound_seqs,
     gene_description = G.nodes[pangenome_id]["description"]    
     #Put it all together and return a line of the GFF body
     gff_attributes = ";".join(["ID="+refound_id,
+                               "locus_tag="+refound_id,
                                "name="+gene_name,
                                "description="+gene_description,
                                "inference=Panaroo absent gene DNA re-finding",
                                "has_pangenome_paralog="+has_paralog])
-    gff_line = [scaffold_id, "Panaroo_refound", ".", str(start+1), str(stop+1), ".", 
+    gff_line = [scaffold_id, "Panaroo_refound", "CDS", str(start+1), str(stop+1), ".", 
                 strand, ".", gff_attributes]
     return "\t".join(gff_line)
 
@@ -216,11 +219,12 @@ def create_new_gffs(isolate_index, parsed_gffs, pp_isolate_genes,
                     has_paralog = "False"
                 gene_description = G.nodes[pangenome_gene]["description"]
 
-                new_attributes = ";".join(["ID="+gene,
+                new_attributes = ";".join(["ID="+original_gene_data["ID"],
                                           "name="+gene_name,
+                                          "locus_tag="+original_gene_data.get("Locus_tag", str("Panaroo_refound")),
                                           "description="+gene_description,
                                           "pangenome_id="+str(pangenome_gene),
-                                          "prepanaroo_ID="+original_gene_data["ID"],
+                                          "panaroo_ID="+gene,
                                           "eC_number="+original_gene_data.get("eC_number", str(None)),
                                           "prepanaroo_inference="+original_gene_data["inference"],
                                           "has_pangenome_paralog="+has_paralog])
@@ -235,10 +239,12 @@ def create_new_gffs(isolate_index, parsed_gffs, pp_isolate_genes,
                                       new_attributes])
                 new_gff_body_lines.append(new_gene_line)
 
+    # Sort the annotation body of the gff file based on the first coordinate
+    new_gff_body_lines[1:] = sorted(new_gff_body_lines[1:], key = lambda x: int(x.split('\t')[3]))
                 
     if gff_format == "prokka":
         new_gff_body_lines.append("##FASTA")
-        new_gff_body_lines.append(parsed_gffs[isolate_index]["fasta"])
+        new_gff_body_lines.append(parsed_gffs[isolate_index]["fasta"].strip())
 
     return new_gff_body_lines
 
