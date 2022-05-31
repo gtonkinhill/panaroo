@@ -170,7 +170,7 @@ def process_refound_gene(refound_id, pangenome_id, parsed_gff, refound_seqs,
                                "description="+gene_description,
                                "inference=Panaroo absent gene DNA re-finding",
                                "has_pangenome_paralog="+has_paralog])
-    gff_line = [scaffold_id, "Panaroo_refound", "CDS", str(start+1), str(stop+1), ".", 
+    gff_line = [scaffold_id, "Panaroo_refound", "candidate_gene", str(start+1), str(stop+1), ".", 
                 strand, ".", gff_attributes]
     return "\t".join(gff_line)
 
