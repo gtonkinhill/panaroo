@@ -79,7 +79,9 @@ def parse_all_gffs(list_of_isolate_names, input_list, verbose):
     for isolate_id in list_of_isolate_names:
         parsed_gff = {}
         #get the right file in the original processing order
-        input_file = next((s for s in input_list if isolate_id in s))
+        base_input = [os.path.basename(input_id) for input_id in input_list]
+        base_input = [input_id.replace(".gff", "") for input_id in base_input]
+        input_file = next((s[1] for s in zip(base_input, input_list) if isolate_id == s[0]))
         raw_file = open(input_file, 'r')
         #read in and split off FASTA portion
         lines = raw_file.read().replace(',', '')
@@ -106,24 +108,25 @@ def parse_gff_body(gff_body_list):
     for gff_line in gff_body_list:
         parsed_gff_line = {}
         initial_split = gff_line.split("\t")
-        parsed_gff_line["seqid"] = initial_split[0]
-        parsed_gff_line["type"] = initial_split[2]
-        parsed_gff_line["start"] = initial_split [3]
-        parsed_gff_line["end"] = initial_split [4]
-        parsed_gff_line["score"] = initial_split [5]
-        parsed_gff_line["strand"] = initial_split [6]
-        parsed_gff_line["phase"] = initial_split [7]
-        attribute_split = " ".join(initial_split[8:]).split(";")
-        for attribute in attribute_split:
-            if "ID=" in attribute:
-                parsed_gff_line["ID"] = attribute.split("=")[1]
-            elif "eC_number=" in attribute:
-                parsed_gff_line["eC_number"] = attribute.split("=")[1]
-            elif "inference=" in attribute:
-                parsed_gff_line["inference"] = attribute.split("=")[1]
-            elif "locus_tag=" in attribute:
-                parsed_gff_line["Locus_tag"] = attribute.split("=")[1]
-        parsed_gff.append(parsed_gff_line)
+        if initial_split[2] == "CDS":
+            parsed_gff_line["seqid"] = initial_split[0]
+            parsed_gff_line["type"] = initial_split[2]
+            parsed_gff_line["start"] = initial_split [3]
+            parsed_gff_line["end"] = initial_split [4]
+            parsed_gff_line["score"] = initial_split [5]
+            parsed_gff_line["strand"] = initial_split [6]
+            parsed_gff_line["phase"] = initial_split [7]
+            attribute_split = " ".join(initial_split[8:]).split(";")
+            for attribute in attribute_split:
+                if "ID=" in attribute:
+                    parsed_gff_line["ID"] = attribute.split("=")[1]
+                elif "eC_number=" in attribute:
+                    parsed_gff_line["eC_number"] = attribute.split("=")[1]
+                elif "inference=" in attribute:
+                    parsed_gff_line["inference"] = attribute.split("=")[1]
+                elif "locus_tag=" in attribute:
+                    parsed_gff_line["Locus_tag"] = attribute.split("=")[1]
+            parsed_gff.append(parsed_gff_line)
 
     return parsed_gff
     
@@ -170,7 +173,7 @@ def process_refound_gene(refound_id, pangenome_id, parsed_gff, refound_seqs,
                                "description="+gene_description,
                                "inference=Panaroo absent gene DNA re-finding",
                                "has_pangenome_paralog="+has_paralog])
-    gff_line = [scaffold_id, "Panaroo_refound", "CDS", str(start+1), str(stop+1), ".", 
+    gff_line = [scaffold_id, "Panaroo_refound", "candidate_gene", str(start+1), str(stop+1), ".", 
                 strand, ".", gff_attributes]
     return "\t".join(gff_line)
 
