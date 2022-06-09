@@ -335,7 +335,7 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
     #Check that the dna and protein files match up
     for index in range(len(protein_sequence_files)):
         gene_id = protein_sequence_files[index].split('/')[-1].split(".")[0]
-        if gene_id in dna_sequence_files[index]:
+        if gene_id == dna_sequence_files[index].split('/')[-1].split(".")[0]:
             continue
         else:
             print(protein_sequence_files[index])
