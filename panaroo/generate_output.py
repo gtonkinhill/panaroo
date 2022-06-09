@@ -247,8 +247,13 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
                               threads, aligner)
         
         #Get the lists of aligned protien/dna files
-        protein_sequences = os.listdir(output_dir + "aligned_protein_sequences/")
         unaligned_dna_files = os.listdir(output_dir + "unaligned_dna_sequences/")
+        
+        #Get the list of aligned protien files from DNA to enable check
+        protein_sequences = [output_dir + 
+                             "aligned_protein_sequences/" + 
+                             x.split("/")[-1].split(".")[0] + 
+                             ".aln.fas" for x in unaligned_dna_files]
         
         #Check all alignments completed
         for file in protein_sequences:
