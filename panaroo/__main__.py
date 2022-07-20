@@ -9,7 +9,7 @@ import ast
 
 from .isvalid import *
 from .set_default_args import set_default_args
-from .prokka import process_prokka_input
+from .prokka import process_prokka_input, create_temp_gff3
 from .cdhit import check_cdhit_version
 from .cdhit import run_cdhit
 from .generate_network import generate_network
@@ -276,7 +276,14 @@ def main():
         files = []
         with open(args.input_files[0], 'r') as infile:
             for line in infile:
-                files.append(line.strip())
+                line = line.strip().split()
+                if len(line)==1:
+                    files.append(line[0])
+                elif len(line)==2:
+                    files.append(create_temp_gff3(line[0], line[1], temp_dir))
+                else:
+                    print("Problem reading input line: ", line)
+                    raise RuntimeError("Error reading files!")
         args.input_files = files
 
     if args.verbose:
