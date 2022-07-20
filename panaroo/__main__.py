@@ -278,7 +278,12 @@ def main():
             for line in infile:
                 line = line.strip().split()
                 if len(line)==1:
-                    files.append(line[0])
+                    ext = os.path.splitext(line[0])[1]
+                    print(ext)
+                    if ext in ['.gbk', '.gb', '.gbff']:
+                        files.append(create_temp_gff3(line[0], None, temp_dir)) 
+                    else:  
+                        files.append(line[0])
                 elif len(line)==2:
                     files.append(create_temp_gff3(line[0], line[1], temp_dir))
                 else:
