@@ -569,6 +569,9 @@ def main():
                  n_cpu=args.n_cpu,
                  quiet=args.quiet)
 
+    # remove temporary directory
+    shutil.rmtree(temp_dir)
+
     return
 
 

@@ -11,6 +11,7 @@ from io import StringIO
 import numpy as np
 from joblib import Parallel, delayed
 from tqdm import tqdm
+from .biocode_convert import convert_gbk_gff3
 
 bact_translation_table = np.array([[[b'K', b'N', b'K', b'N', b'X'],
                                [b'T', b'T', b'T', b'T', b'T'],
@@ -70,6 +71,30 @@ def translate(seq, translation_table):
         indices[np.arange(0, len(seq), 3)], indices[np.arange(1, len(seq), 3)],
         indices[np.arange(2, len(seq), 3)]].tostring().decode('ascii')
 
+def create_temp_gff3(gff_file, fasta_file, temp_dir):
+
+    # create directory if it isn't present already
+    if not os.path.exists(temp_dir + "temp_gffs"):
+        os.mkdir(temp_dir + "temp_gffs")
+    
+    prefix = os.path.splitext(os.path.basename(gff_file))[0]
+    ext = os.path.splitext(gff_file)[1]
+
+    if fasta_file is None:
+        convert_gbk_gff3(gff_file, temp_dir + "temp_gffs/" + prefix + '.gff', True)
+    else:
+        # merge files into temporary gff3
+        with open(temp_dir + "temp_gffs/" + prefix + '.gff', 'w') as outfile:
+            with open(gff_file, 'r') as infile:
+                gff_string = infile.read().strip()
+                if '\naccn' in gff_string: # deal with PATRIC input format
+                    gff_string = gff_string.replace('accn|', '')
+                outfile.write(gff_string)
+                outfile.write('\n##FASTA\n')
+            with open(fasta_file, 'r') as infile:
+                outfile.write(infile.read().strip())
+
+    return(temp_dir + "temp_gffs/" + prefix + '.gff')
 
 #Clean other "##" starting lines from gff file, as it confuses parsers
 def clean_gff_string(gff_string):

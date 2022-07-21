@@ -39,7 +39,7 @@ setup(
     install_requires=[
         'networkx', 'gffutils', 'BioPython', 'joblib', 'tqdm', 'edlib',
         'scipy', 'numpy', 'matplotlib', 'sklearn', 'plotly', 'dendropy',
-        'intbitset'
+        'intbitset', 'biocode'
     ],
     python_requires='>=3.6.0',
     packages=['panaroo'],
