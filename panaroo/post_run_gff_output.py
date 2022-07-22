@@ -8,7 +8,7 @@ from io import StringIO
 from Bio import SeqIO
 from Bio.Seq import Seq
 
-import isvalid
+from .isvalid import is_valid_folder
 #from .__init__ import __version__
 
 def get_options():
@@ -25,7 +25,7 @@ def get_options():
                          dest="output_dir",
                          required=True,
                          help="location of the Panaroo output directory",
-                         type=lambda x: isvalid.is_valid_folder(parser, x))
+                         type=lambda x: is_valid_folder(parser, x))
     
     io_opts.add_argument(
         "-i",

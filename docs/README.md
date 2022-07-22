@@ -14,7 +14,7 @@ panaroo -i *.gff -o results
 
 By default Panaroo runs in its strictest (most conservative) mode. We have found that for most use cases this removes potential sources of contamination and error whilst retaining the majority of genes researchers are interested in. 
 
-Very rare plasmids are difficult to distguish from contamination. Thus, if you are interested in retaining such plasmids at the expense of added contamination we recommend running panaroo using its most sensitive mode
+Very rare plasmids are difficult to distinguish from contamination. Thus, if you are interested in retaining such plasmids at the expense of added contamination we recommend running panaroo using its most sensitive mode
 
 ```
 panaroo -i *.gff -o results --mode relaxed

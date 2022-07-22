@@ -1,6 +1,6 @@
 # Co-Evolution and Epistasis Analysis
 
-Panaroo includes an implementation of the [Spydrpick](https://academic.oup.com/nar/article/47/18/e112/5541093) algorithm for identifying co-evolving genes and genes involved in epistatic interactions. The Spydrpick algorithm makes use of pairwise Mutual Information (MI) values to identify interactions that appear to be signifiantly different from the background distribution.
+Panaroo includes an implementation of the [Spydrpick](https://academic.oup.com/nar/article/47/18/e112/5541093) algorithm for identifying co-evolving genes and genes involved in epistatic interactions. The Spydrpick algorithm makes use of pairwise Mutual Information (MI) values to identify interactions that appear to be significantly different from the background distribution.
 
 The Spydrpick algorithm requires either a phylogeny or clustering to control for population structure. A phylogeny can be built form the core genome using [Iqtree](http://www.iqtree.org/). Suitable clusterings can be generated for the pangenome using [Poppunk](https://poppunk.readthedocs.io/en/latest/) or from the core genome using [fastbaps](https://github.com/gtonkinhill/fastbaps).
 
@@ -31,10 +31,10 @@ Input/output:
                         Panaroo
   -o OUTPUT_DIR, --out_dir OUTPUT_DIR
                         location of an output directory
-  --tree TREE_FILE      phylogeny in newick format for weigting samples to
+  --tree TREE_FILE      phylogeny in newick format for weighting samples to
                         control for population structure
   --clusters CLUSTER_FILE
-                        sample clusters for weigting to control for population
+                        sample clusters for weighting to control for population
                         structure. format: 'sample_name,cluster_id'
 ```
 

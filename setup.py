@@ -66,6 +66,7 @@ setup(
             'panaroo-gene-neighbourhood = panaroo.get_neighborhood:main',
             'panaroo-integrate = panaroo.integrate:main',
             'panaroo-filter-pa = panaroo.filter_pa:main',
+            'panaroo-generate-gffs = panaroo.post_run_gff_output:main',
             'panaroo-extract-gene = panaroo.extract_gene_fasta:main'
         ],
     },
