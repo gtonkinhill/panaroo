@@ -12,6 +12,13 @@ import argparse
 def getGFFTranslation(
     G, gff_files
 ):  #Takes a file containing GFF file name and sample name and returns a dictionary with sample name keys and GFF file name objects
+    if len(gff_files)==1: # load from file list if provided.
+        flist = []
+        with open(gff_files[0], 'r') as infile:
+            for line in infile:
+                flist.append(line.strip())
+        gff_files = flist
+
     gffDict = {}
     for i, name in enumerate(G.graph['isolateNames']):
         for fname in gff_files:
