@@ -134,32 +134,14 @@ def process_refound_gene(refound_id, pangenome_id, parsed_gff, refound_seqs,
                          output_dir, G):
     #Get the refound sequence
     refound_seq = refound_seqs[refound_id]
-    #Parse it so that there is easy reverse-translation
-    isolate_raw_fasta =  StringIO(parsed_gff["fasta"]) 
-    isolate_fasta = SeqIO.parse(isolate_raw_fasta, "fasta")
+
     #Set up checks to ensure it is found
-    start = 0
-    found = False
-    #Find the refound sequence's start position, strand
-    for seq_record in isolate_fasta:
-        if refound_seq in seq_record.seq:
-            start = seq_record.seq.index(refound_seq)
-            strand = "+"
-            scaffold_id = seq_record.id
-            found = True
-        elif refound_seq.reverse_complement() in seq_record.seq:
-            start = seq_record.seq.index(refound_seq.reverse_complement())
-            strand = "-"
-            scaffold_id = seq_record.id
-            found = True
-    #Catch cases where it can't be found? Theoretically impossible
-    if (start == 0) and (found ==False):
-        print("Refound gene not found in  original scaffold!")
-        print(refound_seq)
-        print(parsed_gff["header"].split.readlines()[1])
-        return None
+    scaffold_id = refound_seqs[refound_id][0]
+    start = refound_seqs[refound_id][1]
+    stop = refound_seqs[refound_id][2]
+    strand = refound_seqs[refound_id][3]
+
     #Get additional data required for GFF annotation
-    stop = start + len(refound_seq)
     gene_name = G.nodes[pangenome_id]["annotation"]
     if G.nodes[pangenome_id]["paralog"] == 1:
         has_paralog = "True"
@@ -171,9 +153,9 @@ def process_refound_gene(refound_id, pangenome_id, parsed_gff, refound_seqs,
                                "locus_tag="+refound_id,
                                "name="+gene_name,
                                "description="+gene_description,
-                               "inference=Panaroo absent gene DNA re-finding",
+                               "inference=panaroo refound gene",
                                "has_pangenome_paralog="+has_paralog])
-    gff_line = [scaffold_id, "Panaroo_refound", "candidate_gene", str(start+1), str(stop+1), ".", 
+    gff_line = [scaffold_id, "Panaroo_refound", "candidate_gene", str(start+1), str(stop), ".", 
                 strand, ".", gff_attributes]
     return "\t".join(gff_line)
 
@@ -265,9 +247,6 @@ def main():
     # make sure trailing forward slash is present
     args.output_dir = os.path.join(args.output_dir, "")
 
-    # Create temporary directory
-    #temp_dir = os.path.join(tempfile.mkdtemp(dir=args.output_dir), "")
-
     # Load isolate names, initial ID to clustering ID mapping
     if args.verbose:
         print("Loading panaroo output and input gff files...")
@@ -278,7 +257,7 @@ def main():
     with open(args.output_dir + "gene_data.csv", 'r') as infile:
         next(infile)
         for line in infile:
-            splitinfo = line.split(",")
+            splitinfo = line.strip().split(",")
             iso = splitinfo[0]
             gene_names[splitinfo[2]] = splitinfo[3]
             clusterid = splitinfo[2]
@@ -286,7 +265,10 @@ def main():
                 isolate_names.append(iso)
                 seen.add(iso)
             if "refound" in splitinfo[2]:
-                refound_seqs[clusterid] = Seq(splitinfo[5])
+                loc, strand = splitinfo[-1].split(';')
+                loc = loc.split(':')[1].split('-')
+                strand = strand.split(':')[1]
+                refound_seqs[clusterid] = (splitinfo[1], int(loc[0]), int(loc[1]), strand)
 
     # Load graph
     G = nx.read_gml(args.output_dir + "final_graph.gml")
@@ -322,10 +304,6 @@ def main():
                     gene_names, refound_seqs, args.output_dir, args.format, G) for x in 
                     tqdm(range(len(isolate_names))))
     
-    #temporarily single threaded, need to refactor the gff function
-    #new_gffs = create_new_gffs(isolate_names, parsed_gffs, isolate_genes,
-    #                gene_names, args.output_dir, args.format, G) 
-    
     if args.verbose:
         print("Writing output...")
     if not os.path.exists(args.output_dir+"postpanaroo_gffs"):
@@ -333,8 +311,6 @@ def main():
     for index in range(len(new_gffs)):   
         output_gff(isolate_names[index], new_gffs[index], args.output_dir)
 
-    # remove temporary directory
-    #shutil.rmtree(temp_dir)
 
     return
 

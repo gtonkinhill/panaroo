@@ -30,7 +30,7 @@ panaroo -i *.gff -o results --clean-mode sensitive
 
 Panaroo now supports multiple input formats. To use non-standard GFF3 files you must profide the input file as a list in a text file (one per line). Seperate GFF and FASTA files can be provided per isolate by providing each file delimeted by a space or a tab. Genbank file formats are also supported with extensions '.gbk', '.gb' or '.gbff'. These must compliant with Genbank/ENA/DDJB. This can be forced in Prokka by specifying the `--compliance` parameter.
 
-NOTE: Some annotations file such as those from RefSeq include annotations that break some of the assumptions of Panaroo. These may have gene annotations of unusual length or that include stop codons (pseudogenes). By default Panaroo will throw an error if it encounters these annotations. You can automatically filter out such annotations by calling panaroo with the `--remove-invalid-genes` flag.
+NOTE: Some annotations file such as those from RefSeq include annotations that break some of the assumptions of Panaroo. These include gene annotations of unusual length or that with premature stop codons (pseudogenes). By default Panaroo will throw an error if it encounters these annotations. You can automatically filter out such annotations by calling panaroo with the `--remove-invalid-genes` flag.
 
 ## Pre-processing scripts
 
