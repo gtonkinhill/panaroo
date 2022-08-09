@@ -401,7 +401,7 @@ def get_options():
 
     parser.add_argument("-D",
                         dest="n_classes",
-                        help=("Number of seperate rate classes to use for " +
+                        help=("Number of separate rate classes to use for " +
                               "the dispensable genome. Can be either 1 or 2."),
                         type=int,
                         choices={1, 2},
@@ -432,7 +432,7 @@ def get_options():
         "--fit",
         dest="fit",
         help=("Whether to use the gene frequency spectrum or the" +
-              " core/pangeome size for fitting (default=gf)"),
+              " core/pangenome size for fitting (default=gf)"),
         type=str,
         choices={'gf', 'cp'},
         default='gf')

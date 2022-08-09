@@ -4,7 +4,7 @@ The Panaroo algorithm will flag certain clusters if they include potential pseud
 
 - potential pseudo genes will end with the suffix '_stop'
 - genes with unusual lengths will end with the suffix '_len'
-- fragmented genes will include multiple sequence IDs seperated by a semicolon ';'
+- fragmented genes will include multiple sequence IDs separated by a semicolon ';'
 
 To filter these sequences out from the presence/absence matrices you can run:
 
@@ -20,12 +20,12 @@ usage: panaroo_filter_pa [-h] -i INPUT_FILE -o OUTPUT_DIR [--type TYPE]
                          [--version]
 
 Filters the Panaroo gene_presence_absence.csv file to exclude sequences
-classed as length outliers, pseudo genes or fragemented.
+classed as length outliers, pseudo genes or fragmented.
 
 optional arguments:
   -h, --help            show this help message and exit
   --type TYPE           any combination of 'pseudo', 'length' or 'frag'
-                        seperated by commas
+                        separated by commas
   --version             show program's version number and exit
 
 Input/output:

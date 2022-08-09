@@ -39,7 +39,7 @@ setup(
     install_requires=[
         'networkx', 'gffutils', 'BioPython', 'joblib', 'tqdm', 'edlib',
         'scipy', 'numpy', 'matplotlib', 'sklearn', 'plotly', 'dendropy',
-        'intbitset'
+        'intbitset', 'biocode'
     ],
     python_requires='>=3.6.0',
     packages=['panaroo'],
@@ -66,6 +66,7 @@ setup(
             'panaroo-gene-neighbourhood = panaroo.get_neighborhood:main',
             'panaroo-integrate = panaroo.integrate:main',
             'panaroo-filter-pa = panaroo.filter_pa:main',
+            'panaroo-generate-gffs = panaroo.post_run_gff_output:main',
             'panaroo-extract-gene = panaroo.extract_gene_fasta:main'
         ],
     },

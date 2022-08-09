@@ -174,14 +174,16 @@ def find_missing(G,
     with open(dna_seq_file, 'a') as dna_out:
         with open(prot_seq_file, 'a') as prot_out:
             with open(gene_data_file, 'a') as data_out:
-                for member, hits in enumerate(all_hits):
+                for member, (hits, node_locs) in enumerate(zip(all_hits, all_node_locs)):
                     i = -1
                     for node, dna_hit in hits:
                         i += 1
                         if dna_hit == "": continue
                         if node in bad_nodes: continue
                         if (node, member) in bad_node_mem_pairs: continue
+                        
                         hit_protein = hits_trans_dict[member][i]
+                        hit_strand = '+' if node_locs[node][1][2]==0 else '-'
                         G.nodes[node]['members'].add(member)
                         G.nodes[node]['size'] += 1
                         G.nodes[node]['dna'] = del_dups(G.nodes[node]['dna'] +
@@ -196,10 +198,12 @@ def find_missing(G,
                         data_out.write(",".join([
                             os.path.splitext(
                                 os.path.basename(
-                                    gff_file_handles[member]))[0], "",
+                                    gff_file_handles[member]))[0], node_locs[node][0],
                             str(member) + "_refound_" + str(n_found),
                             str(member) + "_refound_" +
-                            str(n_found), hit_protein, dna_hit, "", ""
+                            str(n_found), hit_protein, dna_hit, "", 
+                            "location:" + str(node_locs[node][1][0]) + '-' +
+                            str(node_locs[node][1][1]) + ';strand:' + hit_strand
                         ]) + "\n")
                         G.nodes[node]['seqIDs'] |= set(
                             [str(member) + "_refound_" + str(n_found)])
@@ -430,7 +434,8 @@ def search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh,
                 loc = [
                     max(0,
                         min(loc) - added_E_len),
-                    min(max(loc) - added_E_len, len(db_seq))
+                    min(max(loc) - added_E_len, len(db_seq)),
+                    i
                 ]
 
     # if found:
@@ -468,7 +473,7 @@ def translate_to_match(hit, target_prot):
 
     prot = max(alignments, key=lambda x: x[1])
 
-    return prot[0]
+    return (prot[0])
 
 
 blosum50 = \

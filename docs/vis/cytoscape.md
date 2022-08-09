@@ -27,7 +27,7 @@ The style tabs for edges, nodes and the network can be toggled at the bottom of 
 
 ### Filtering
 
-Sometimes it is useful to focus on a subset of the graph. Nodes can be selected using the mouse or rules in the 'select' tab. These can then either be converted into a subgraph for further analysis or fitered out from the main graph.
+Sometimes it is useful to focus on a subset of the graph. Nodes can be selected using the mouse or rules in the 'select' tab. These can then either be converted into a subgraph for further analysis or filtered out from the main graph.
 
 The figure below indicates how to select nodes using a set of rules. Here we are selecting all nodes that appear in between 1 and 3 genomes.
 
@@ -40,4 +40,4 @@ The buttons in the figure below can then be used to either create a new graph fr
 
 ### Additional Metadata
 
-Additional metadata can be imported to cytoscape using the "Import table from file" button, next to the "Import network" button. These data can be assosciated with a graph and then user for additional filtering or annotation. The `name` attribute in the pangenome graph is a good option to index the imported spreadsheet for assosciating additional gene data with the pangenome graph. See [Meta-data Annotation](vis/metadata.md) for additional details. 
+Additional metadata can be imported to cytoscape using the "Import table from file" button, next to the "Import network" button. These data can be associated with a graph and then user for additional filtering or annotation. The `name` attribute in the pangenome graph is a good option to index the imported spreadsheet for associating additional gene data with the pangenome graph. See [Meta-data Annotation](vis/metadata.md) for additional details. 

@@ -9,7 +9,7 @@ import ast
 
 from .isvalid import *
 from .set_default_args import set_default_args
-from .prokka import process_prokka_input
+from .prokka import process_prokka_input, create_temp_gff3
 from .cdhit import check_cdhit_version
 from .cdhit import run_cdhit
 from .generate_network import generate_network
@@ -276,7 +276,19 @@ def main():
         files = []
         with open(args.input_files[0], 'r') as infile:
             for line in infile:
-                files.append(line.strip())
+                line = line.strip().split()
+                if len(line)==1:
+                    ext = os.path.splitext(line[0])[1]
+                    print(ext)
+                    if ext in ['.gbk', '.gb', '.gbff']:
+                        files.append(create_temp_gff3(line[0], None, temp_dir)) 
+                    else:  
+                        files.append(line[0])
+                elif len(line)==2:
+                    files.append(create_temp_gff3(line[0], line[1], temp_dir))
+                else:
+                    print("Problem reading input line: ", line)
+                    raise RuntimeError("Error reading files!")
         args.input_files = files
 
     if args.verbose:
@@ -477,7 +489,8 @@ def main():
         generate_pan_genome_alignment(G, temp_dir, args.output_dir, args.n_cpu,
                                       args.alr, isolate_names)
         core_nodes = get_core_gene_nodes(G, args.core, len(args.input_files))
-        concatenate_core_genome_alignments(core_nodes, args.output_dir)
+        core_names = [G.nodes[x]["name"] for x in core_nodes]
+        concatenate_core_genome_alignments(core_names, args.output_dir)
     elif args.aln == "core":
         if args.verbose: print("generating core genome MSAs...")
         generate_core_genome_alignment(G, temp_dir, args.output_dir,
