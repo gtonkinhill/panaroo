@@ -415,8 +415,8 @@ def generate_core_genome_alignment(G, temp_dir, output_dir, threads, aligner,
         #Reverse translate and output codon alignments
         codon_alignments = reverse_translate_sequences(protein_sequences, 
                                                        unaligned_dna_files, 
-                                                       output_dir, aligner,
-                                                       threads)
+                                                       output_dir, temp_dir,
+                                                       aligner, threads)
     else:
         #Output core node sequences
         unaligned_sequence_files = Parallel(n_jobs=threads)(
