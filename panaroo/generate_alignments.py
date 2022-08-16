@@ -246,9 +246,9 @@ def get_align_dna_to_alignment_commands(bad_dna_seqs_file, codonalignment_file,
     # to STDOUT by default. Use capture STDOUR when running with subprocess    
     elif aligner == "clustal":
         command = ["clustalo",
-                   "-i", bad_dna_seqs_file,
-                   "-p1", codonalignment_file,
-                   "-o", outdir + "aligned_gene_sequences/" + geneName + 
+                   "--in", bad_dna_seqs_file,
+                   "--profile1", codonalignment_file,
+                   "--out", outdir + "aligned_gene_sequences/" + geneName + 
                    "aln.fas"
                    ]
     return (command, bad_dna_seqs_file)
