@@ -377,6 +377,9 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
             #fail if the translated sequence isn't the same as the protein
             fail_condition_1 = str(translated_dna).strip("*") != str(nogapped_protein_seq)
             
+            fail_condition_2 = False
+            fail_condition_3 = False
+            
             #fail if there is a run of > 1 unknown nucleotides
             if fail_condition_1 == False:
                 #only test if it hasn't already failed
