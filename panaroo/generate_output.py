@@ -356,7 +356,7 @@ def generate_core_genome_alignment(G, temp_dir, output_dir, threads, aligner,
     core_gene_names = [G.nodes[x]["name"] for x in core_genes]
 
     if codons == True:
-        #Make alternate protein/DNA directorieseqIO.parse
+        #Make alternate protein/DNA directories
         try:
             os.mkdir(output_dir + "aligned_protein_sequences")
         except FileExistsError:
@@ -378,7 +378,7 @@ def generate_core_genome_alignment(G, temp_dir, output_dir, threads, aligner,
         #objects for concurrent access, plus overhead decreases speed enormously
         
         output_files = []
-        for gene in G.nodes():
+        for gene in core_genes:
             output = output_dna_and_protein(G.nodes[gene], isolates, temp_dir, 
                                             output_dir, proteins_dic, 
                                             nucleotides_dic)
