@@ -243,7 +243,7 @@ def get_align_dna_to_alignment_commands(bad_dna_seqs_file, codonalignment_file,
                    codonalignment_file,
                    outdir + "aligned_gene_sequences/" + geneName + ".aln.fas"]
     #Note that the MAFFT command must be run with command[:-1] as it writes 
-    # to STDOUT by default. Use capture STDOUR when running with subprocess    
+    # to STDOUT by default. Use capture STDOUT when running with subprocess    
     elif aligner == "clustal":
         command = ["clustalo",
                    "--in", bad_dna_seqs_file,
@@ -369,6 +369,12 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
         protein = protein_alignments[index]
         seqids_to_remove = []
         reject_dna = []
+        
+        #set up sequentially checked QC failure variables for each sequence
+        fail_condition_1 = False
+        fail_condition_2 = False
+        fail_condition_3 = False
+
         for seq_index in range(len(dna)):
             #Need to take protein without proceeding or trailing gaps
             nogapped_protein_seq = str(protein[seq_index].seq).replace("-", "")
@@ -376,9 +382,6 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
             
             #fail if the translated sequence isn't the same as the protein
             fail_condition_1 = str(translated_dna).strip("*") != str(nogapped_protein_seq)
-            
-            fail_condition_2 = False
-            fail_condition_3 = False
             
             #fail if there is a run of > 1 unknown nucleotides
             if fail_condition_1 == False:
@@ -396,7 +399,8 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
                             fail_condition_3 = True
             
             if fail_condition_1 or fail_condition_2 or fail_condition_3:
-                seqids_to_remove = seqids_to_remove + list(set([dna[seq_index].id, protein[seq_index].id]))
+                seqids_to_remove = seqids_to_remove + list(set([dna[seq_index].id, 
+                                                                protein[seq_index].id]))
         
         #Do the removal if any DNA sequences fail tests
         if (len(seqids_to_remove) > 0):
