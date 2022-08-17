@@ -368,7 +368,6 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
         dna = list(dna_sequences[index])
         protein = protein_alignments[index]
         seqids_to_remove = []
-        reject_dna = []
         
         #set up sequentially checked QC failure variables for each sequence
         fail_condition_1 = False
@@ -401,7 +400,7 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
             if fail_condition_1 or fail_condition_2 or fail_condition_3:
                 seqids_to_remove = seqids_to_remove + list(set([dna[seq_index].id, 
                                                                 protein[seq_index].id]))
-        
+        reject_dna = []        
         #Do the removal if any DNA sequences fail tests
         if (len(seqids_to_remove) > 0):
             clean_nucs = []
