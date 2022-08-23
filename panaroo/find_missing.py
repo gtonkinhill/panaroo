@@ -4,8 +4,8 @@ from collections import defaultdict, Counter
 import numpy as np
 from Bio.Seq import translate, reverse_complement, Seq
 from Bio import SeqIO
-from panaroo.cdhit import align_dna_cdhit
-from panaroo.isvalid import del_dups
+from .cdhit import align_dna_cdhit
+from .isvalid import del_dups
 from joblib import Parallel, delayed
 import os
 import gffutils as gff
@@ -444,6 +444,9 @@ def search_dna(db_seq, search_sequence, prop_match, pairwise_id_thresh,
     #     print("<<<<<<<<<<<<<<<<<<")
     seq = found_dna.replace('X', 'N').replace('E', 'N')
     seq = seq.strip('N')
+
+    # if i==1:
+    #     seq = str(Seq(seq).reverse_complement())
 
     return seq, loc
 
