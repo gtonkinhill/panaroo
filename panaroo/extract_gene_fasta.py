@@ -87,6 +87,8 @@ def generate_fasta(geneids, outputfile, genedata, isdna):
 def main():
     args = get_options(sys.argv[1:])
 
+    # make sure trailing forward slash is present
+    args.output_dir = os.path.join(args.output_dir, "")
 
     with open(args.pa_file, 'r') as infile:
         header = next(infile).strip().split(',')
@@ -95,7 +97,10 @@ def main():
         for line in infile:
             line = line.strip().split(',')
             if line[0] in args.queries:
-                geneids = set([g.replace('_len', '').replace('_stop', '') for g in line[4:]])
+                geneids = set()
+                for g in line[4:]:
+                    geneids |= set(g.replace('_len', '').replace('_stop', '').split(';'))
+
                 generate_fasta(geneids, 
                     outputfile = args.output_dir + line[0] + '.fasta', 
                     genedata = args.gene_data, 
