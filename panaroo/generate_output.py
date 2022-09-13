@@ -222,7 +222,7 @@ def get_core_gene_nodes(G, threshold, num_isolates):
     #Get the core genes based on percent threshold
     core_nodes = []
     for node in G.nodes():
-        if float(G.nodes[node]["size"]) / float(num_isolates) > threshold:
+        if float(G.nodes[node]["size"]) / float(num_isolates) >= threshold:
             core_nodes.append(node)
     return core_nodes
 
