@@ -118,7 +118,7 @@ def main():
             line = line.strip().split(",")
             if line[0] in args.queries:
                 geneids = set()
-                for g in line[4:]:
+                for g in line[3:]:
                     g = g.replace("_len", "").replace("_stop", "").split(";")
                     geneids |= set(g)
                 generate_fasta(

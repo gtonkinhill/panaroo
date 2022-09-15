@@ -172,6 +172,7 @@ def get_gene_sequences(gff_file_name, file_number, filter_seqs, table):
                     print('Length:', len(gene_sequence), ', Has stop:', ("*" in str(
                         gene_sequence.translate())[:-1]))
                     if filter_seqs: continue
+                    else: raise ValueError("Invalid gene sequence!")
 
                 gene_record = (entry.start,
                                SeqRecord(gene_sequence,
