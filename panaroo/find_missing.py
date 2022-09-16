@@ -252,7 +252,8 @@ def search_gff(node_search_dict,
                                dbfn=":memory:",
                                force=True,
                                keep_order=True,
-                               from_string=True)
+                               from_string=True,
+                               merge_strategy="create_unique")
 
     # mask regions that already have genes and convert back to string
     seen = set()
