@@ -133,13 +133,15 @@ def get_gene_sequences(gff_file_name, file_number, filter_seqs, table):
                                dbfn=":memory:",
                                force=True,
                                keep_order=True,
-                               from_string=True)
+                               from_string=True,
+                               merge_strategy="create_unique")
 
     #Get genes per scaffold
     scaffold_genes = {}
     for entry in parsed_gff.all_features(featuretype=()):
         if "CDS" not in entry.featuretype:
             continue
+
         scaffold_id = None
         for sequence_index in range(len(sequences)):
             scaffold_id = sequences[sequence_index].id
@@ -165,6 +167,11 @@ def get_gene_sequences(gff_file_name, file_number, filter_seqs, table):
                     gene_description = ""
 
                 #clean entries if requested
+                if entry.frame != '0':
+                    print('Invalid gene! Panaroo currently does not support frame shifts.')
+                    if filter_seqs: continue
+                    else: raise ValueError("Invalid gene sequence!")
+
                 if ((len(gene_sequence) % 3 > 0) or
                     (len(gene_sequence) < 34)) or ("*" in translate(str(gene_sequence), table)[:-1]):
                     print('invalid gene! file - id: ', gff_file_name, ' - ',
@@ -172,6 +179,7 @@ def get_gene_sequences(gff_file_name, file_number, filter_seqs, table):
                     print('Length:', len(gene_sequence), ', Has stop:', ("*" in str(
                         gene_sequence.translate())[:-1]))
                     if filter_seqs: continue
+                    else: raise ValueError("Invalid gene sequence!")
 
                 gene_record = (entry.start,
                                SeqRecord(gene_sequence,
