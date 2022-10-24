@@ -235,7 +235,7 @@ def concatenate_core_genome_alignments(core_names, output_dir):
     core_filenames = [
         x for x in alignment_filenames if x.split('.')[0] in core_names
     ]
-    #Read in all these alginemnts
+    #Read in all these alignments
     gene_alignments = []
     isolates = set()
     for filename in core_filenames:
