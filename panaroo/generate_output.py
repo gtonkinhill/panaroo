@@ -267,8 +267,9 @@ def update_col_counts(col_counts, s):
     return (col_counts)
 
 def calc_hc(col_counts):
-    col_counts = col_counts/np.sum(col_counts,0)
-    hc = -np.nansum(col_counts[0:4,:]*np.log(col_counts[0:4,:]), 0)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        col_counts = col_counts/np.sum(col_counts,0)
+        hc = -np.nansum(col_counts[0:4,:]*np.log(col_counts[0:4,:]), 0)
     return(np.sum((1-col_counts[4,:]) * hc)/np.sum(1-col_counts[4,:]))
 
 def concatenate_core_genome_alignments(core_names, output_dir, hc_threshold):
@@ -324,13 +325,14 @@ def concatenate_core_genome_alignments(core_names, output_dir, hc_threshold):
         allh = np.array([gene[3] for gene in gene_alignments])
         q = np.quantile(allh, [0.25,0.75])
         hc_threshold = q[1] + 1.5*(q[1]-q[0])
+        print(f"Entropy threshold automatically set to {hc_threshold}.")
 
     isolate_aln = []
     keep_count = 0 
     for iso in isolates:
         seq = ""
         for gene in gene_alignments:
-            if gene[3]<hc_threshold:
+            if gene[3]<=hc_threshold:
                 keep_count += 1
                 if iso in gene[1]:
                     seq += gene[1][iso][1]
@@ -338,14 +340,14 @@ def concatenate_core_genome_alignments(core_names, output_dir, hc_threshold):
                     seq += "-" * gene[2]
         isolate_aln.append(SeqRecord(seq, id=iso, description=""))
 
-    with open(output_dir+ 'gene_hc_vals.csv', 'w') as outfile:
+    with open(output_dir + 'alignment_entropy.csv', 'w') as outfile:
         for g in gene_alignments:
             outfile.write(str(g[0]) + ',' + str(g[3]) + '\n')
 
     # Write out the two output files
     SeqIO.write(isolate_aln, output_dir + "core_gene_alignment_filtered.aln", "fasta")
     write_alignment_header(
-        [g for g in gene_alignments if g[3]<hc_threshold],
+        [g for g in gene_alignments if g[3]<=hc_threshold],
         output_dir,
         "core_alignment_filtered_header.embl",
     )
