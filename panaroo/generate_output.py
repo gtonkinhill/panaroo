@@ -252,24 +252,34 @@ def get_core_gene_nodes(G, threshold, num_isolates):
     # Get the core genes based on percent threshold
     core_nodes = []
     for node in G.nodes():
-<<<<<<< HEAD
-        # if G.nodes[node]['paralog']: continue
-        if float(G.nodes[node]["size"]) / float(num_isolates) > threshold:
-=======
         if float(G.nodes[node]["size"]) / float(num_isolates) >= threshold:
->>>>>>> devel
             core_nodes.append(node)
     return core_nodes
 
+def update_col_counts(col_counts, s):
+    s = np.fromstring(s.lower(), dtype=np.int8)
+    s[(s!=97) & (s!=99) & (s!=103) & (s!=116)] = 110
+    col_counts[0,s==97] += 1
+    col_counts[1,s==99] += 1
+    col_counts[2,s==103] += 1
+    col_counts[3,s==116] += 1
+    col_counts[4,s==110] += 1
+    return (col_counts)
+
+def calc_hc(col_counts):
+    col_counts = col_counts/np.sum(col_counts,0)
+    hc = -np.nansum(col_counts[0:4,:]*np.log(col_counts[0:4,:]), 0)
+    return(np.sum((1-col_counts[4,:]) * hc)/np.sum(1-col_counts[4,:]))
 
 def concatenate_core_genome_alignments(core_names, output_dir):
 
     alignments_dir = output_dir + "/aligned_gene_sequences/"
     # Open up each alignment that is assosciated with a core node
     alignment_filenames = os.listdir(alignments_dir)
-    core_filenames = [x for x in alignment_filenames if x.split(".")[0] in core_names]
-
-    # Read in all these alignments
+    core_filenames = [
+        x for x in alignment_filenames if x.split('.')[0] in core_names
+    ]
+    #Read in all these alignments
     gene_alignments = []
     isolates = set()
     for filename in core_filenames:
@@ -277,17 +287,23 @@ def concatenate_core_genome_alignments(core_names, output_dir):
         alignment = AlignIO.read(alignments_dir + filename, "fasta")
         gene_dict = {}
         for record in alignment:
+            if len(gene_dict)<1:
+                gene_length = len(record.seq)
+                col_counts = np.zeros((5,gene_length), dtype=float)
+            col_counts = update_col_counts(col_counts, str(record.seq))
+
             if record.id[:3] == "_R_":
                 record.id = record.id[3:]
             genome_id = record.id.split(";")[0]
+            
             if genome_id in gene_dict:
                 if str(record.seq).count("-") < str(gene_dict[genome_id][1]).count("-"):
                     gene_dict[genome_id] = (record.id, record.seq)
             else:
                 gene_dict[genome_id] = (record.id, record.seq)
-            gene_length = len(record.seq)
+            
             isolates.add(genome_id)
-        gene_alignments.append((gene_name, gene_dict, gene_length))
+        gene_alignments.append((gene_name, gene_dict, gene_length, calc_hc(col_counts)))
     # Combine them
     isolate_aln = []
     for iso in isolates:
@@ -303,30 +319,37 @@ def concatenate_core_genome_alignments(core_names, output_dir):
     SeqIO.write(isolate_aln, output_dir + "core_gene_alignment.aln", "fasta")
     write_alignment_header(gene_alignments, output_dir, "core_alignment_header.embl")
 
-    # Write out filtered files
-    conserved_alignments = set()
-    for gene in gene_alignments:
-        if is_conserved(list(gene[1].values()), 0.9):
-            conserved_alignments.add(gene[0])
+    # Calculate threshold for h.
+    allh = np.array([gene[3] for gene in gene_alignments])
+    q = np.quantile(allh, [0.25,0.75])
+    hc_threshold = q[1] + 1.5*(q[1]-q[0])
 
     isolate_aln = []
+    keep_count = 0 
     for iso in isolates:
         seq = ""
         for gene in gene_alignments:
-            if gene[0] in conserved_alignments:
+            if gene[3]<hc_threshold:
+                keep_count += 1
                 if iso in gene[1]:
                     seq += gene[1][iso][1]
                 else:
                     seq += "-" * gene[2]
         isolate_aln.append(SeqRecord(seq, id=iso, description=""))
 
+    with open(output_dir+ 'gene_hc_vals.csv', 'w') as outfile:
+        for g in gene_alignments:
+            outfile.write(str(g[0]) + ',' + str(g[3]) + '\n')
+
     # Write out the two output files
     SeqIO.write(isolate_aln, output_dir + "core_gene_alignment_filtered.aln", "fasta")
     write_alignment_header(
-        [g for g in gene_alignments if g[0] in conserved_alignments],
+        [g for g in gene_alignments if g[3]<hc_threshold],
         output_dir,
         "core_alignment_filtered_header.embl",
     )
+
+    print(f"{keep_count/len(isolates)} out of {len(gene_alignments)} genes kept in filtered core genome")
 
     return core_filenames
 
