@@ -228,6 +228,13 @@ Does not delete any genes and only performes merge and refinding\
                       help="Core-genome sample threshold (default=0.95)",
                       type=float,
                       default=0.95)
+    core.add_argument("--core_entropy_filter",
+                      dest="hc_threshold",
+                      help=("Manually set the Block Mapping and Gathering with " +
+                            "Entropy (BMGE) filter. Can be between 0.0 and 1.0. By " + 
+                            "default this is set using the Tukey outlier method."),
+                      type=float,
+                      default=None)
 
     # Other options
     parser.add_argument("-t",
@@ -495,7 +502,8 @@ def main():
         if args.verbose: print("generating core genome MSAs...")
         generate_core_genome_alignment(G, temp_dir, args.output_dir,
                                        args.n_cpu, args.alr, isolate_names,
-                                       args.core, len(args.input_files))
+                                       args.core, len(args.input_files),
+                                       args.hc_threshold)
 
     # remove temporary directory
     shutil.rmtree(temp_dir)

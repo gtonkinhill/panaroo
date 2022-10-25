@@ -271,10 +271,10 @@ def calc_hc(col_counts):
     hc = -np.nansum(col_counts[0:4,:]*np.log(col_counts[0:4,:]), 0)
     return(np.sum((1-col_counts[4,:]) * hc)/np.sum(1-col_counts[4,:]))
 
-def concatenate_core_genome_alignments(core_names, output_dir):
+def concatenate_core_genome_alignments(core_names, output_dir, hc_threshold):
 
     alignments_dir = output_dir + "/aligned_gene_sequences/"
-    # Open up each alignment that is assosciated with a core node
+    # Open up each alignment that is associated with a core node
     alignment_filenames = os.listdir(alignments_dir)
     core_filenames = [
         x for x in alignment_filenames if x.split('.')[0] in core_names
@@ -320,9 +320,10 @@ def concatenate_core_genome_alignments(core_names, output_dir):
     write_alignment_header(gene_alignments, output_dir, "core_alignment_header.embl")
 
     # Calculate threshold for h.
-    allh = np.array([gene[3] for gene in gene_alignments])
-    q = np.quantile(allh, [0.25,0.75])
-    hc_threshold = q[1] + 1.5*(q[1]-q[0])
+    if hc_threshold is None:
+        allh = np.array([gene[3] for gene in gene_alignments])
+        q = np.quantile(allh, [0.25,0.75])
+        hc_threshold = q[1] + 1.5*(q[1]-q[0])
 
     isolate_aln = []
     keep_count = 0 
@@ -355,7 +356,7 @@ def concatenate_core_genome_alignments(core_names, output_dir):
 
 
 def generate_core_genome_alignment(
-    G, temp_dir, output_dir, threads, aligner, isolates, threshold, num_isolates
+    G, temp_dir, output_dir, threads, aligner, isolates, threshold, num_isolates, hc_threshold
 ):
     # Make a folder for the output alignments TODO: decide whether or not to keep these
     try:
@@ -382,7 +383,7 @@ def generate_core_genome_alignment(
         commands, output_dir + "aligned_gene_sequences/", threads, aligner
     )
     # Concatenate them together to produce the two output files
-    concatenate_core_genome_alignments(core_gene_names, output_dir)
+    concatenate_core_genome_alignments(core_gene_names, output_dir, hc_threshold)
     return
 
 

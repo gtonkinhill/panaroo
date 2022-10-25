@@ -253,6 +253,7 @@ def merge_graphs(directories,
                  aln,
                  alr,
                  core,
+                 hc_threshold,
                  merge_single=False,
                  depths=[1,2,3],
                  n_cpu=1,
@@ -419,7 +420,8 @@ def merge_graphs(directories,
     elif aln == "core":
         if not quiet: print("generating core genome MSAs...")
         generate_core_genome_alignment(G, temp_dir, output_dir, n_cpu, alr,
-                                       isolate_names, core, len(isolate_names))
+                                       isolate_names, core, len(isolate_names), 
+                                       hc_threshold)
     return
 
 
@@ -521,6 +523,14 @@ def get_options():
                       help="Core-genome sample threshold (default=0.95)",
                       type=float,
                       default=0.95)
+    core.add_argument("--core_entropy_filter",
+                      dest="hc_threshold",
+                      help=("Manually set the Block Mapping and Gathering with " +
+                            "Entropy (BMGE) filter. Can be between 0.0 and 1.0. By " + 
+                            "default this is set using the Tukey outlier method."),
+                      type=float,
+                      default=None)
+
 
     # Other options
     parser.add_argument("-t",
@@ -566,6 +576,7 @@ def main():
                  aln=args.aln,
                  alr=args.alr,
                  core=args.core,
+                 hc_threshold=args.hc_threshold,
                  n_cpu=args.n_cpu,
                  quiet=args.quiet)
 
