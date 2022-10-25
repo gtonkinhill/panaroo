@@ -9,7 +9,7 @@ import ast
 
 from .isvalid import *
 from .set_default_args import set_default_args
-from .prokka import process_prokka_input
+from .prokka import process_prokka_input, create_temp_gff3
 from .cdhit import check_cdhit_version
 from .cdhit import run_cdhit
 from .generate_network import generate_network
@@ -235,6 +235,13 @@ Does not delete any genes and only performes merge and refinding\
                       help="Core-genome sample threshold (default=0.95)",
                       type=float,
                       default=0.95)
+    core.add_argument("--core_entropy_filter",
+                      dest="hc_threshold",
+                      help=("Manually set the Block Mapping and Gathering with " +
+                            "Entropy (BMGE) filter. Can be between 0.0 and 1.0. By " + 
+                            "default this is set using the Tukey outlier method."),
+                      type=float,
+                      default=None)
 
     # Other options
     parser.add_argument("-t",
@@ -283,7 +290,19 @@ def main():
         files = []
         with open(args.input_files[0], 'r') as infile:
             for line in infile:
-                files.append(line.strip())
+                line = line.strip().split()
+                if len(line)==1:
+                    ext = os.path.splitext(line[0])[1]
+                    print(ext)
+                    if ext in ['.gbk', '.gb', '.gbff']:
+                        files.append(create_temp_gff3(line[0], None, temp_dir)) 
+                    else:  
+                        files.append(line[0])
+                elif len(line)==2:
+                    files.append(create_temp_gff3(line[0], line[1], temp_dir))
+                else:
+                    print("Problem reading input line: ", line)
+                    raise RuntimeError("Error reading files!")
         args.input_files = files
 
     if args.verbose:
@@ -490,7 +509,8 @@ def main():
         if args.verbose: print("generating core genome MSAs...")
         generate_core_genome_alignment(G, temp_dir, args.output_dir,
                                        args.n_cpu, args.alr, isolate_names,
-                                       args.core, args.codons, len(args.input_files))
+                                       args.core, args.codons, len(args.input_files),
+                                       args.hc_threshold)
 
     # remove temporary directory
     shutil.rmtree(temp_dir)

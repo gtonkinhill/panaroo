@@ -11,6 +11,7 @@ from io import StringIO
 import numpy as np
 from joblib import Parallel, delayed
 from tqdm import tqdm
+from .biocode_convert import convert_gbk_gff3
 
 bact_translation_table = np.array([[[b'K', b'N', b'K', b'N', b'X'],
                                [b'T', b'T', b'T', b'T', b'T'],
@@ -70,6 +71,30 @@ def translate(seq, translation_table):
         indices[np.arange(0, len(seq), 3)], indices[np.arange(1, len(seq), 3)],
         indices[np.arange(2, len(seq), 3)]].tostring().decode('ascii')
 
+def create_temp_gff3(gff_file, fasta_file, temp_dir):
+
+    # create directory if it isn't present already
+    if not os.path.exists(temp_dir + "temp_gffs"):
+        os.mkdir(temp_dir + "temp_gffs")
+    
+    prefix = os.path.splitext(os.path.basename(gff_file))[0]
+    ext = os.path.splitext(gff_file)[1]
+
+    if fasta_file is None:
+        convert_gbk_gff3(gff_file, temp_dir + "temp_gffs/" + prefix + '.gff', True)
+    else:
+        # merge files into temporary gff3
+        with open(temp_dir + "temp_gffs/" + prefix + '.gff', 'w') as outfile:
+            with open(gff_file, 'r') as infile:
+                gff_string = infile.read().strip()
+                if '\naccn' in gff_string: # deal with PATRIC input format
+                    gff_string = gff_string.replace('accn|', '')
+                outfile.write(gff_string)
+                outfile.write('\n##FASTA\n')
+            with open(fasta_file, 'r') as infile:
+                outfile.write(infile.read().strip())
+
+    return(temp_dir + "temp_gffs/" + prefix + '.gff')
 
 #Clean other "##" starting lines from gff file, as it confuses parsers
 def clean_gff_string(gff_string):
@@ -108,13 +133,15 @@ def get_gene_sequences(gff_file_name, file_number, filter_seqs, table):
                                dbfn=":memory:",
                                force=True,
                                keep_order=True,
-                               from_string=True)
+                               from_string=True,
+                               merge_strategy="create_unique")
 
     #Get genes per scaffold
     scaffold_genes = {}
     for entry in parsed_gff.all_features(featuretype=()):
         if "CDS" not in entry.featuretype:
             continue
+
         scaffold_id = None
         for sequence_index in range(len(sequences)):
             scaffold_id = sequences[sequence_index].id
@@ -140,6 +167,11 @@ def get_gene_sequences(gff_file_name, file_number, filter_seqs, table):
                     gene_description = ""
 
                 #clean entries if requested
+                if entry.frame != '0':
+                    print('Invalid gene! Panaroo currently does not support frame shifts.')
+                    if filter_seqs: continue
+                    else: raise ValueError("Invalid gene sequence!")
+
                 if ((len(gene_sequence) % 3 > 0) or
                     (len(gene_sequence) < 34)) or ("*" in translate(str(gene_sequence), table)[:-1]):
                     print('invalid gene! file - id: ', gff_file_name, ' - ',
@@ -147,6 +179,7 @@ def get_gene_sequences(gff_file_name, file_number, filter_seqs, table):
                     print('Length:', len(gene_sequence), ', Has stop:', ("*" in str(
                         gene_sequence.translate())[:-1]))
                     if filter_seqs: continue
+                    else: raise ValueError("Invalid gene sequence!")
 
                 gene_record = (entry.start,
                                SeqRecord(gene_sequence,

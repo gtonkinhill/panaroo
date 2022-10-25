@@ -1,12 +1,12 @@
 # Estimating the Pangenome Size
 
-Panaroo includes script for estimating the pangenome size as well as gene gain and loss rates acording to both the Finitely Many Genes (FMG) model and the Infinitely Many Genes (IMG) model. These models are described in a number of papers listed in the references at the bottom of this page.
+Panaroo includes script for estimating the pangenome size as well as gene gain and loss rates according to both the Finitely Many Genes (FMG) model and the Infinitely Many Genes (IMG) model. These models are described in a number of papers listed in the references at the bottom of this page.
 
-These model based approaches are preferable to the common accumulation curves often used in pangenome analyses. Such curves fail to account for the phylogentic relationship between isolates and thus it is inappapropriate to use them to compare different data sets.
+These model based approaches are preferable to the common accumulation curves often used in pangenome analyses. Such curves fail to account for the phylogenetic relationship between isolates and thus it is inappropriate to use them to compare different data sets.
 
 ### Infinitely Many Genes model
 
-The IMG model allows for gene gain from an unbounded resvoir of new genes, and gene loss. As the resevoir is unbounded, the same gene gain event can only occur once. This might represent horizontal gene transfer from a diverged taxa with gene loss representing the conversion of genes to pseudogenes or deletion in reproduction. This model is described in Baemdicker et al. 2012 and Collins et al. 2012.
+The IMG model allows for gene gain from an unbounded reservoir of new genes, and gene loss. As the reservoir is unbounded, the same gene gain event can only occur once. This might represent horizontal gene transfer from a diverged taxa with gene loss representing the conversion of genes to pseudogenes or deletion in reproduction. This model is described in Baemdicker et al. 2012 and Collins et al. 2012.
 
 To estimate the parameters of this model, a dated phylogeny based on the core genome is required. Such phylogenies can be produced using [BEAST](https://www.beast2.org/) or by combining faster methods such as [IQ-TREE](http://www.iqtree.org/) and [BactDating](https://xavierdidelot.github.io/BactDating/)
 
@@ -19,7 +19,7 @@ panaroo-img --pa gene_presence_absence.Rtab -o img_results -tree dated_phylogeny
 
 #### Parameters
 
-For a full description of the paramters and model please see the Collins et al. 2012 paper.
+For a full description of the parameters and model please see the Collins et al. 2012 paper.
 
 ```
 Estimate model parameters for either the Infinitely Many Genes Model using
@@ -32,7 +32,7 @@ optional arguments:
                         A presence/absence produced by Panaroo.
   -o OUTPUT_DIR, --out_dir OUTPUT_DIR
                         location of an output directory
-  -D {1,2}              Number of seperate rate classes to use for the
+  -D {1,2}              Number of separate rate classes to use for the
                         dispensable genome. Can be either 1 or 2.
   --no_essential        Removes essential gene class from model
   --no_constraint       Removes constraint that u/v must equal the genome
@@ -40,7 +40,7 @@ optional arguments:
   --model {coalescent,fixed}
                         Model to fit. Can be one of 'coalescent' or 'fixed'.
   --fit {cp,gf}         Whether to use the gene frequency spectrum or the
-                        core/pangeome size for fitting (default=gf)
+                        core/pangenome size for fitting (default=gf)
   --init_u1 U1          Initial value for u1 (default=0.01).
   --init_u2 U2          Initial value for u2 (default=0.01).
   --init_v1 V1          Initial value for v1 (default=0.01).
@@ -54,9 +54,9 @@ optional arguments:
 
 ### Finitely Many Genes model
 
-The FMG model differs from the IMG mode in that the same gene can be gained and lost multiple times. Moreover, the pool of genes from which a new gene can be drawn is finite. The FMG model is a version of the standard two-state phylogentic models which are often used to study the evolution of binary traits.
+The FMG model differs from the IMG mode in that the same gene can be gained and lost multiple times. Moreover, the pool of genes from which a new gene can be drawn is finite. The FMG model is a version of the standard two-state phylogenetic models which are often used to study the evolution of binary traits.
 
-We have implemented a simiplified version of that described in Zamani-Dahaj et al. 2016.
+We have implemented a simplified version of that described in Zamani-Dahaj et al. 2016.
 
 Similar to the IMG model a dated phylogeny based on the core genome is required. The script can then be run as
 

@@ -37,7 +37,7 @@ def get_options(args):
     import argparse
 
     description = 'Filters the Panaroo gene_presence_absence.csv file to exclude sequences '
-    description += 'classed as length outliers, pseudo genes or fragmented.'
+    description += 'classed as length outliers, pseudogenes or fragmented.'
     parser = argparse.ArgumentParser(description=description,
                                      prog='panaroo_filter_pa')
 
@@ -61,7 +61,7 @@ def get_options(args):
         "--type",
         dest="type",
         help=
-        "any combination of 'pseudo', 'length' or 'frag' seperated by commas")
+        "any combination of 'pseudo', 'length' or 'frag' separated by commas")
     parser.add_argument('--version',
                         action='version',
                         version='%(prog)s ' + __version__)

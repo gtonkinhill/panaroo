@@ -2,7 +2,7 @@
 
 As Panaroo builds a full representation of each gene in the pangenome we can use this to investigate gene rearrangements. 
 
-To simplify association analyses between these rearrangments and phenotypes of interest we concentrate on gene triplets. As paralogs are split in the pangenome graph each sample can only be present in one path. Thus each genome can only contain one version of triplet with the same central gene. This is illustrated in the figure below.
+To simplify association analyses between these rearrangements and phenotypes of interest we concentrate on gene triplets. As paralogs are split in the pangenome graph each sample can only be present in one path. Thus each genome can only contain one version of triplet with the same central gene. This is illustrated in the figure below.
 
 We record the presence and absence of these gene triplets in each sample in the `struct_presence_absence.csv` file. This can be used as input to [Pyseer](https://pyseer.readthedocs.io/en/master/) in a similar way to the gene presence/absence matrix.
 
