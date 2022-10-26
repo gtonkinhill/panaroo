@@ -232,6 +232,7 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
         None
 
     if codons == True:
+        print("Codon alignment is experimental in Panaroo...")
         #Make alternate protein/DNA directories
         try:
             os.mkdir(output_dir + "aligned_protein_sequences")
@@ -442,6 +443,7 @@ def generate_core_genome_alignment(
     core_gene_names = [G.nodes[x]["name"] for x in core_genes]
 
     if codons == True:
+        print("Codon alignment is experimental in Panaroo...")
         #Make alternate protein/DNA directories
         try:
             os.mkdir(output_dir + "aligned_protein_sequences")
