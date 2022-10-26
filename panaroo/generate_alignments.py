@@ -17,8 +17,11 @@ from Bio.Align.Applications import PrankCommandline
 from Bio.Align.Applications import MafftCommandline
 from Bio.Align.Applications import ClustalOmegaCommandline
 import Bio.Application
-from Bio import codonalign
-
+from Bio import BiopythonExperimentalWarning
+import warnings
+with warnings.catch_warnings():
+    warnings.simplefilter('ignore', BiopythonExperimentalWarning)
+    from Bio import codonalign
 
 unambiguous_degenerate_codons = {"ACN":"T", "TCN":"S", "CTN":"L", "CCN":"P",
                                  "CGN":"R", "GTN":"V", "GCN":"A", "GGN":"G"}
