@@ -167,34 +167,21 @@ def output_dna_and_protein(node, isolate_list, temp_directory, outdir,
 def get_alignment_commands(fastafile_name, outdir, aligner, threads):
     geneName = fastafile_name.split("/")[-1].split(".")[0]
     if aligner == "prank":
-        command = PrankCommandline(d=fastafile_name, o=geneName, f=8, codon=True)
-    elif threads > 3:
-        if aligner == "mafft":
-            command = MafftCommandline(
-                input=fastafile_name, auto=True, nuc=True, adjustdirection=True
-            )
-        elif aligner == "clustal":
-            command = ClustalOmegaCommandline(
-                infile=fastafile_name,
-                outfile=outdir + "aligned_gene_sequences/" + geneName + ".aln.fas",
-                seqtype="DNA",
-            )
-    elif threads <= 3:
-        if aligner == "mafft":
-            command = MafftCommandline(
-                input=fastafile_name,
-                auto=True,
-                thread=threads,
-                nuc=True,
-                adjustdirection=True,
-            )
-        elif aligner == "clustal":
-            command = ClustalOmegaCommandline(
-                infile=fastafile_name,
-                outfile=outdir + "aligned_gene_sequences/" + geneName + ".aln.fas",
-                seqtype="DNA",
-                threads=threads,
-            )
+        command = PrankCommandline(d=fastafile_name, 
+            o=outdir + "aligned_gene_sequences/" + geneName, 
+            f=8, codon=False
+        )
+    elif  aligner == "mafft":
+        command = MafftCommandline(
+            input=fastafile_name, auto=True, nuc=True, adjustdirection=True, thread=1
+        )
+    elif aligner == "clustal":
+        command = ClustalOmegaCommandline(
+            infile=fastafile_name,
+            outfile=outdir + "aligned_gene_sequences/" + geneName + ".aln.fas",
+            seqtype="DNA",  threads=1
+        )
+   
     return (command, fastafile_name)
 
 def get_protein_commands(fastafile_name, outdir, aligner, threads):
