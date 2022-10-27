@@ -138,6 +138,14 @@ def get_options(
                       type=float,
                       default=0.95)
 
+    core.add_argument("--core_entropy_filter",
+                      dest="hc_threshold",
+                      help=("Manually set the Block Mapping and Gathering with " +
+                            "Entropy (BMGE) filter. Can be between 0.0 and 1.0. By " + 
+                            "default this is set using the Tukey outlier method."),
+                      type=float,
+                      default=None)
+
     graph = parser.add_argument_group('Graph correction')
 
     graph.add_argument(
@@ -291,6 +299,7 @@ def main():
                  aln=args.aln,
                  alr=args.alr,
                  core=args.core,
+                 hc_threshold=args.hc_threshold,
                  merge_single=True,
                  depths=[1],
                  n_cpu=args.n_cpu,

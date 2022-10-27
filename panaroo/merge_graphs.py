@@ -416,7 +416,7 @@ def merge_graphs(directories,
         generate_pan_genome_alignment(G, temp_dir, output_dir, n_cpu, alr,
                                       isolate_names)
         core_nodes = get_core_gene_nodes(G, core, len(isolate_names))
-        concatenate_core_genome_alignments(core_nodes, output_dir)
+        concatenate_core_genome_alignments(core_nodes, output_dir, hc_threshold)
     elif aln == "core":
         if not quiet: print("generating core genome MSAs...")
         generate_core_genome_alignment(G, temp_dir, output_dir, n_cpu, alr,
@@ -438,7 +438,7 @@ def get_options():
         "--directories",
         dest="directories",
         required=True,
-        help="Location of seperate Panaroo output directories",
+        help="Location of separate Panaroo output directories",
         nargs='+')
 
     io_opts.add_argument("-o",
@@ -467,7 +467,7 @@ def get_options():
 
     matching.add_argument("--len_dif_percent",
                           dest="len_dif_percent",
-                          help="length difference cutoff (default=0.95)",
+                          help="length difference cut-off (default=0.95)",
                           default=0.95,
                           type=float)
 
@@ -482,7 +482,7 @@ def get_options():
         dest="length_outlier_support_proportion",
         help=
         ("proportion of genomes supporting a gene with a length more " +
-         "than 1.5x outside the interquatile range for genes in the same cluster"
+         "than 1.5x outside the interquartile range for genes in the same cluster"
          +
          " (default=0.01). Genes failing this test will be re-annotated at the "
          + "shorter length"),
