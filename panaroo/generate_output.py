@@ -397,7 +397,7 @@ def concatenate_core_genome_alignments(core_names, output_dir, hc_threshold):
     if hc_threshold is None:
         allh = np.array([gene[3] for gene in gene_alignments])
         q = np.quantile(allh, [0.25,0.75])
-        hc_threshold = q[1] + 1.5*(q[1]-q[0])
+        hc_threshold = max(0.01, q[1] + 1.5*(q[1]-q[0]))
         print(f"Entropy threshold automatically set to {hc_threshold}.")
 
     isolate_aln = []

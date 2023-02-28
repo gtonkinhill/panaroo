@@ -21,7 +21,7 @@ The Panaroo algorithm initially performs a conservative clustering step before c
 
 Thus we recommend using the defaults for `--threshold` (0.98) and `--len_dif_percent` (0.98).
 
-If you wish to adjust the level at which Panaroo colapses genes into putitive families we suggest changing the family sequence identity level (default 0.7). Thus to run Panaroo using a more relaxed threshold of 50% identity you could run
+If you wish to adjust the level at which Panaroo collapses genes into putative families we suggest changing the family sequence identity level (default 0.7). Thus to run Panaroo using a more relaxed threshold of 50% identity you could run
 
 ```
 panaroo -i *.gff -o ./results/ --clean-mode strict -f 0.5
@@ -29,7 +29,7 @@ panaroo -i *.gff -o ./results/ --clean-mode strict -f 0.5
 
 #### Paralogs
 
-Panaroo splits paralogs into seperate clusters by default. Merging paralogs can be enabled by running Panraoo as
+Panaroo splits paralogs into separate clusters by default. Merging paralogs can be enabled by running Panaroo as
 
 ```
 panaroo -i *.gff -o ./results/  --clean-mode strict --merge_paralogs
@@ -37,7 +37,7 @@ panaroo -i *.gff -o ./results/  --clean-mode strict --merge_paralogs
 
 #### Refinding Genes
 
-In order to identify genes that have been missed by annotation software, Panaroo incoporates a refinding step. Suppose two clusters geneA and geneB are adjacent in the Panaroo pangenome graph. If geneA is present in a genome but its neighbour (geneB) is not then Panaroo searches the sequence surrounding geneA for the presence of geneB. The radius of this search in nucleotides is controlled by `--search_radius`, with the default being 5000.  
+In order to identify genes that have been missed by annotation software, Panaroo incorporates a refinding step. Suppose two clusters geneA and geneB are adjacent in the Panaroo pangenome graph. If geneA is present in a genome but its neighbour (geneB) is not then Panaroo searches the sequence surrounding geneA for the presence of geneB. The radius of this search in nucleotides is controlled by `--search_radius`, with the default being 5000.  
 
 As such missing genes are often the results of assembly fragmentation, the refinding step only requires that a proportion of the missing gene is located. This proportion can be controlled using the `--refind_prop_match` parameter.
 
@@ -65,8 +65,9 @@ usage: panaroo [-h] -i INPUT_FILES [INPUT_FILES ...] -o OUTPUT_DIR
                [--high_var_flag CYCLE_THRESHOLD_MIN]
                [--min_edge_support_sv MIN_EDGE_SUPPORT_SV]
                [--all_seq_in_graph] [--no_clean_edges] [-a {core,pan}]
-               [--aligner {prank,clustal,mafft}] [--core_threshold CORE]
-               [-t N_CPU] [--quiet] [--version]
+               [--aligner {prank,clustal,mafft}] [--codons]
+               [--core_threshold CORE] [--core_entropy_filter HC_THRESHOLD]
+               [-t N_CPU] [--codon-table TABLE] [--quiet] [--version]
 
 panaroo: an updated pipeline for pangenome investigation
 
@@ -74,6 +75,7 @@ optional arguments:
   -h, --help            show this help message and exit
   -t N_CPU, --threads N_CPU
                         number of threads to use (default=1)
+  --codon-table TABLE   the codon table to use for translation (default=11)
   --quiet               suppress additional output
   --version             show program's version number and exit
 
@@ -117,7 +119,7 @@ Mode:
 
 Matching:
   -c ID, --threshold ID
-                        sequence identity threshold (default=0.95)
+                        sequence identity threshold (default=0.98)
   -f FAMILY_THRESHOLD, --family_threshold FAMILY_THRESHOLD
                         protein family sequence identity threshold
                         (default=0.7)
@@ -171,8 +173,14 @@ Gene alignment:
   --aligner {prank,clustal,mafft}
                         Specify an aligner. Options:'prank', 'clustal', and
                         default: 'mafft'
+  --codons              Generate codon alignments by aligning sequences at the
+                        protein level
   --core_threshold CORE
                         Core-genome sample threshold (default=0.95)
+  --core_entropy_filter HC_THRESHOLD
+                        Manually set the Block Mapping and Gathering with
+                        Entropy (BMGE) filter. Can be between 0.0 and 1.0. By
+                        default this is set using the Tukey outlier method.
 ```
 
 #### Default Parameters
