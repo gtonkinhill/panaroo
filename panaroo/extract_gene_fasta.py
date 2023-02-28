@@ -81,7 +81,7 @@ def generate_fasta(geneids, outputfile, genedata, isdna, idtype):
         with open(genedata, "r") as infile:
             for line in infile:
                 line = line.strip().split(",")
-                if line[3] in geneids:
+                if (line[0], line[3]) in geneids:
                     if isdna:
                         seq = line[5]
                     else:
@@ -112,15 +112,16 @@ def main():
 
     with open(args.pa_file, 'r') as infile:
         header = next(infile).strip().split(',')
-        genomes = header[4:]
+        genomes = header[3:]
 
         for line in infile:
             line = line.strip().split(",")
             if line[0] in args.queries:
                 geneids = set()
-                for g in line[3:]:
-                    g = g.replace("_len", "").replace("_stop", "").split(";")
-                    geneids |= set(g)
+                for genome, genes in zip(genomes, line[3:]):
+                    genes = genes.replace("_len", "").replace("_stop", "").split(";")
+                    for g in genes:
+                        geneids.add((genome,g))
                 generate_fasta(
                     geneids,
                     outputfile=args.output_dir + line[0] + ".fasta",
