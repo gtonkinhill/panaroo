@@ -115,7 +115,8 @@ def main():
 
         core_nodes = get_core_gene_nodes(G, args.core, len(isolate_names))
         core_names = [G.nodes[x]["name"] for x in core_nodes]
-        concatenate_core_genome_alignments(core_names, args.output_dir)
+        concatenate_core_genome_alignments(core_names, args.output_dir, 
+                                           args.hc_threshold)
     elif args.aln == "core":
         if args.verbose: print("generating core genome MSAs...")
         generate_core_genome_alignment(G, temp_dir, args.output_dir,
