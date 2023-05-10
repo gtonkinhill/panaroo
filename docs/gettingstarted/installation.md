@@ -4,6 +4,15 @@ Conda is the simplest way to install Panaroo and all its dependencies.
 
 ### Conda
 
+Although Panaroo supports the latest version of python, currently Bioconda does not support versions >= 3.10 for all packages. An older version of python can be installed by creating an environment as
+
+```
+conda create -n panaroo python=3.9
+conda activate panaroo
+```
+
+Panaroo can then be installed by running the following within a Conda environment
+
 ```
 conda install -c conda-forge -c bioconda -c defaults 'panaroo>=1.3'
 ```
