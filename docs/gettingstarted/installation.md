@@ -5,7 +5,7 @@ Conda is the simplest way to install Panaroo and all its dependencies.
 ### Conda
 
 ```
-conda install -c conda-forge -c bioconda -c defaults panaroo
+conda install -c conda-forge -c bioconda -c defaults 'panaroo>=1.3'
 ```
 
 alternatively it is often faster to use the [mamba](https://github.com/mamba-org/mamba) solver. This can be installed by running
@@ -17,7 +17,7 @@ conda install mamba -c conda-forge
 Panaroo can then be installed using
 
 ```
-mamba install -c conda-forge -c bioconda -c defaults panaroo
+mamba install -c conda-forge -c bioconda -c defaults 'panaroo>=1.3'
 ```
 
 ### Manual
