@@ -8,7 +8,7 @@ Annotations that have been merged will be separated by a semicolon. Refound gene
 
 ### gene_presence_absence.Rtab
 
-A binary tab seperated version of the `gene_presence_absence.csv` file describing which gene is in which sample. The format is the same as that given by [Roary](https://sanger-pathogens.github.io/Roary/).
+A binary tab separated version of the `gene_presence_absence.csv` file describing which gene is in which sample. The format is the same as that given by [Roary](https://sanger-pathogens.github.io/Roary/).
 
 ### final_graph.gml
 

@@ -1,10 +1,17 @@
 # Estimating the Pangenome Size
 
-Panaroo includes script for estimating the pangenome size as well as gene gain and loss rates according to both the Finitely Many Genes (FMG) model and the Infinitely Many Genes (IMG) model. These models are described in a number of papers listed in the references at the bottom of this page.
+## Panstripe
+
+We recommend using the R package [panstripe](https://github.com/gtonkinhill/panstripe/) to investigate pangenome dynamics and size. The package can produce common summary plots and allows for the comparison of gene gain and loss rates between lineages and datasets.
+
+
+### Alternative models
+
+Panaroo also includes a number of alternative scripts for estimating the pangenome size as well as gene gain and loss rates according to both the Finitely Many Genes (FMG) model and the Infinitely Many Genes (IMG) model. These models are described in a number of papers listed in the references at the bottom of this page.
 
 These model based approaches are preferable to the common accumulation curves often used in pangenome analyses. Such curves fail to account for the phylogenetic relationship between isolates and thus it is inappropriate to use them to compare different data sets.
 
-### Infinitely Many Genes model
+#### Infinitely Many Genes model
 
 The IMG model allows for gene gain from an unbounded reservoir of new genes, and gene loss. As the reservoir is unbounded, the same gene gain event can only occur once. This might represent horizontal gene transfer from a diverged taxa with gene loss representing the conversion of genes to pseudogenes or deletion in reproduction. This model is described in Baumdicker et al. 2012 and Collins et al. 2012.
 
@@ -17,7 +24,7 @@ mkdir img_results
 panaroo-img --pa gene_presence_absence.Rtab -o img_results -tree dated_phylogeny.newick
 ```
 
-#### Parameters
+##### Parameters
 
 For a full description of the parameters and model please see the Collins et al. 2012 paper.
 
@@ -52,7 +59,7 @@ optional arguments:
 ```
 
 
-### Finitely Many Genes model
+#### Finitely Many Genes model
 
 The FMG model differs from the IMG mode in that the same gene can be gained and lost multiple times. Moreover, the pool of genes from which a new gene can be drawn is finite. The FMG model is a version of the standard two-state phylogenetic models which are often used to study the evolution of binary traits.
 
@@ -64,9 +71,9 @@ Similar to the IMG model a dated phylogeny based on the core genome is required.
 panaroo-fmg --tree dated_phylogeny.newick --pa gene_presence_absence_renamed.Rtab -o fmg_results.txt
 ```
 
-#### Parameters
+##### Parameters
 
-For a full description of the paramters and model please see the Zamani-Dahaj et al. 2016 paper.
+For a full description of the parameters and model please see the Zamani-Dahaj et al. 2016 paper.
 
 ```
 Estimate model parameters for the Finitely Many Genes Model
