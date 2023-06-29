@@ -109,7 +109,7 @@ def main():
             if iso not in seen:
                 isolate_names_and_nums[num] = iso
                 seen.add(iso)
-    isolate_names = max_num * ["NA"]
+    isolate_names = (max_num + 1) * ["NA"]
     for isolate_num in isolate_names_and_nums:
         isolate_names[isolate_num] = isolate_names_and_nums[isolate_num]
 
