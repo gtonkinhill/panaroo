@@ -111,7 +111,7 @@ def main():
                 seen.add(iso)
     isolate_names = max_num * ["NA"]
     for isolate_num in isolate_names_and_nums:
-        isoalte_names[isolate_num] = isolate_names_and_nums[isolate_num]
+        isolate_names[isolate_num] = isolate_names_and_nums[isolate_num]
 
     # Load graph
     G = nx.read_gml(args.output_dir + "final_graph.gml")
