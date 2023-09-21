@@ -440,6 +440,10 @@ def generate_core_genome_alignment(
         None
     # Get core nodes
     core_genes = get_core_gene_nodes(G, threshold, num_isolates)
+    if len(core_genes) < 1:
+        print("No gene clusters were present above the core frequency"
+              " threshold! Try adjusting the '--core_threshold' parameter")
+
     core_gene_names = [G.nodes[x]["name"] for x in core_genes]
 
     if codons == True:
