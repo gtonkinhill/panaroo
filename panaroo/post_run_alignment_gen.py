@@ -93,19 +93,11 @@ def main():
     # Create temporary directory
     temp_dir = os.path.join(tempfile.mkdtemp(dir=args.output_dir), "")
 
-    # Load isolate names
-    seen = set()
-    isolate_names = []
-    with open(args.output_dir + "gene_data.csv", 'r') as infile:
-        next(infile)
-        for line in infile:
-            iso = line.split(",")[0]
-            if iso not in seen:
-                isolate_names.append(iso)
-                seen.add(iso)
-
     # Load graph
     G = nx.read_gml(args.output_dir + "final_graph.gml")
+
+    # Load isolate names
+    isolate_names = G.graph['isolateNames']
 
     #Write out core/pan-genome alignments
     if args.aln == "pan":
