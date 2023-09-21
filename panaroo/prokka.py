@@ -81,8 +81,24 @@ def create_temp_gff3(gff_file, fasta_file, temp_dir):
     ext = os.path.splitext(gff_file)[1]
 
     if fasta_file is None:
-        convert_gbk_gff3(gff_file, temp_dir + "temp_gffs/" + prefix + '.gff', True)
+        try:
+            convert_gbk_gff3(gff_file, temp_dir + "temp_gffs/" + prefix + '.gff', True)
+        except:
+            print("Error reading Genbank input! These must compliant with Genbank/ENA/DDJB." +
+                  " This can be forced in Prokka by specifying the --compliance parameter.")
+            raise RuntimeError(
+            "Error reading Genbank input: {0}\n"
+            "These must compliant with Genbank/ENA/DDJB. This can be forced in Prokka"
+            " by specifying the --compliance parameter."
+            .format(gff_file)
+            )
     else:
+        if ext not in ['.gff', '.gff3']:
+            raise RuntimeError(f"Invalid file extension! ({ext})")
+        fasta_ext = os.path.splitext(fasta_file)[1]
+        if fasta_ext not in [".fasta", ".fa", ".fas", ".fna"]:
+            raise RuntimeError(f"Invalid file extension! ({fasta_ext})")
+
         # merge files into temporary gff3
         with open(temp_dir + "temp_gffs/" + prefix + '.gff', 'w') as outfile:
             with open(gff_file, 'r') as infile:

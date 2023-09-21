@@ -144,10 +144,10 @@ def output_dna_and_protein(node, isolate_list, temp_directory, outdir,
     if isolate_no > 1:
         #set filename to gene name
         prot_outname = temp_directory + node["name"] + ".fasta"
-        if len(prot_outname) > 248:
+        if len(prot_outname) >= 248:
             prot_outname = prot_outname[:248] + '.fasta'
         dna_outname = outdir + "unaligned_dna_sequences/" + node["name"] + ".fasta"
-        if len(dna_outname) > 248:
+        if len(dna_outname) >= 248:
             dna_outname = dna_outname[:248] + '.fasta'
         #Write them to disk time
         SeqIO.write(output_protein, prot_outname, 'fasta')

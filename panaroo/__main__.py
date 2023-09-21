@@ -293,11 +293,13 @@ def main():
                 line = line.strip().split()
                 if len(line)==1:
                     ext = os.path.splitext(line[0])[1]
-                    print(ext)
                     if ext in ['.gbk', '.gb', '.gbff']:
                         files.append(create_temp_gff3(line[0], None, temp_dir)) 
-                    else:  
-                        files.append(line[0])
+                    else:
+                        if ext in ['.gff', '.gff3']:
+                            files.append(line[0])
+                        else:
+                            raise RuntimeError(f"Invalid file extension! ({ext})")
                 elif len(line)==2:
                     files.append(create_temp_gff3(line[0], line[1], temp_dir))
                 else:
