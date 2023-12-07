@@ -9,6 +9,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 import itertools as iter
 from tqdm import tqdm
+import random
 
 from .generate_alignments import *
 
@@ -321,12 +322,18 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
     return
 
 
-def get_core_gene_nodes(G, threshold, num_isolates):
+def get_core_gene_nodes(G, threshold, num_isolates, subset=None):
     # Get the core genes based on percent threshold
     core_nodes = []
     for node in G.nodes():
         if float(G.nodes[node]["size"]) / float(num_isolates) >= threshold:
             core_nodes.append(node)
+    if subset is not None:
+        if subset > len(core_nodes):
+            raise RuntimeError(f"Cannot subset core genes to {subset}, "
+                               f"only {len(core_nodes)} are available!")
+        random.shuffle(core_nodes)
+        core_nodes = core_nodes[:subset]
     return core_nodes
 
 def update_col_counts(col_counts, s):
@@ -431,7 +438,8 @@ def concatenate_core_genome_alignments(core_names, output_dir, hc_threshold):
 
 
 def generate_core_genome_alignment(
-    G, temp_dir, output_dir, threads, aligner, isolates, threshold, codons, num_isolates, hc_threshold
+    G, temp_dir, output_dir, threads, aligner, isolates, threshold, codons, num_isolates, hc_threshold,
+    subset=None
 ):
     # Make a folder for the output alignments TODO: decide whether or not to keep these
     try:
@@ -439,7 +447,7 @@ def generate_core_genome_alignment(
     except FileExistsError:
         None
     # Get core nodes
-    core_genes = get_core_gene_nodes(G, threshold, num_isolates)
+    core_genes = get_core_gene_nodes(G, threshold, num_isolates, subset)
     if len(core_genes) < 1:
         print("No gene clusters were present above the core frequency"
               " threshold! Try adjusting the '--core_threshold' parameter")

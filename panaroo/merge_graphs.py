@@ -254,6 +254,7 @@ def merge_graphs(directories,
                  alr,
                  core,
                  hc_threshold,
+                 subset=None,
                  merge_single=False,
                  depths=[1,2,3],
                  n_cpu=1,
@@ -421,7 +422,7 @@ def merge_graphs(directories,
         if not quiet: print("generating core genome MSAs...")
         generate_core_genome_alignment(G, temp_dir, output_dir, n_cpu, alr,
                                        isolate_names, core, len(isolate_names), 
-                                       hc_threshold)
+                                       hc_thresholdi, subset)
     return
 
 
@@ -523,6 +524,11 @@ def get_options():
                       help="Core-genome sample threshold (default=0.95)",
                       type=float,
                       default=0.95)
+    core.add_argument("--core_subset",
+                      dest="subset",
+                      help="Subset the core genome to these many random genes (default=all)",
+                      type=int,
+                      default=None)
     core.add_argument("--core_entropy_filter",
                       dest="hc_threshold",
                       help=("Manually set the Block Mapping and Gathering with " +
