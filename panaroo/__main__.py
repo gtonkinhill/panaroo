@@ -237,7 +237,7 @@ Does not delete any genes and only performes merge and refinding\
                       default=0.95)
     core.add_argument("--core_subset",
                       dest="subset",
-                      help="Subset the core genome to these many random genes (default=all)",
+                      help="Randomly subset the core genome to these many genes (default=all)",
                       type=int,
                       default=None)
     core.add_argument("--core_entropy_filter",

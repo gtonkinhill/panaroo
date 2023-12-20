@@ -263,6 +263,7 @@ def merge_graphs(directories,
                  aln,
                  alr,
                  core,
+                 codons,
                  hc_threshold,
                  subset=None,
                  merge_single=False,
@@ -425,14 +426,15 @@ def merge_graphs(directories,
     if aln == "pan":
         if not quiet: print("generating pan genome MSAs...")
         generate_pan_genome_alignment(G, temp_dir, output_dir, n_cpu, alr,
-                                      isolate_names)
+                                      codons, isolate_names)
         core_nodes = get_core_gene_nodes(G, core, len(isolate_names))
         concatenate_core_genome_alignments(core_nodes, output_dir, hc_threshold)
     elif aln == "core":
         if not quiet: print("generating core genome MSAs...")
         generate_core_genome_alignment(G, temp_dir, output_dir, n_cpu, alr,
-                                       isolate_names, core, len(isolate_names), 
-                                       hc_thresholdi, subset)
+                                       isolate_names, core, codons, len(isolate_names), 
+                                       hc_threshold, subset)
+        
     return
 
 
@@ -529,6 +531,13 @@ def get_options():
         type=str,
         choices=['prank', 'clustal', 'mafft'],
         default="mafft")
+    core.add_argument(
+        "--codons",
+        dest="codons",
+        help=
+        "Generate codon alignments by aligning sequences at the protein level",
+        action='store_true',
+        default=False)
     core.add_argument("--core_threshold",
                       dest="core",
                       help="Core-genome sample threshold (default=0.95)",
@@ -536,7 +545,7 @@ def get_options():
                       default=0.95)
     core.add_argument("--core_subset",
                       dest="subset",
-                      help="Subset the core genome to these many random genes (default=all)",
+                      help="Randomly subset the core genome to these many genes (default=all)",
                       type=int,
                       default=None)
     core.add_argument("--core_entropy_filter",
@@ -596,7 +605,9 @@ def main():
                  aln=args.aln,
                  alr=args.alr,
                  core=args.core,
+                 codons=args.codons,
                  hc_threshold=args.hc_threshold,
+                 subset=args.subset,
                  n_cpu=args.n_cpu,
                  quiet=args.quiet)
 
