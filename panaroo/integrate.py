@@ -122,7 +122,6 @@ def get_options(
         type=str,
         choices=['core', 'pan'],
         default=None)
-
     core.add_argument(
         "--aligner",
         dest="alr",
@@ -131,13 +130,23 @@ def get_options(
         type=str,
         choices=['prank', 'clustal', 'mafft'],
         default="mafft")
-
+    core.add_argument(
+        "--codons",
+        dest="codons",
+        help=
+        "Generate codon alignments by aligning sequences at the protein level",
+        action='store_true',
+        default=False)
     core.add_argument("--core_threshold",
                       dest="core",
                       help="Core-genome sample threshold (default=0.95)",
                       type=float,
                       default=0.95)
-
+    core.add_argument("--core_subset",
+                      dest="subset",
+                      help="Randomly subset the core genome to these many genes (default=all)",
+                      type=int,
+                      default=None)
     core.add_argument("--core_entropy_filter",
                       dest="hc_threshold",
                       help=("Manually set the Block Mapping and Gathering with " +
@@ -299,7 +308,9 @@ def main():
                  aln=args.aln,
                  alr=args.alr,
                  core=args.core,
+                 codons=args.codons,
                  hc_threshold=args.hc_threshold,
+                 subset=args.subset,
                  merge_single=True,
                  depths=[1],
                  n_cpu=args.n_cpu,
