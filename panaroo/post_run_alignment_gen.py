@@ -55,6 +55,11 @@ def get_options():
                       help="Core-genome sample threshold (default=0.95)",
                       type=float,
                       default=0.95)
+    core.add_argument("--core_subset",
+                      dest="subset",
+                      help="Subset the core genome to these many random genes (default=all)",
+                      type=int,
+                      default=None)
     core.add_argument("--core_entropy_filter",
                       dest="hc_threshold",
                       help=("Manually set the Block Mapping and Gathering with " +
@@ -114,7 +119,7 @@ def main():
         generate_core_genome_alignment(G, temp_dir, args.output_dir,
                                        args.n_cpu, args.alr, isolate_names,
                                        args.core, args.codons, len(isolate_names),
-                                       args.hc_threshold)
+                                       args.hc_threshold, args.subset)
 
     # remove temporary directory
     shutil.rmtree(temp_dir)
