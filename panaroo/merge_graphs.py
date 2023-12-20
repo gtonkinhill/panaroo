@@ -238,6 +238,16 @@ def simple_merge_graphs(graphs, clusters):
                                           multi_centroid=True,
                                           check_merge_mems=True)
 
+    # Update paralog classification
+    centroid_paralog_class = Counter()
+    for node in merged_G.nodes():
+        for centroid in merged_G.nodes[node]['centroid']:
+            centroid_paralog_class[centroid] += 1
+    for node in merged_G.nodes():
+        for centroid in merged_G.nodes[node]['centroid']:
+            if centroid_paralog_class[centroid]>1:
+                merged_G.nodes[node]['paralog'] = True
+
     return merged_G
 
 
@@ -318,6 +328,10 @@ def merge_graphs(directories,
         depths=depths,
         search_genome_ids=search_genome_ids)[0]
 
+    # if requested merge paralogs
+    if merge_para:
+        G = merge_paralogs(G)
+
     if not quiet:
         print("Number of nodes in merged graph: ", G.number_of_nodes())
 
@@ -328,10 +342,6 @@ def merge_graphs(directories,
     mems_to_isolates = {}
     for i, iso in enumerate(isolate_names):
         mems_to_isolates[i] = iso
-
-    # if requested merge paralogs
-    if merge_para:
-        G = merge_paralogs(G)
 
     if not quiet:
         print("writing output...")
@@ -446,7 +456,7 @@ def get_options():
                          dest="output_dir",
                          required=True,
                          help="location of a new output directory",
-                         type=lambda x: is_valid_folder(parser, x))
+                         type=str)
 
     matching = parser.add_argument_group('Matching')
 
@@ -555,8 +565,12 @@ def get_options():
 def main():
     args = get_options()
 
+    # create directory if it isn't present already
+    if not os.path.exists(args.output_dir):
+        os.mkdir(args.output_dir)
     # make sure trailing forward slash is present
     args.output_dir = os.path.join(args.output_dir, "")
+    
     args.directories = [os.path.join(d, "") for d in args.directories]
 
     # create temporary directory
