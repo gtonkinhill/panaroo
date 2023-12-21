@@ -135,9 +135,9 @@ Does not delete any genes and only performes merge and refinding\
               "be found in order to consider it a match"),
         default=0.2,
         type=float)
-    refind.add_argument("--refind_exclude_partial",
+    refind.add_argument("--refind_strict",
                           dest="only_valid_genes",
-                          help="don't allow partial or potential pseudo genes to be re-found",
+                          help="Prevent fragmented, misassembled, or potential pseudogene sequences from being re-found.",
                           action='store_true',
                           default=False)
 
