@@ -235,3 +235,21 @@ def custom_stringizer(value):
     buf = StringIO()
     stringize(value)
     return buf.getvalue()
+
+
+def is_valid_gene(dna, protein):
+
+    # Check if sequence is divisible by 3
+    if len(dna) % 3 != 0:
+        return False
+
+    # Check for start codon
+    protein = protein.strip("X")
+    if protein[0] != 'M':
+        return False
+    
+    # Check for premature stop
+    if "*" in protein[:-1]:
+        return False
+
+    return True

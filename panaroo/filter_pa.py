@@ -20,7 +20,7 @@ def filter_pa(pa_file, outdir, ftypes):
             # perform filtering
             for i, gene in enumerate(line[3:]):
                 if (('frag' in ftypes) and (';' in gene)) or \
-                   (('pseudo' in ftypes) and ('stop' in gene)) or \
+                   (('pseudo' in ftypes) and ('pseudo' in gene)) or \
                     (('length' in ftypes) and ('len' in gene)):
                     line[3 + i] = ''
 

@@ -5,7 +5,7 @@ import numpy as np
 from Bio.Seq import translate, reverse_complement, Seq
 from Bio import SeqIO
 from .cdhit import align_dna_cdhit
-from .isvalid import del_dups
+from .isvalid import del_dups, is_valid_gene
 from joblib import Parallel, delayed
 import os
 import gffutils as gff
@@ -28,6 +28,7 @@ def find_missing(G,
                  pairwise_id_thresh,
                  n_cpu,
                  remove_by_consensus=False,
+                 only_valid_genes=False,
                  verbose=True):
 
     # Iterate over each genome file checking to see if any missing accessory genes
@@ -183,6 +184,8 @@ def find_missing(G,
                         if (node, member) in bad_node_mem_pairs: continue
                         
                         hit_protein = hits_trans_dict[member][i]
+                        if not is_valid_gene(dna_hit, hit_protein) and only_valid_genes: continue
+
                         hit_strand = '+' if node_locs[node][1][2]==0 else '-'
                         G.nodes[node]['members'].add(member)
                         G.nodes[node]['size'] += 1

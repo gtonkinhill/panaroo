@@ -119,7 +119,7 @@ def main():
             if line[0] in args.queries:
                 geneids = set()
                 for genome, genes in zip(genomes, line[3:]):
-                    genes = genes.replace("_len", "").replace("_stop", "").split(";")
+                    genes = genes.replace("_len", "").replace("_pseudo", "").split(";")
                     for g in genes:
                         geneids.add((genome,g))
                 generate_fasta(

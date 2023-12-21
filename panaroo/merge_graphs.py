@@ -361,7 +361,8 @@ def merge_graphs(directories,
                 if line[2] not in id_mapping[i]: continue  #its been filtered
                 orig_ids[id_mapping[i][line[2]]] = line[3]
                 ids_len_stop[id_mapping[i][line[2]]] = (len(line[4]),
-                                                        "*" in line[4][1:-3])
+                                                        "*" in line[4][1:-3],
+                                                        is_valid_gene(line[5], line[4]))
 
     G = generate_roary_gene_presence_absence(G,
                                              mems_to_isolates=mems_to_isolates,
@@ -374,6 +375,7 @@ def merge_graphs(directories,
     # write pan genome reference fasta file
     generate_pan_genome_reference(G,
                                   output_dir=output_dir,
+                                  ids_len_stop=ids_len_stop,
                                   split_paralogs=False)
 
     # write out common structural differences in a matrix format

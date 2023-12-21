@@ -127,8 +127,8 @@ def generate_roary_gene_presence_absence(
                         0.05 * len_mode
                     ):
                         pres_abs_ext[sample_id] += "_len"
-                    if ids_len_stop[seq][1]:
-                        pres_abs_ext[sample_id] += "_stop"
+                    if not ids_len_stop[seq][2]:
+                        pres_abs_ext[sample_id] += "_pseudo"
 
                 entry += pres_abs
                 entry_list.append(entry)
@@ -150,24 +150,35 @@ def generate_roary_gene_presence_absence(
     return G
 
 
-def generate_pan_genome_reference(G, output_dir, split_paralogs=False):
+def generate_pan_genome_reference(G, output_dir, ids_len_stop, split_paralogs=False):
 
     # need to treat paralogs differently?
     centroids = set()
     records = []
 
+    representatives = set()
     for node in G.nodes():
         if not split_paralogs and G.nodes[node]["centroid"][0] in centroids:
             continue
-        records.append(
-            SeqRecord(
-                Seq(max(G.nodes[node]["dna"], key=lambda x: len(x))),
-                id=G.nodes[node]["name"],
-                description="",
-            )
-        )
+        best = G.nodes[node]["centroid"][0]
         for centroid in G.nodes[node]["centroid"]:
+            if not ids_len_stop[centroid][2]: continue #skip sequences that are not valid genes
+            if ids_len_stop[centroid][0] > ids_len_stop[best][0]:
+                best = centroid
             centroids.add(centroid)
+        representatives.add(best)
+
+    with open(output_dir + "gene_data.csv", 'r') as infile:
+        next(infile)
+        for line in infile:
+            if line[2] in representatives:
+                records.append(
+                    SeqRecord(
+                        Seq(line[5]),
+                        id=G.nodes[node]["name"],
+                        description="",
+                    )
+                )
 
     with open(output_dir + "pan_genome_reference.fa", "w") as outfile:
         SeqIO.write(records, outfile, "fasta")
