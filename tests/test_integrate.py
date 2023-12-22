@@ -8,21 +8,19 @@ import tempfile
 
 def test_integrate(datafolder):
 
-    with tempfile.TemporaryDirectory() as tmpoutdir, \
-        tempfile.TemporaryDirectory() as tmpdirA, \
-        tempfile.TemporaryDirectory() as tmpdirB:
+    with tempfile.TemporaryDirectory() as tmpoutdir:
         # run panaroo on pairs of gff3 files
         sys.argv = ["", "-i",
             datafolder + "aa1.gff",
             datafolder + "aa2.gff",
             "--no_clean_edges",
             "--clean-mode", "sensitive",
-            "-o", tmpdirA]
+            "-o", tmpoutdir]
         main()
 
         # merge the result
         sys.argv = ["", 
-            "-d", tmpdirA,
+            "-d", tmpoutdir,
             "-i", datafolder + "aa3.gff",
             "-o", tmpoutdir]
         try:
