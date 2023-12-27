@@ -351,18 +351,22 @@ def merge_graphs(directories,
     # write out roary like gene_presence_absence.csv
     # get original annotaiton IDs, lengths and whether or
     # not an internal stop codon is present
+    # Write out merged gene_data.csv
     orig_ids = {}
     ids_len_stop = {}
-    for i, d in enumerate(directories):
-        with open(d + "gene_data.csv", 'r') as infile:
-            next(infile)
-            for line in infile:
-                line = line.split(",")
-                if line[2] not in id_mapping[i]: continue  #its been filtered
-                orig_ids[id_mapping[i][line[2]]] = line[3]
-                ids_len_stop[id_mapping[i][line[2]]] = (len(line[4]),
-                                                        "*" in line[4][1:-3],
-                                                        is_valid_gene(line[5], line[4]))
+    with open(output_dir + "gene_data.csv", 'w') as outfile:
+        for i, d in enumerate(directories):
+            with open(d + "gene_data.csv", 'r') as infile:
+                next(infile)
+                for line in infile:    
+                    line = line.strip().split(",")
+                    if line[2] not in id_mapping[i]: continue  #its been filtered
+                    orig_ids[id_mapping[i][line[2]]] = line[3]
+                    ids_len_stop[id_mapping[i][line[2]]] = (len(line[4]),
+                                                            "*" in line[4][1:-3],
+                                                            is_valid_gene(line[5], line[4]))
+                    line[2] = id_mapping[i][line[2]]
+                    outfile.write(",".join(line) + "\n")
 
     G = generate_roary_gene_presence_absence(G,
                                              mems_to_isolates=mems_to_isolates,

@@ -54,10 +54,10 @@ def get_trans_table(table):
         translation_table = bact_translation_table.copy()
         tb = generic_by_id[table]
         for codon in tb.forward_table:
-            ind = reduce_array[np.fromstring(codon, dtype=np.int8)]
+            ind = reduce_array[np.array(bytearray(codon.encode()), dtype=np.int8)]
             translation_table[ind[0], ind[1], ind[2]] = tb.forward_table[codon].encode('utf-8')
         for codon in tb.stop_codons:
-            ind = reduce_array[np.fromstring(codon, dtype=np.int8)]
+            ind = reduce_array[np.array(bytearray(codon.encode()), dtype=np.int8)]
             translation_table[ind[0], ind[1], ind[2]] = b'*'
         return(translation_table)
     else:
@@ -65,7 +65,7 @@ def get_trans_table(table):
 
 
 def translate(seq, translation_table):
-    indices = reduce_array[np.fromstring(seq, dtype=np.int8)]
+    indices = reduce_array[np.array(bytearray(seq.encode()), dtype=np.int8)]
 
     return translation_table[
         indices[np.arange(0, len(seq), 3)], indices[np.arange(1, len(seq), 3)],

@@ -171,6 +171,7 @@ def generate_pan_genome_reference(G, output_dir, ids_len_stop, split_paralogs=Fa
     with open(output_dir + "gene_data.csv", 'r') as infile:
         next(infile)
         for line in infile:
+            line = line.split(",")
             if line[2] in representatives:
                 records.append(
                     SeqRecord(
@@ -348,7 +349,7 @@ def get_core_gene_nodes(G, threshold, num_isolates, subset=None):
     return core_nodes
 
 def update_col_counts(col_counts, s):
-    s = np.fromstring(s.lower(), dtype=np.int8)
+    s = np.array(bytearray(s.lower().encode()), dtype=np.int8)
     s[(s!=97) & (s!=99) & (s!=103) & (s!=116)] = 110
     col_counts[0,s==97] += 1
     col_counts[1,s==99] += 1
