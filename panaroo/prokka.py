@@ -159,6 +159,7 @@ def get_gene_sequences(gff_file_name, file_number, filter_seqs, table):
             continue
 
         scaffold_id = None
+        gene_sequence = None
         for sequence_index in range(len(sequences)):
             scaffold_id = sequences[sequence_index].id
             if scaffold_id == entry.seqid:
@@ -207,6 +208,15 @@ def get_gene_sequences(gff_file_name, file_number, filter_seqs, table):
                 scaffold_genes[scaffold_id] = scaffold_genes.get(
                     scaffold_id, [])
                 scaffold_genes[scaffold_id].append(gene_record)
+        if gene_sequence is None:
+            print('Sequence ID not found in Fasta!', entry.seqid)
+            if filter_seqs: continue
+            else: raise ValueError("Invalid gene sequence!")
+
+    if len(scaffold_genes) == 0:
+        print("No valid sequences found in GFF!", gff_file_name)
+        raise ValueError("Invalid GFF!")
+
     for scaffold in scaffold_genes:
         scaffold_genes[scaffold] = sorted(scaffold_genes[scaffold],
                                           key=lambda x: x[0])
