@@ -252,6 +252,7 @@ def merge_graphs(directories,
                  min_edge_support_sv,
                  aln,
                  alr,
+                 codons,
                  core,
                  hc_threshold,
                  merge_single=False,
@@ -420,7 +421,7 @@ def merge_graphs(directories,
     elif aln == "core":
         if not quiet: print("generating core genome MSAs...")
         generate_core_genome_alignment(G, temp_dir, output_dir, n_cpu, alr,
-                                       isolate_names, core, len(isolate_names), 
+                                       isolate_names, core, codons, len(isolate_names), 
                                        hc_threshold)
     return
 

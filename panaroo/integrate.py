@@ -132,6 +132,14 @@ def get_options(
         choices=['prank', 'clustal', 'mafft'],
         default="mafft")
 
+    core.add_argument(
+        "--codons",
+        dest="codons",
+        help=
+        "Generate codon alignments by aligning sequences at the protein level",
+        action='store_true',
+        default=False)
+
     core.add_argument("--core_threshold",
                       dest="core",
                       help="Core-genome sample threshold (default=0.95)",
@@ -298,6 +306,7 @@ def main():
                  min_edge_support_sv=args.min_edge_support_sv,
                  aln=args.aln,
                  alr=args.alr,
+                 codons=args.codons,
                  core=args.core,
                  hc_threshold=args.hc_threshold,
                  merge_single=True,
