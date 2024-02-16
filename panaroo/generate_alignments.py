@@ -144,8 +144,8 @@ def output_dna_and_protein(node, isolate_list, temp_directory, outdir,
     if isolate_no > 1:
         #set filename to gene name
         prot_outname = temp_directory + node["name"] + ".fasta"
-        if len(prot_outname) >= 248: 
-            fastafilename = node["name"][:247]
+        if len(prot_outname) >= 237: 
+            fastafilename = node["name"][:236]
             prot_outname = temp_directory + fastafilename + ".fasta"
         else:
             fastafilename = node["name"]
