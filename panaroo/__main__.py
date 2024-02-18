@@ -294,6 +294,7 @@ def main():
     args.output_dir = os.path.join(args.output_dir, "")
     # Create temporary directory
     temp_dir = os.path.join(tempfile.mkdtemp(dir=args.output_dir), "")
+    os.environ['TMPDIR'] = temp_dir
 
     # check if input is a file containing filenames
     if len(args.input_files) == 1:

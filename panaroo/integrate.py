@@ -260,6 +260,7 @@ def main():
 
     # Create temporary directory
     temp_dir = os.path.join(tempfile.mkdtemp(dir=args.output_dir), "")
+    os.environ['TMPDIR'] = temp_dir
 
     directories = [args.input_dir, temp_dir]
 

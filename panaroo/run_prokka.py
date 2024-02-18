@@ -107,6 +107,7 @@ def run_prokka_mod(input_file, out_folder, train_file, force, add_cmds):
     # Create temporary directory
     temp_dir = os.path.join(os.path.abspath(tempfile.mkdtemp(dir=out_folder)),
                             "")
+    os.environ['TMPDIR'] = temp_dir
     with open(temp_dir + "/prodigal", 'w') as outfile:
         outfile.write("#!/bin/bash\n")
         outfile.write("(>&2 echo 'running prokka mod!')\n")

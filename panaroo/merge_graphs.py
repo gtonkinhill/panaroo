@@ -596,6 +596,7 @@ def main():
 
     # create temporary directory
     temp_dir = os.path.join(tempfile.mkdtemp(dir=args.output_dir), "")
+    os.environ['TMPDIR'] = temp_dir
 
     # run the main merge script
     merge_graphs(directories=args.directories,
