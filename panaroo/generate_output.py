@@ -176,7 +176,7 @@ def generate_pan_genome_reference(G, output_dir, ids_len_stop, split_paralogs=Fa
                 records.append(
                     SeqRecord(
                         Seq(line[5]),
-                        id=G.nodes[node]["name"],
+                        id=line[3],
                         description="",
                     )
                 )
