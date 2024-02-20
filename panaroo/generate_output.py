@@ -156,17 +156,17 @@ def generate_pan_genome_reference(G, output_dir, ids_len_stop, split_paralogs=Fa
     centroids = set()
     records = []
 
-    representatives = set()
+    representatives = {}
     for node in G.nodes():
-        if not split_paralogs and G.nodes[node]["centroid"][0] in centroids:
-            continue
+        if not split_paralogs and len(set(G.nodes[node]["centroid"]).intersection(centroids)) > 0: continue
+
         best = G.nodes[node]["centroid"][0]
         for centroid in G.nodes[node]["centroid"]:
             if not ids_len_stop[centroid][2]: continue #skip sequences that are not valid genes
             if ids_len_stop[centroid][0] > ids_len_stop[best][0]:
                 best = centroid
             centroids.add(centroid)
-        representatives.add(best)
+        representatives[best] = G.nodes[node]["name"]
 
     with open(output_dir + "gene_data.csv", 'r') as infile:
         next(infile)
@@ -176,11 +176,11 @@ def generate_pan_genome_reference(G, output_dir, ids_len_stop, split_paralogs=Fa
                 records.append(
                     SeqRecord(
                         Seq(line[5]),
-                        id=line[3],
+                        id=representatives[line[2]],
                         description="",
                     )
                 )
-
+    
     with open(output_dir + "pan_genome_reference.fa", "w") as outfile:
         SeqIO.write(records, outfile, "fasta")
 
