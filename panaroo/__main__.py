@@ -401,6 +401,11 @@ def main():
                                        min_support=args.min_trailing_support,
                                        max_recursive=args.trailing_recursive)
 
+    if len(G.nodes()) < 2:
+        raise RuntimeError("Nearly all clusters have been trimmed! Try "
+            "reducing your clustering sequence identity thresholds and/or running "
+            "Panaroo in sensitive mode.")
+
     if args.verbose:
         print("refinding genes...")
 
