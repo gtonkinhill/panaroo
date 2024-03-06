@@ -142,11 +142,10 @@ def output_dna_and_protein(node, isolate_list, temp_directory, outdir,
 
     #only output genes with more than one isolate in them
     if isolate_no > 1:
+        fastafilename = node["name"]
         #set filename to gene name
-        if len(prot_outname) >= 237: 
+        if len(fastafilename) >= 237: 
             fastafilename = node["name"][:236]
-        else:
-            fastafilename = node["name"]
         prot_outname = temp_directory + fastafilename + ".fasta"
         dna_outname = outdir + "unaligned_dna_sequences/" + fastafilename + ".fasta"
         #Write them to disk time
