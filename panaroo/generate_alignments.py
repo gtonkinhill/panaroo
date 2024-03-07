@@ -439,7 +439,7 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
     #        for index in range(len(protein_alignments)))
     
 
-    #do it single threaded because of the need to separate aln missing DNA seq
+    #Multithreaded
     
     completed_codon_alignments = {}
     missing_sequences_codon_alignments = {}
@@ -448,7 +448,7 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
         delayed(multithread_codonalign_build)
         (clean_proteins[index], clean_dna[index], 
          dna_sequence_files[index].split('/')[-1].split(".")[0])
-        for index in range(len(clean_proteins)))
+        for index in tqdm(range(len(clean_proteins))))
     
     for alignment in all_codon_alignments:
         if alignment[0] in reject_dna_files.keys():
