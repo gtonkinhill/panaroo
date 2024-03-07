@@ -109,6 +109,10 @@ def main():
 
     # make sure trailing forward slash is present
     args.output_dir = os.path.join(args.output_dir, "")
+    #create folder for output gene sequences
+    extracted_folder = args.output_dir + "extracted_gene_sequences/"
+    if not os.path.isdir(extracted_folder):
+        os.mkdir(extracted_folder)
 
     with open(args.pa_file, 'r') as infile:
         header = next(infile).strip().split(',')
@@ -122,9 +126,10 @@ def main():
                     genes = genes.replace("_len", "").replace("_pseudo", "").split(";")
                     for g in genes:
                         geneids.add((genome,g))
+                outfile_name = extracted_folder + line[0][:248] + ".fasta"                    
                 generate_fasta(
                     geneids,
-                    outputfile=args.output_dir + line[0] + ".fasta",
+                    outputfile=outfile_name,
                     genedata=args.gene_data,
                     isdna=args.isdna,
                     idtype=args.idtype,
