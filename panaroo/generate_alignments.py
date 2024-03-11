@@ -365,8 +365,8 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
     clean_proteins = []
     
     reject_dna_files = {}
-    
-    for index in range(len(dna_sequences)):
+    print("Getting sequences...")
+    for index in tqdm(range(len(dna_sequences))):
         dna = list(dna_sequences[index])
         protein = protein_alignments[index]
         seqids_to_remove = []
@@ -440,7 +440,7 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
     
 
     #Multithreaded
-    
+    print("Reverse translating DNA...")
     completed_codon_alignments = {}
     missing_sequences_codon_alignments = {}
     
@@ -512,6 +512,8 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
                             temp_directory + gene_name + ".aln.fas", 
                             outdir, aligner)
         dna2codons_commands.append(command)
+    
+    print("Aligning untranslatable DNA...")
     
     multi_realign_sequences(dna2codons_commands, outdir + "aligned_gene_sequences/",
                               threads, aligner)
