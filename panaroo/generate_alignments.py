@@ -432,12 +432,6 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
             clean_proteins.append(protein)                         
     
     #build codon alignments
-    
-    #codon_alignments = Parallel(n_jobs=threads, prefer="threads")(
-    #        delayed(codonalign.build)
-    #        (protein_alignments[index], list(dna_sequences[index])) 
-    #        for index in range(len(protein_alignments)))
-    
 
     #Multithreaded
     print("Reverse translating DNA...")
@@ -455,27 +449,6 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
             missing_sequences_codon_alignments[alignment[0]] = alignment[1]
         else:
             completed_codon_alignments[alignment[0]] = alignment[1]
-
-    #Legacy single-threaded code    
-    # for index in range(len(clean_proteins)):
-    #     gene_name = dna_sequence_files[index].split('/')[-1].split(".")[0]
-    #     try:
-    #         alignment = codonalign.build(clean_proteins[index], clean_dna[index])
-    #         if gene_name in reject_dna_files.keys():
-    #             missing_sequences_codon_alignments[gene_name] = alignment
-    #         else:
-    #             completed_codon_alignments[gene_name] = alignment
-    #     except RuntimeError as e:
-    #         print(e)
-    #         print(index)
-    #         print(protein_sequence_files[index])
-    #         print(dna_sequence_files[index])
-    #     except IndexError as e:
-    #         print(e)
-    #         print(index)
-    #         print(protein_sequence_files[index])
-    #         print(dna_sequence_files[index])
-    
     
     #Remove <unknown description> from codon alignments
     for gene in completed_codon_alignments:
