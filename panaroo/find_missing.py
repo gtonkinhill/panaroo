@@ -326,7 +326,6 @@ def search_gff(node_search_dict,
                 best_loc = [gene[0], loc]
         
         if only_valid_genes:
-            print("HEREREREER!!!")
             if not is_valid_gene(hit, translate(search[0])):
                 continue
 
