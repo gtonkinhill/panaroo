@@ -321,6 +321,21 @@ def read_alignment(handle):
         alignment = AlignIO.read(inhandle, 'fasta')
     return alignment
 
+def multithread_codonalign_build(dna, protein, name):
+    try:
+        codon_alignment = codonalign.build(dna, protein)
+    except RuntimeError as e:
+        print(e)
+        print(name)
+        print(dna)
+        print(protein)
+    except IndexError as e:
+        print(e)
+        print(name)
+        print(dna)
+        print(protein)
+    return(name, codon_alignment)
+
 def reverse_translate_sequences(protein_sequence_files, dna_sequence_files, 
                                 outdir, temp_directory, aligner, threads):
     #Check that the dna and protein files match up
@@ -350,8 +365,8 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
     clean_proteins = []
     
     reject_dna_files = {}
-    
-    for index in range(len(dna_sequences)):
+    print("Getting sequences...")
+    for index in tqdm(range(len(dna_sequences))):
         dna = list(dna_sequences[index])
         protein = protein_alignments[index]
         seqids_to_remove = []
@@ -424,28 +439,42 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
     #        for index in range(len(protein_alignments)))
     
 
-    #do it single threaded because of the need to separate aln missing DNA seq
-    
+    #Multithreaded
+    print("Reverse translating DNA...")
     completed_codon_alignments = {}
     missing_sequences_codon_alignments = {}
-    for index in range(len(clean_proteins)):
-        gene_name = dna_sequence_files[index].split('/')[-1].split(".")[0]
-        try:
-            alignment = codonalign.build(clean_proteins[index], clean_dna[index])
-            if gene_name in reject_dna_files.keys():
-                missing_sequences_codon_alignments[gene_name] = alignment
-            else:
-                completed_codon_alignments[gene_name] = alignment
-        except RuntimeError as e:
-            print(e)
-            print(index)
-            print(protein_sequence_files[index])
-            print(dna_sequence_files[index])
-        except IndexError as e:
-            print(e)
-            print(index)
-            print(protein_sequence_files[index])
-            print(dna_sequence_files[index])
+    
+    all_codon_alignments = Parallel(n_jobs = threads, prefer = "threads")(
+        delayed(multithread_codonalign_build)
+        (clean_proteins[index], clean_dna[index], 
+         dna_sequence_files[index].split('/')[-1].split(".")[0])
+        for index in tqdm(range(len(clean_proteins))))
+    
+    for alignment in all_codon_alignments:
+        if alignment[0] in reject_dna_files.keys():
+            missing_sequences_codon_alignments[alignment[0]] = alignment[1]
+        else:
+            completed_codon_alignments[alignment[0]] = alignment[1]
+
+    #Legacy single-threaded code    
+    # for index in range(len(clean_proteins)):
+    #     gene_name = dna_sequence_files[index].split('/')[-1].split(".")[0]
+    #     try:
+    #         alignment = codonalign.build(clean_proteins[index], clean_dna[index])
+    #         if gene_name in reject_dna_files.keys():
+    #             missing_sequences_codon_alignments[gene_name] = alignment
+    #         else:
+    #             completed_codon_alignments[gene_name] = alignment
+    #     except RuntimeError as e:
+    #         print(e)
+    #         print(index)
+    #         print(protein_sequence_files[index])
+    #         print(dna_sequence_files[index])
+    #     except IndexError as e:
+    #         print(e)
+    #         print(index)
+    #         print(protein_sequence_files[index])
+    #         print(dna_sequence_files[index])
     
     
     #Remove <unknown description> from codon alignments
@@ -483,6 +512,8 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
                             temp_directory + gene_name + ".aln.fas", 
                             outdir, aligner)
         dna2codons_commands.append(command)
+    
+    print("Aligning untranslatable DNA...")
     
     multi_realign_sequences(dna2codons_commands, outdir + "aligned_gene_sequences/",
                               threads, aligner)
