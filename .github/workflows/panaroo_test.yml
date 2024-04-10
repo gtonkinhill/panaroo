@@ -37,7 +37,7 @@ jobs:
         sudo cp ./mash-Linux64-v2.2/mash /usr/bin/mash
         python --version
         pip install -U pip
-        pip install -U pytest
+        pip install -U pytest pytest-xdist
         wget https://github.com/gtonkinhill/panaroo_test_data/releases/download/v0.0.2/travis_test_data.zip
         unzip travis_test_data.zip
         
@@ -45,6 +45,6 @@ jobs:
       run: pip install .
 
     - name: Validation Tests
-      run: pytest -W ignore -q --datafolder="${{ github.workspace }}/travis_test_data/"
+      run: pytest -W ignore -q --datafolder="${{ github.workspace }}/travis_test_data/" --numprocesses=auto --dist=loadscope
 
 
