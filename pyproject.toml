@@ -1,0 +1,77 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "panaroo"
+dynamic = ["version"]
+description = "A pangenome analysis pipeline"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.6.0"
+authors = [
+    { name = "Gerry Tonkin-Hill", email = "g.tonkinhill@gmail.com" },
+    { name = "Neil MacAlistair" },
+    { name = "Chris Ruis and Aaron Weimann" },
+]
+keywords = [
+    "bacteria",
+    "pangenome",
+    "roary",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+dependencies = [
+    "biocode",
+    "BioPython",
+    "dendropy",
+    "edlib",
+    "gffutils",
+    "intbitset",
+    "joblib",
+    "matplotlib",
+    "networkx",
+    "numpy",
+    "plotly",
+    "scikit-learn",
+    "scipy",
+    "tqdm",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+]
+
+[project.scripts]
+panaroo = "panaroo.__main__:main"
+panaroo-extract-gene = "panaroo.extract_gene_fasta:main"
+panaroo-filter-pa = "panaroo.filter_pa:main"
+panaroo-fmg = "panaroo.estimate_many_genes_params:main"
+panaroo-gene-neighbourhood = "panaroo.get_neighborhood:main"
+panaroo-generate-gffs = "panaroo.post_run_gff_output:main"
+panaroo-img = "panaroo.estimate_img_params:main"
+panaroo-integrate = "panaroo.integrate:main"
+panaroo-merge = "panaroo.merge_graphs:main"
+panaroo-msa = "panaroo.post_run_alignment_gen:main"
+panaroo-plot-abundance = "panaroo.generate_abundance_plots:main"
+panaroo-qc = "panaroo.generate_qc_plots:main"
+panaroo-spydrpick = "panaroo.spydrpick:main"
+run_prokka = "panaroo.run_prokka:main"
+
+[project.urls]
+Homepage = "https://github.com/gtonkinhill/panaroo"
+
+[tool.hatch.version]
+path = "panaroo/__init__.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/panaroo",
+]
