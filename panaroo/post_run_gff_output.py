@@ -8,7 +8,11 @@ from io import StringIO
 from Bio import SeqIO
 from Bio.Seq import Seq
 
-from .isvalid import is_valid_folder
+#janky workaround to run this as a script 
+try:
+    from .isvalid import is_valid_folder
+except ImportError as e: 
+    from isvalid import is_valid_folder
 #from .__init__ import __version__
 
 def get_options():
@@ -143,6 +147,7 @@ def process_refound_gene(refound_id, pangenome_id, parsed_gff, refound_seqs,
 
     #Get additional data required for GFF annotation
     gene_name = G.nodes[pangenome_id]["annotation"]
+    panaroo_name = G.nodes[pangenome_id]["name"]
     if G.nodes[pangenome_id]["paralog"] == 1:
         has_paralog = "True"
     else:
@@ -153,6 +158,7 @@ def process_refound_gene(refound_id, pangenome_id, parsed_gff, refound_seqs,
                                "locus_tag="+refound_id,
                                "name="+gene_name,
                                "description="+gene_description,
+                               "panaroo_gene_cluster="+panaroo_name,
                                "inference=panaroo refound gene",
                                "has_pangenome_paralog="+has_paralog])
     gff_line = [scaffold_id, "Panaroo_refound", "candidate_gene", str(start+1), str(stop), ".", 
@@ -196,6 +202,7 @@ def create_new_gffs(isolate_index, parsed_gffs, pp_isolate_genes,
                     original_gene_data = original_gene_data[0]
                 #Get various other metadata for gene required for GFF3
                 gene_name = G.nodes[pangenome_gene]["annotation"]
+                panaroo_name = G.nodes[pangenome_gene]["name"]
                 if gene_name == "":
                     gene_name = "No_name"
                 if G.nodes[pangenome_gene]["paralog"] == 1:
@@ -210,6 +217,7 @@ def create_new_gffs(isolate_index, parsed_gffs, pp_isolate_genes,
                                           "description="+gene_description,
                                           "pangenome_id="+str(pangenome_gene),
                                           "panaroo_ID="+gene,
+                                          "panaroo_gene_cluster="+panaroo_name,
                                           "eC_number="+original_gene_data.get("eC_number", str(None)),
                                           "prepanaroo_inference="+original_gene_data["inference"],
                                           "has_pangenome_paralog="+has_paralog])
