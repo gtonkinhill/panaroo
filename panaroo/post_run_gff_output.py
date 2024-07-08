@@ -146,8 +146,10 @@ def process_refound_gene(refound_id, pangenome_id, parsed_gff, refound_seqs,
     strand = refound_seqs[refound_id][3]
 
     #Get additional data required for GFF annotation
-    gene_name = G.nodes[pangenome_id]["annotation"]
+    combined_gene_name = G.nodes[pangenome_id]["annotation"]
+    gene_name = combined_gene_name.strip(";").split(";")    
     panaroo_name = G.nodes[pangenome_id]["name"]
+    
     if G.nodes[pangenome_id]["paralog"] == 1:
         has_paralog = "True"
     else:
@@ -201,8 +203,11 @@ def create_new_gffs(isolate_index, parsed_gffs, pp_isolate_genes,
                 else:
                     original_gene_data = original_gene_data[0]
                 #Get various other metadata for gene required for GFF3
-                gene_name = G.nodes[pangenome_gene]["annotation"]
+                combined_gene_name = G.nodes[pangenome_gene]["annotation"]
+                gene_name = combined_gene_name.strip(";").split(";")                
                 panaroo_name = G.nodes[pangenome_gene]["name"]
+
+                
                 if gene_name == "":
                     gene_name = "No_name"
                 if G.nodes[pangenome_gene]["paralog"] == 1:
