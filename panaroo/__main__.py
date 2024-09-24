@@ -114,6 +114,10 @@ Does not delete any genes and only performes merge and refinding\
                           dest="len_dif_percent",
                           help="length difference cutoff (default=0.98)",
                           type=float)
+    matching.add_argument("--family_len_dif_percent",
+                          dest="family_len_dif_percent",
+                          help="length difference cutoff at the gene family level (default=0.0)",
+                          type=float)
     matching.add_argument("--merge_paralogs",
                           dest="merge_paralogs",
                           help="don't split paralogs",
@@ -386,6 +390,7 @@ def main():
                           outdir=temp_dir,
                           dna_error_threshold=0.98,
                           correct_mistranslations=True,
+                          family_len_dif_percent=args.family_len_dif_percent,
                           length_outlier_support_proportion=args.
                           length_outlier_support_proportion,
                           n_cpu=args.n_cpu,
@@ -401,6 +406,7 @@ def main():
         outdir=temp_dir,
         family_threshold=args.family_threshold,
         correct_mistranslations=False,
+        family_len_dif_percent=args.family_len_dif_percent,
         length_outlier_support_proportion=args.
         length_outlier_support_proportion,
         n_cpu=args.n_cpu,
@@ -454,6 +460,7 @@ def main():
                             outdir=temp_dir,
                             family_threshold=args.family_threshold,
                             correct_mistranslations=False,
+                            family_len_dif_percent=args.family_len_dif_percent,
                             length_outlier_support_proportion=args.
                             length_outlier_support_proportion,
                             n_cpu=args.n_cpu,
