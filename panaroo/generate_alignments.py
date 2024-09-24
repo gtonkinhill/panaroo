@@ -40,6 +40,8 @@ def check_aligner_install(aligner):
         command = "prank -help"
     elif aligner == "mafft":
         command = "mafft --help"
+    elif aligner == "none":
+        return True
     else:
         sys.stderr.write("Incorrect aligner specification\n")
         sys.exit()

@@ -41,7 +41,7 @@ def get_options():
         help=
         "Specify an aligner. Options:'prank', 'clustal', and default: 'mafft'",
         type=str,
-        choices={'prank', 'clustal', 'mafft'},
+        choices={'prank', 'clustal', 'mafft', 'none'},
         default="mafft")
     core.add_argument(
         "--codons",
@@ -109,11 +109,12 @@ def main():
         if args.verbose: print("generating pan genome MSAs...")
         generate_pan_genome_alignment(G, temp_dir, args.output_dir, args.n_cpu,
                                       args.alr, args.codons, isolate_names)
-
-        core_nodes = get_core_gene_nodes(G, args.core, len(isolate_names))
-        core_names = [G.nodes[x]["name"] for x in core_nodes]
-        concatenate_core_genome_alignments(core_names, args.output_dir, 
-                                           args.hc_threshold)
+        
+        if args.alr!='none':
+            core_nodes = get_core_gene_nodes(G, args.core, len(isolate_names))
+            core_names = [G.nodes[x]["name"] for x in core_nodes]
+            concatenate_core_genome_alignments(core_names, args.output_dir, 
+                                            args.hc_threshold)
     elif args.aln == "core":
         if args.verbose: print("generating core genome MSAs...")
         generate_core_genome_alignment(G, temp_dir, args.output_dir,
