@@ -13,10 +13,6 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Align import MultipleSeqAlignment
 
-from Bio.Align.Applications import PrankCommandline
-from Bio.Align.Applications import MafftCommandline
-from Bio.Align.Applications import ClustalOmegaCommandline
-import Bio.Application
 from Bio import BiopythonExperimentalWarning
 import warnings
 with warnings.catch_warnings():
@@ -165,22 +161,25 @@ def output_dna_and_protein(node, isolate_list, temp_directory, outdir,
 
 def get_alignment_commands(fastafile_name, outdir, aligner, threads):
     geneName = fastafile_name.split("/")[-1].split(".")[0]
+
     if aligner == "prank":
-        command = PrankCommandline(d=fastafile_name, 
-            o=outdir + "aligned_gene_sequences/" + geneName, 
-            f=8, codon=False
-        )
+        command = "prank"
+        command += " -d=" + fastafile_name
+        command += " -o=" + outdir + "aligned_gene_sequences/" + geneName
+        command += " -f=8"
+
     elif  aligner == "mafft":
-        command = MafftCommandline(
-            input=fastafile_name, auto=True, nuc=True, adjustdirection=True, thread=1
-        )
+        command = "mafft "
+        command += "--auto --adjustdirection --thread 1 --nuc "
+        command += fastafile_name
+
     elif aligner == "clustal":
-        command = ClustalOmegaCommandline(
-            infile=fastafile_name,
-            outfile=outdir + "aligned_gene_sequences/" + geneName + ".aln.fas",
-            seqtype="DNA",  threads=1
-        )
-   
+        command = "clustalo "
+        command += " -i " + fastafile_name 
+        command += " -t DNA"
+        command += " --threads 1" 
+        command += " -o " + outdir + "aligned_gene_sequences/" + geneName + ".aln.fas"
+
     return (command, fastafile_name)
 
 def get_protein_commands(fastafile_name, outdir, aligner, threads):
@@ -189,34 +188,23 @@ def get_protein_commands(fastafile_name, outdir, aligner, threads):
     else:
         return (None, None)
     if aligner == "prank":
-        command = PrankCommandline(d=fastafile_name,
-                                   o=geneName,
-                                   f=8,
-                                   protein=True)
-    elif (threads > 3):
-        if aligner == "mafft":
-            command = MafftCommandline(input=fastafile_name,
-                                       auto=True,
-                                       amino=True)
-        elif aligner == "clustal":
-            command = ClustalOmegaCommandline(
-                infile=fastafile_name,
-                outfile=outdir + "aligned_protein_sequences/" + geneName +
-                ".aln.fas",
-                seqtype="Protein")
-    elif (threads <= 3):
-        if aligner == "mafft":
-            command = MafftCommandline(input=fastafile_name,
-                                       auto=True,
-                                       thread=threads,
-                                       amino=True)
-        elif aligner == "clustal":
-            command = ClustalOmegaCommandline(
-                infile=fastafile_name,
-                outfile=outdir + "aligned_protein_sequences/" + geneName +
-                ".aln.fas",
-                seqtype="Protein",
-                threads=threads)
+        command = "prank "
+        command += "-d=" + fastafile_name + " "
+        command += "-o=" + geneName + " "
+        command += "-f=8"
+
+    elif aligner == "mafft":
+        command = "mafft "
+        command += "--auto --amino "
+        command += fastafile_name
+
+    elif aligner == "clustal":
+        command = "clustalo "
+        command += " -i " + fastafile_name 
+        command += " -t Protein"
+        command += " --threads 1" 
+        command += " -o " + outdir + "aligned_protein_sequences/" + geneName + ".aln.fas"
+
     return (command, fastafile_name)
 
 def get_align_dna_to_alignment_commands(bad_dna_seqs_file, codonalignment_file, 
@@ -246,23 +234,19 @@ def align_sequences(command, outdir, aligner):
     if command[0] == None:
         return None
     if aligner == "mafft":
-        name = str(command[0]).split()[-1].split("/")[-1].split(".")[0]
-        stdout, stderr = command[0]()
-        with open(outdir + name + ".aln.fas", "w+") as handle:
+        name = command[0].split()[-1].split("/")[-1].split(".")[0]
+        
+        stdout, stderr = subprocess.Popen(
+            command[0], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        ).communicate()
+
+        with open(outdir + name + ".aln.fas", "wb+") as handle:
             handle.write(stdout)
-    elif aligner == "clustal":
-        try:
-            stdout, stderr = command[0]()
-        except Bio.Application.ApplicationError as error:
-            inputname = str(command[0]).split("-i")[1].split("-t")[0].strip()
-            name = inputname.split("/")[-1]
-            print(error)
-            if "contains 1 sequence, nothing to align" in str(error):
-                os.rename(inputname, outdir + name)
-            else:
-                raise Exception("Clustal failed to run on" + inputname)
+
     else:
-        stdout, stderr = command[0]()
+        result = subprocess.Popen(
+            command[0], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
     try:
         os.remove(command[1])
     except FileNotFoundError:
