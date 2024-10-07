@@ -15,6 +15,8 @@ Thus to align all genes present in at least 98% of isolates using clustal and 10
 panaroo -i *.gff -o ./results/ --clean-mode strict -a core --aligner clustal --core_threshold 0.98 -t 10
 ```
 
+You can also output unaligned gene sequences by specifying `--aligner none`. Additionally, user @revinci has provided a separate script for generating alignments after running Panaroo, which is described [here](https://github.com/gtonkinhill/panaroo/issues/306).
+
 #### Cluster Thresholds
 
 The Panaroo algorithm initially performs a conservative clustering step before collapsing genes into possible families. It is usually best to use the dafault parameters for this initial clustering stage.
@@ -54,9 +56,11 @@ panaroo -i *.gff -o ./results/ --clean-mode strict --refind_prop_match 0.5 --sea
 usage: panaroo [-h] -i INPUT_FILES [INPUT_FILES ...] -o OUTPUT_DIR
                --clean-mode {strict,moderate,sensitive}
                [--remove-invalid-genes] [-c ID] [-f FAMILY_THRESHOLD]
-               [--len_dif_percent LEN_DIF_PERCENT] [--merge_paralogs]
-               [--search_radius SEARCH_RADIUS]
+               [--len_dif_percent LEN_DIF_PERCENT]
+               [--family_len_dif_percent FAMILY_LEN_DIF_PERCENT]
+               [--merge_paralogs] [--search_radius SEARCH_RADIUS]
                [--refind_prop_match REFIND_PROP_MATCH]
+               [--refind-mode {default,strict,off}]
                [--min_trailing_support MIN_TRAILING_SUPPORT]
                [--trailing_recursive TRAILING_RECURSIVE]
                [--edge_support_threshold EDGE_SUPPORT_THRESHOLD]
@@ -65,9 +69,10 @@ usage: panaroo [-h] -i INPUT_FILES [INPUT_FILES ...] -o OUTPUT_DIR
                [--high_var_flag CYCLE_THRESHOLD_MIN]
                [--min_edge_support_sv MIN_EDGE_SUPPORT_SV]
                [--all_seq_in_graph] [--no_clean_edges] [-a {core,pan}]
-               [--aligner {prank,clustal,mafft}] [--codons]
-               [--core_threshold CORE] [--core_entropy_filter HC_THRESHOLD]
-               [-t N_CPU] [--codon-table TABLE] [--quiet] [--version]
+               [--aligner {prank,clustal,mafft,none}] [--codons]
+               [--core_threshold CORE] [--core_subset SUBSET]
+               [--core_entropy_filter HC_THRESHOLD] [-t N_CPU]
+               [--codon-table TABLE] [--quiet] [--version]
 
 panaroo: an updated pipeline for pangenome investigation
 
@@ -125,6 +130,9 @@ Matching:
                         (default=0.7)
   --len_dif_percent LEN_DIF_PERCENT
                         length difference cutoff (default=0.98)
+  --family_len_dif_percent FAMILY_LEN_DIF_PERCENT
+                        length difference cutoff at the gene family level
+                        (default=0.0)
   --merge_paralogs      don't split paralogs
 
 Refind:
@@ -134,6 +142,20 @@ Refind:
   --refind_prop_match REFIND_PROP_MATCH
                         the proportion of an accessory gene that must be found
                         in order to consider it a match
+  --refind-mode {default,strict,off}
+                        The stringency mode at which to re-find genes.
+
+                        default:
+                        Will re-find similar gene sequences. Allows for
+                        premature stop codons and incorrect lengths to account
+                        for misassemblies.
+
+                        strict:
+                        Prevents fragmented, misassembled, or potential
+                        pseudogene sequences from being re-found.
+
+                        off:
+                        Turns off all re-finding steps.
 
 Graph correction:
   --min_trailing_support MIN_TRAILING_SUPPORT
@@ -170,13 +192,15 @@ Gene alignment:
   -a {core,pan}, --alignment {core,pan}
                         Output alignments of core genes or all genes. Options
                         are 'core' and 'pan'. Default: 'None'
-  --aligner {prank,clustal,mafft}
+  --aligner {prank,clustal,mafft,none}
                         Specify an aligner. Options:'prank', 'clustal', and
                         default: 'mafft'
   --codons              Generate codon alignments by aligning sequences at the
                         protein level
   --core_threshold CORE
                         Core-genome sample threshold (default=0.95)
+  --core_subset SUBSET  Randomly subset the core genome to these many genes
+                        (default=all)
   --core_entropy_filter HC_THRESHOLD
                         Manually set the Block Mapping and Gathering with
                         Entropy (BMGE) filter. Can be between 0.0 and 1.0. By
