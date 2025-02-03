@@ -174,11 +174,11 @@ def plot_ngenes(input_gffs, outdir, no_plot=True):
     ]
     layout = go.Layout(autosize=True,
                        xaxis=dict(title='',
-                                  titlefont=dict(size=18, color='black'),
+                                  title=dict(size=18, color='black'),
                                   showticklabels=False,
                                   automargin=True),
                        yaxis=dict(title="Number of Genes",
-                                  titlefont=dict(size=18, color='black'),
+                                  title=dict(size=18, color='black'),
                                   showticklabels=True,
                                   tickfont=dict(size=10, color='black')))
 
