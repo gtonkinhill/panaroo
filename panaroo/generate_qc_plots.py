@@ -234,7 +234,6 @@ def plot_ncontigs(input_gffs, outdir, no_plot=False):
     layout = go.Layout(autosize=True,
                        xaxis=dict(title=dict(text='', 
                                              font=dict(size=18, color='black')),
-                                  dict(text='', font=dict(size=18, color='black'))
                                   showticklabels=False,
                                   automargin=True),
                        yaxis=dict(title=dict(text="Number of Contigs", 
