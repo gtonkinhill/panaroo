@@ -114,6 +114,10 @@ Does not delete any genes and only performes merge and refinding\
                           dest="len_dif_percent",
                           help="length difference cutoff (default=0.98)",
                           type=float)
+    matching.add_argument("--family_len_dif_percent",
+                          dest="family_len_dif_percent",
+                          help="length difference cutoff at the gene family level (default=0.0)",
+                          type=float)
     matching.add_argument("--merge_paralogs",
                           dest="merge_paralogs",
                           help="don't split paralogs",
@@ -135,11 +139,24 @@ Does not delete any genes and only performes merge and refinding\
               "be found in order to consider it a match"),
         default=0.2,
         type=float)
-    refind.add_argument("--refind_strict",
-                          dest="only_valid_genes",
-                          help="Prevent fragmented, misassembled, or potential pseudogene sequences from being re-found.",
-                          action='store_true',
-                          default=False)
+
+    refind.add_argument(
+        "--refind-mode",
+        dest="refind_mode",
+        help=
+        ('''R|The stringency mode at which to re-find genes.
+
+default: 
+Will re-find similar gene sequences. Allows for premature stop codons and incorrect lengths \
+to account for misassemblies.
+
+strict: 
+Prevents fragmented, misassembled, or potential pseudogene sequences from being re-found.
+
+off: 
+Turns off all re-finding steps.'''),
+        choices=['default', 'strict', 'off'],
+        default='default')
 
     graph = parser.add_argument_group('Graph correction')
 
@@ -226,7 +243,7 @@ Does not delete any genes and only performes merge and refinding\
         help=
         "Specify an aligner. Options:'prank', 'clustal', and default: 'mafft'",
         type=str,
-        choices=['prank', 'clustal', 'mafft'],
+        choices=['prank', 'clustal', 'mafft', 'none'],
         default="mafft")
     core.add_argument(
         "--codons",
@@ -373,6 +390,7 @@ def main():
                           outdir=temp_dir,
                           dna_error_threshold=0.98,
                           correct_mistranslations=True,
+                          family_len_dif_percent=args.family_len_dif_percent,
                           length_outlier_support_proportion=args.
                           length_outlier_support_proportion,
                           n_cpu=args.n_cpu,
@@ -388,6 +406,7 @@ def main():
         outdir=temp_dir,
         family_threshold=args.family_threshold,
         correct_mistranslations=False,
+        family_len_dif_percent=args.family_len_dif_percent,
         length_outlier_support_proportion=args.
         length_outlier_support_proportion,
         n_cpu=args.n_cpu,
@@ -406,41 +425,48 @@ def main():
             "reducing your clustering sequence identity thresholds and/or running "
             "Panaroo in sensitive mode.")
 
-    if args.verbose:
-        print("refinding genes...")
+    if args.refind_mode!="off":
+        if args.refind_mode=="strict":
+            only_valid_genes=True
+        else:
+            only_valid_genes=False
 
-    # find genes that Prokka has missed
-    G = find_missing(G,
-                     args.input_files,
-                     dna_seq_file=args.output_dir + "combined_DNA_CDS.fasta",
-                     prot_seq_file=args.output_dir +
-                     "combined_protein_CDS.fasta",
-                     gene_data_file=args.output_dir + "gene_data.csv",
-                     remove_by_consensus=args.remove_by_consensus,
-                     search_radius=args.search_radius,
-                     prop_match=args.refind_prop_match,
-                     pairwise_id_thresh=args.id,
-                     merge_id_thresh=max(0.8, args.family_threshold),
-                     only_valid_genes=args.only_valid_genes,
-                     n_cpu=args.n_cpu,
-                     verbose=args.verbose)
+        if args.verbose:
+            print("refinding genes...")
 
-    # remove edges that are likely due to misassemblies (by consensus)
+        # find genes that Prokka has missed
+        G = find_missing(G,
+                        args.input_files,
+                        dna_seq_file=args.output_dir + "combined_DNA_CDS.fasta",
+                        prot_seq_file=args.output_dir +
+                        "combined_protein_CDS.fasta",
+                        gene_data_file=args.output_dir + "gene_data.csv",
+                        remove_by_consensus=args.remove_by_consensus,
+                        search_radius=args.search_radius,
+                        prop_match=args.refind_prop_match,
+                        pairwise_id_thresh=args.id,
+                        merge_id_thresh=max(0.8, args.family_threshold),
+                        only_valid_genes=only_valid_genes,
+                        n_cpu=args.n_cpu,
+                        verbose=args.verbose)
 
-    # merge again in case refinding has resolved issues
-    if args.verbose:
-        print("collapse gene families with refound genes...")
-    G = collapse_families(G,
-                          seqid_to_centroid=seqid_to_centroid,
-                          outdir=temp_dir,
-                          family_threshold=args.family_threshold,
-                          correct_mistranslations=False,
-                          length_outlier_support_proportion=args.
-                          length_outlier_support_proportion,
-                          n_cpu=args.n_cpu,
-                          quiet=(not args.verbose),
-                          distances_bwtn_centroids=distances_bwtn_centroids,
-                          centroid_to_index=centroid_to_index)[0]
+        # remove edges that are likely due to misassemblies (by consensus)
+
+        # merge again in case refinding has resolved issues
+        if args.verbose:
+            print("collapse gene families with refound genes...")
+        G = collapse_families(G,
+                            seqid_to_centroid=seqid_to_centroid,
+                            outdir=temp_dir,
+                            family_threshold=args.family_threshold,
+                            correct_mistranslations=False,
+                            family_len_dif_percent=args.family_len_dif_percent,
+                            length_outlier_support_proportion=args.
+                            length_outlier_support_proportion,
+                            n_cpu=args.n_cpu,
+                            quiet=(not args.verbose),
+                            distances_bwtn_centroids=distances_bwtn_centroids,
+                            centroid_to_index=centroid_to_index)[0]
 
     if args.clean_edges:
         G = clean_misassembly_edges(
@@ -524,9 +550,10 @@ def main():
         if args.verbose: print("generating pan genome MSAs...")
         generate_pan_genome_alignment(G, temp_dir, args.output_dir, args.n_cpu,
                                       args.alr, args.codons, isolate_names)
-        core_nodes = get_core_gene_nodes(G, args.core, len(args.input_files))
-        core_names = [G.nodes[x]["name"] for x in core_nodes]
-        concatenate_core_genome_alignments(core_names, args.output_dir, args.hc_threshold)
+        if args.alr!='none':
+            core_nodes = get_core_gene_nodes(G, args.core, len(args.input_files))
+            core_names = [G.nodes[x]["name"] for x in core_nodes]
+            concatenate_core_genome_alignments(core_names, args.output_dir, args.hc_threshold)
     elif args.aln == "core":
         if args.verbose: print("generating core genome MSAs...")
         generate_core_genome_alignment(G, temp_dir, args.output_dir,

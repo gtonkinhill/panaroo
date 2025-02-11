@@ -101,7 +101,8 @@ def find_missing(G,
                             search_radius=search_radius,
                             prop_match=prop_match,
                             pairwise_id_thresh=pairwise_id_thresh,
-                            merge_id_thresh=merge_id_thresh)
+                            merge_id_thresh=merge_id_thresh,
+                            only_valid_genes=only_valid_genes)
         for member, gff_handle in tqdm(enumerate(gff_file_handles),
                                        disable=(not verbose))))
 
@@ -184,7 +185,6 @@ def find_missing(G,
                         if (node, member) in bad_node_mem_pairs: continue
                         
                         hit_protein = hits_trans_dict[member][i]
-                        if not is_valid_gene(dna_hit, hit_protein) and only_valid_genes: continue
 
                         hit_strand = '+' if node_locs[node][1][2]==0 else '-'
                         G.nodes[node]['members'].add(member)
@@ -226,6 +226,7 @@ def search_gff(node_search_dict,
                prop_match=0.2,
                pairwise_id_thresh=0.95,
                merge_id_thresh=0.7,
+               only_valid_genes=False,
                n_cpu=1):
 
     gff_handle = open(gff_handle_name, 'r')
@@ -323,6 +324,10 @@ def search_gff(node_search_dict,
             if len(hit) > len(best_hit):
                 best_hit = hit
                 best_loc = [gene[0], loc]
+        
+        if only_valid_genes:
+            if not is_valid_gene(hit, translate(search[0])):
+                continue
 
         hits.append((node, best_hit))
         if (best_loc is not None) and (best_hit != ""):

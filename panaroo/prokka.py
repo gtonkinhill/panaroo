@@ -47,29 +47,34 @@ reduce_array[[84, 116]] = 3
 
 def get_trans_table(table):
     # swap to different codon table
+    translation_table = bact_translation_table.copy()
+    tb = generic_by_id[table]
     if table!=11:
         if table not in generic_by_id:
             raise RuntimeError("Invalid codon table! Must be available" +
                 " as a generic table in BioPython")
-        translation_table = bact_translation_table.copy()
-        tb = generic_by_id[table]
         for codon in tb.forward_table:
+            if 'U' in codon: continue
             ind = reduce_array[np.array(bytearray(codon.encode()), dtype=np.int8)]
             translation_table[ind[0], ind[1], ind[2]] = tb.forward_table[codon].encode('utf-8')
         for codon in tb.stop_codons:
+            if 'U' in codon: continue
             ind = reduce_array[np.array(bytearray(codon.encode()), dtype=np.int8)]
             translation_table[ind[0], ind[1], ind[2]] = b'*'
-        return(translation_table)
-    else:
-        return(bact_translation_table)
+
+    return([translation_table, set(tb.start_codons)])
 
 
 def translate(seq, translation_table):
     indices = reduce_array[np.array(bytearray(seq.encode()), dtype=np.int8)]
-
-    return translation_table[
+    pseq = translation_table[0][
         indices[np.arange(0, len(seq), 3)], indices[np.arange(1, len(seq), 3)],
         indices[np.arange(2, len(seq), 3)]].tostring().decode('ascii')
+    # Check for a different start codon.
+    if seq[0:3] in translation_table[1]:
+        return ('M' + pseq[1:])
+    return(pseq)
+
 
 def create_temp_gff3(gff_file, fasta_file, temp_dir):
 

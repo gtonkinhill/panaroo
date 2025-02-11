@@ -315,6 +315,11 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
                                                        aligner,
                                                        threads)
     else:
+        if aligner=='none':
+            temp_dir = output_dir + "unaligned_gene_sequences/"
+            if not os.path.exists(temp_dir):
+                os.mkdir(temp_dir)
+
         #Multithread writing gene sequences to disk (temp directory) so aligners can find them
         unaligned_sequence_files = Parallel(n_jobs=threads)(
             delayed(output_sequence)(G.nodes[x], isolates, temp_dir, output_dir)
@@ -322,6 +327,10 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
 
         #remove single sequence files
         unaligned_sequence_files = filter(None, unaligned_sequence_files)
+
+        if aligner=='none':
+            print("No aligner specified. Returning unaligned gene fasta files.")
+            return
 
         #Get Biopython command calls for each output gene sequences
         commands = [
@@ -531,10 +540,20 @@ def generate_core_genome_alignment(
                                                        output_dir, temp_dir,
                                                        aligner, threads)
     else:
+        if aligner=='none':
+            temp_dir = output_dir + "unaligned_gene_sequences/"
+            if not os.path.exists(temp_dir):
+                os.mkdir(temp_dir)
+
         #Output core node sequences
         unaligned_sequence_files = Parallel(n_jobs=threads)(
             delayed(output_sequence)(G.nodes[x], isolates, temp_dir, output_dir)
             for x in tqdm(core_genes))
+
+        if aligner=='none':
+            print("No aligner specified. Returning unaligned gene fasta files.")
+            return
+        
         #remove single sequence files
         unaligned_sequence_files = filter(None, unaligned_sequence_files)
 

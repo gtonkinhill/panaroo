@@ -225,4 +225,7 @@ def generate_network(cluster_file, data_file, prot_seq_file, all_dna=False):
                                    members=intbitset([genome_id]))
                 prev = current_cluster
 
+    if prev is not None: 
+        G.nodes[prev]['hasEnd'] = True
+
     return G, centroid_context, seqid_to_centroid
