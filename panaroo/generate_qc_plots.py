@@ -173,12 +173,10 @@ def plot_ngenes(input_gffs, outdir, no_plot=True):
                pointpos=-1.8)
     ]
     layout = go.Layout(autosize=True,
-                       xaxis=dict(title='',
-                                  titlefont=dict(size=18, color='black'),
+                       xaxis=dict(title=dict(text='', font=dict(size=18, color='black')),
                                   showticklabels=False,
                                   automargin=True),
-                       yaxis=dict(title="Number of Genes",
-                                  titlefont=dict(size=18, color='black'),
+                       yaxis=dict(title=dict(text="Number of Genes", font=dict(size=18, color='black')),
                                   showticklabels=True,
                                   tickfont=dict(size=10, color='black')))
 
@@ -234,12 +232,12 @@ def plot_ncontigs(input_gffs, outdir, no_plot=False):
                pointpos=-1.8)
     ]
     layout = go.Layout(autosize=True,
-                       xaxis=dict(title='',
-                                  titlefont=dict(size=18, color='black'),
+                       xaxis=dict(title=dict(text='', 
+                                             font=dict(size=18, color='black')),
                                   showticklabels=False,
                                   automargin=True),
-                       yaxis=dict(title="Number of Contigs",
-                                  titlefont=dict(size=18, color='black'),
+                       yaxis=dict(title=dict(text="Number of Contigs", 
+                                             font=dict(size=18, color='black')),
                                   showticklabels=True,
                                   tickfont=dict(size=10, color='black')))
 
@@ -325,16 +323,16 @@ def plot_mash_contam(mash_contam_file, outdir):
     trace = go.Scatter(x=x, y=y, mode='markers', text=text, hoverinfo="text")
 
     layout = go.Layout(autosize=True,
-                       xaxis=dict(title='Match',
-                                  titlefont=dict(size=18, color='black'),
+                       xaxis=dict(title=dict(text='Match', 
+                                             font=dict(size=18, color='black')),
                                   showticklabels=True,
                                   tickangle=45,
                                   ticktext=tick_labels,
                                   tickvals=tickvals,
                                   automargin=True,
                                   tickfont=dict(size=8, color='black')),
-                       yaxis=dict(title="Percentage of shared hash's",
-                                  titlefont=dict(size=18, color='black'),
+                       yaxis=dict(title=dict(text="Percentage of shared hash's", 
+                                             font=dict(size=18, color='black')),
                                   showticklabels=True,
                                   tickangle=45,
                                   tickfont=dict(size=10, color='black')))
