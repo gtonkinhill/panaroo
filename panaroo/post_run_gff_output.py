@@ -1,5 +1,3 @@
-#import shutil
-#import tempfile
 import os
 import networkx as nx
 from joblib import Parallel, delayed
@@ -8,12 +6,7 @@ from io import StringIO
 from Bio import SeqIO
 from Bio.Seq import Seq
 
-#janky workaround to run this as a script 
-try:
-    from .isvalid import is_valid_folder
-except ImportError as e: 
-    from isvalid import is_valid_folder
-#from .__init__ import __version__
+from panaroo.isvalid import is_valid_folder
 
 def get_options():
     import argparse
