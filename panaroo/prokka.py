@@ -69,7 +69,7 @@ def translate(seq, translation_table):
     indices = reduce_array[np.array(bytearray(seq.encode()), dtype=np.int8)]
     pseq = translation_table[0][
         indices[np.arange(0, len(seq), 3)], indices[np.arange(1, len(seq), 3)],
-        indices[np.arange(2, len(seq), 3)]].tostring().decode('ascii')
+        indices[np.arange(2, len(seq), 3)]].tobytes().decode('ascii')
     # Check for a different start codon.
     if seq[0:3] in translation_table[1]:
         return ('M' + pseq[1:])
