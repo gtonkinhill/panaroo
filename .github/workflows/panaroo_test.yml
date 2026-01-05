@@ -4,11 +4,11 @@ on:
   push:
     branches:
     - master
-    - devel
+    - dev
   pull_request:
     branches:
     - master
-    - devel
+    - dev
   schedule:
     - cron:  '1 1 1 * *'
 
