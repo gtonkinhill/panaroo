@@ -214,7 +214,7 @@ def create_new_gffs(isolate_index, parsed_gffs, pp_isolate_genes,
                                           "locus_tag="+original_gene_data.get("Locus_tag", str("Panaroo_refound")),
                                           "description="+gene_description,
                                           "pangenome_id="+str(pangenome_gene),
-                                          "panaroo_ID="+gene,
+                                          "panaroo_id="+gene,
                                           "panaroo_gene_cluster="+panaroo_name,
                                           "eC_number="+original_gene_data.get("eC_number", str(None)),
                                            "prepanaroo_inference="+original_gene_data.get("inference", 
@@ -232,7 +232,9 @@ def create_new_gffs(isolate_index, parsed_gffs, pp_isolate_genes,
                 new_gff_body_lines.append(new_gene_line)
 
     # Sort the annotation body of the gff file based on the first coordinate
-    new_gff_body_lines[1:] = sorted(new_gff_body_lines[1:], key = lambda x: (x.split('\t')[0], int(x.split('\t')[3])))
+    new_gff_body_lines[1:] = sorted(new_gff_body_lines[1:], 
+                                    key = lambda x: (x.split('\t')[0], 
+                                                     int(x.split('\t')[3])))
                 
     if gff_format == "prokka":
         new_gff_body_lines.append("##FASTA")
