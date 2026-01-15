@@ -308,11 +308,13 @@ def merge_graphs(directories,
         outdir=temp_dir,
         dna_error_threshold=0.98,
         correct_mistranslations=True,
+        family_len_dif_percent=family_len_dif_percent,
         length_outlier_support_proportion=length_outlier_support_proportion,
         n_cpu=n_cpu,
         quiet=quiet,
         depths=depths,
         search_genome_ids=search_genome_ids)[0]
+        
 
     if not quiet:
         print("Number of nodes in merged graph: ", G.number_of_nodes())
@@ -324,6 +326,7 @@ def merge_graphs(directories,
         outdir=temp_dir,
         family_threshold=family_threshold,
         correct_mistranslations=False,
+        family_len_dif_percent=family_len_dif_percent,
         length_outlier_support_proportion=length_outlier_support_proportion,
         n_cpu=n_cpu,
         quiet=quiet,
@@ -490,6 +493,11 @@ def get_options():
                           default=0.95,
                           type=float)
 
+    matching.add_argument("--family_len_dif_percent",
+                          dest="family_len_dif_percent",
+                          help="length difference cutoff at the gene family level (default=0.0)",
+                          type=float)
+
     matching.add_argument("--merge_paralogs",
                           dest="merge_paralogs",
                           help="don't split paralogs",
@@ -604,6 +612,7 @@ def main():
                  len_dif_percent=args.len_dif_percent,
                  pid=args.id,
                  family_threshold=args.family_threshold,
+                 family_len_dif_percent=args.family_len_dif_percent,
                  length_outlier_support_proportion=args.
                  length_outlier_support_proportion,
                  merge_para=args.merge_paralogs,
@@ -617,6 +626,8 @@ def main():
                  subset=args.subset,
                  n_cpu=args.n_cpu,
                  quiet=args.quiet)
+
+                 
 
     # remove temporary directory
     shutil.rmtree(temp_dir)
