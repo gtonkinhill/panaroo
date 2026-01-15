@@ -65,10 +65,10 @@ def get_mash_dist(input_gffs, outdir, n_cpu=1, quiet=True):
     return dist_mat, file_names
 
 
-def plot_MDS(dist_mat, file_names, outdir, no_plot=False):
+def plot_MDS(dist_mat, file_names, outdir, no_plot=False, random_seed=1):
 
     # get MDS projection
-    mds = manifold.MDS(n_components=2, dissimilarity="precomputed")
+    mds = manifold.MDS(n_components=2, dissimilarity="precomputed", random_state=random_seed)
     projection = mds.fit(dist_mat)
     coords = projection.embedding_
 
@@ -354,7 +354,7 @@ def generate_qc_plot(method, input_files, outdir, n_cpu, ref_db=None, no_plot=Fa
                                              outdir=outdir,
                                              n_cpu=n_cpu,
                                              quiet=True)
-        plot_MDS(dist_mat, file_names, outdir, no_plot)
+        plot_MDS(dist_mat, file_names, outdir, no_plot, random_seed)
 
     # plot number of genes
     if method in ["ngenes", "all"]:
@@ -424,6 +424,11 @@ def get_options(args):
                         help="don't generate the plots. Will only create the data tables",
                         action='store_true',
                         default=False)
+    parser.add_argument("--random_seed",
+                        dest="random_seed",
+                        help="random seed for reproducibility (default=1)",
+                        type=int,
+                        default=1)
     parser.add_argument(
         "--ref_db",
         dest="ref_db",
@@ -451,7 +456,8 @@ def main():
                      outdir=args.output_dir,
                      n_cpu=args.n_cpu,
                      ref_db=args.ref_db,
-                     no_plot=args.no_plot)
+                     no_plot=args.no_plot,
+                     random_seed=args.random_seed)
 
     return
 
