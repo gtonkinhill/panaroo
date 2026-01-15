@@ -346,7 +346,7 @@ def plot_mash_contam(mash_contam_file, outdir):
     return
 
 
-def generate_qc_plot(method, input_files, outdir, n_cpu, ref_db=None, no_plot=False):
+def generate_qc_plot(method, input_files, outdir, n_cpu, ref_db=None, no_plot=False, random_seed=1):
 
     # plot MDS
     if method in ["mds", "all"]:

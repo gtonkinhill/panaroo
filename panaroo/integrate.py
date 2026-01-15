@@ -101,6 +101,11 @@ def get_options(
         type=float,
         default=0.1)
 
+    matching.add_argument("--family_len_dif_percent",
+                          dest="family_len_dif_percent",
+                          help="length difference cutoff at the gene family level (default=0.0)",
+                          type=float)
+
     parser.add_argument(
         "--min_edge_support_sv",
         dest="min_edge_support_sv",
@@ -301,6 +306,7 @@ def main():
                  len_dif_percent=args.len_dif_percent,
                  pid=args.id,
                  family_threshold=args.family_threshold,
+                 family_len_dif_percent=args.family_len_dif_percent,
                  length_outlier_support_proportion=args.
                  length_outlier_support_proportion,
                  merge_para=args.merge_paralogs,
