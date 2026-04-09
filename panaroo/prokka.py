@@ -148,7 +148,10 @@ def get_gene_sequences(gff_file_name, file_number, filter_seqs, table):
         raise RuntimeError("Error reading prokka input!")
 
     with StringIO(split[1]) as temp_fasta:
-        sequences = list(SeqIO.parse(temp_fasta, 'fasta'))
+        try:
+            sequences = list(SeqIO.parse(temp_fasta, 'fasta'))
+        except ValueError:
+            sequences = list(SeqIO.parse(temp_fasta, 'fasta-pearson'))
 
     parsed_gff = gff.create_db(clean_gff_string(split[0]),
                                dbfn=":memory:",
