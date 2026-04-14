@@ -1,5 +1,3 @@
-#import shutil
-#import tempfile
 import os
 import networkx as nx
 from joblib import Parallel, delayed
@@ -8,8 +6,7 @@ from io import StringIO
 from Bio import SeqIO
 from Bio.Seq import Seq
 
-from .isvalid import is_valid_folder
-#from .__init__ import __version__
+from panaroo.isvalid import is_valid_folder
 
 def get_options():
     import argparse
@@ -142,7 +139,10 @@ def process_refound_gene(refound_id, pangenome_id, parsed_gff, refound_seqs,
     strand = refound_seqs[refound_id][3]
 
     #Get additional data required for GFF annotation
-    gene_name = G.nodes[pangenome_id]["annotation"]
+    combined_gene_name = G.nodes[pangenome_id]["annotation"]
+    gene_name = "_".join(combined_gene_name.strip(";").split(";")) 
+    panaroo_name = G.nodes[pangenome_id]["name"]
+    
     if G.nodes[pangenome_id]["paralog"] == 1:
         has_paralog = "True"
     else:
@@ -153,6 +153,7 @@ def process_refound_gene(refound_id, pangenome_id, parsed_gff, refound_seqs,
                                "locus_tag="+refound_id,
                                "name="+gene_name,
                                "description="+gene_description,
+                               "panaroo_gene_cluster="+panaroo_name,
                                "inference=panaroo refound gene",
                                "has_pangenome_paralog="+has_paralog])
     gff_line = [scaffold_id, "Panaroo_refound", "candidate_gene", str(start+1), str(stop), ".", 
@@ -195,7 +196,11 @@ def create_new_gffs(isolate_index, parsed_gffs, pp_isolate_genes,
                 else:
                     original_gene_data = original_gene_data[0]
                 #Get various other metadata for gene required for GFF3
-                gene_name = G.nodes[pangenome_gene]["annotation"]
+                combined_gene_name = G.nodes[pangenome_gene]["annotation"]
+                gene_name = "_".join(combined_gene_name.strip(";").split(";"))                
+                panaroo_name = G.nodes[pangenome_gene]["name"]
+
+                
                 if gene_name == "":
                     gene_name = "No_name"
                 if G.nodes[pangenome_gene]["paralog"] == 1:
@@ -209,9 +214,11 @@ def create_new_gffs(isolate_index, parsed_gffs, pp_isolate_genes,
                                           "locus_tag="+original_gene_data.get("Locus_tag", str("Panaroo_refound")),
                                           "description="+gene_description,
                                           "pangenome_id="+str(pangenome_gene),
-                                          "panaroo_ID="+gene,
+                                          "panaroo_id="+gene,
+                                          "panaroo_gene_cluster="+panaroo_name,
                                           "eC_number="+original_gene_data.get("eC_number", str(None)),
-                                          "prepanaroo_inference="+original_gene_data["inference"],
+                                           "prepanaroo_inference="+original_gene_data.get("inference", 
+                                                                                          "Unknown_inference"),
                                           "has_pangenome_paralog="+has_paralog])
                 new_gene_line = "\t".join([original_gene_data["seqid"], 
                                       "Panaroo", 
@@ -225,7 +232,9 @@ def create_new_gffs(isolate_index, parsed_gffs, pp_isolate_genes,
                 new_gff_body_lines.append(new_gene_line)
 
     # Sort the annotation body of the gff file based on the first coordinate
-    new_gff_body_lines[1:] = sorted(new_gff_body_lines[1:], key = lambda x: (x.split('\t')[0], int(x.split('\t')[3])))
+    new_gff_body_lines[1:] = sorted(new_gff_body_lines[1:], 
+                                    key = lambda x: (x.split('\t')[0], 
+                                                     int(x.split('\t')[3])))
                 
     if gff_format == "prokka":
         new_gff_body_lines.append("##FASTA")

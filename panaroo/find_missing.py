@@ -293,6 +293,7 @@ def search_gff(node_search_dict,
         # contigs[gene[0]][(start - 1):end] = "X"
 
         if (gene[0], start - 1, end) in seen:
+            print(geneid, gene[0], start - 1, end, gene)
             raise NameError("Duplicate entry!!!")
         seen.add((gene[0], start - 1, end))
 
