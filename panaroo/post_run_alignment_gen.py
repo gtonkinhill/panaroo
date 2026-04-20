@@ -67,6 +67,11 @@ def get_options():
                             "default this is set using the Tukey outlier method."),
                       type=float,
                       default=None)
+    core.add_argument("--resume",
+                      dest="resume",
+                      help="Resume a previously uncompleted gene alignment",
+                      action='store_true',
+                      default=False)
 
 
     # Other options
@@ -108,7 +113,8 @@ def main():
     if args.aln == "pan":
         if args.verbose: print("generating pan genome MSAs...")
         generate_pan_genome_alignment(G, temp_dir, args.output_dir, args.n_cpu,
-                                      args.alr, args.codons, isolate_names)
+                                      args.alr, args.codons, isolate_names,
+                                      args.core, resume=args.resume)
         
         if args.alr!='none':
             core_nodes = get_core_gene_nodes(G, args.core, len(isolate_names))
@@ -120,7 +126,8 @@ def main():
         generate_core_genome_alignment(G, temp_dir, args.output_dir,
                                        args.n_cpu, args.alr, isolate_names,
                                        args.core, args.codons, len(isolate_names),
-                                       args.hc_threshold, args.subset)
+                                       args.hc_threshold, args.subset,
+                                       resume=args.resume)
 
     # remove temporary directory
     shutil.rmtree(temp_dir)

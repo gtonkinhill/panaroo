@@ -1,7 +1,9 @@
 import os
+import json
 import subprocess
 import sys
 import re
+from datetime import datetime, timezone
 
 import numpy as np
 from joblib import Parallel, delayed
@@ -21,6 +23,205 @@ with warnings.catch_warnings():
 
 unambiguous_degenerate_codons = {"ACN":"T", "TCN":"S", "CTN":"L", "CCN":"P",
                                  "CGN":"R", "GTN":"V", "GCN":"A", "GGN":"G"}
+
+
+def get_alignment_basename(node):
+    gene_name = node["name"]
+    if len(gene_name) >= 237:
+        return gene_name[:236]
+    return gene_name
+
+
+def get_temp_dna_input_path(node, temp_directory):
+    outname = temp_directory + node["name"] + ".fasta"
+    if len(outname) >= 248:
+        outname = outname[:248] + ".fasta"
+    return outname
+
+
+def get_expected_gene_alignment_path(node, output_dir, codons):
+    if codons:
+        return os.path.join(output_dir, "aligned_gene_sequences",
+                            get_alignment_basename(node) + ".aln.fas")
+
+    sequence_ids = node["seqIDs"]
+    if isinstance(sequence_ids, str):
+        sequence_ids = [sequence_ids]
+
+    if len(sequence_ids) > 1:
+        return os.path.join(output_dir, "aligned_gene_sequences",
+                            get_alignment_basename(node) + ".aln.fas")
+
+    return os.path.join(output_dir, "aligned_gene_sequences",
+                        node["name"] + ".fasta")
+
+
+def get_expected_protein_input_path(node, temp_directory):
+    return os.path.join(temp_directory, get_alignment_basename(node) + ".fasta")
+
+
+def get_expected_protein_alignment_path(node, output_dir):
+    return os.path.join(output_dir, "aligned_protein_sequences",
+                        get_alignment_basename(node) + ".aln.fas")
+
+
+def get_expected_unaligned_dna_path(node, output_dir):
+    return os.path.join(output_dir, "unaligned_dna_sequences",
+                        get_alignment_basename(node) + ".fasta")
+
+
+def get_resume_manifest_path(output_dir):
+    return os.path.join(output_dir, "alignment_resume_state.json")
+
+
+def load_resume_manifest(output_dir):
+    manifest_path = get_resume_manifest_path(output_dir)
+    if not os.path.isfile(manifest_path):
+        return None
+
+    with open(manifest_path, "r") as handle:
+        return json.load(handle)
+
+
+def check_resume_manifest_collision(output_dir, resume):
+    if resume:
+        return
+
+    manifest_path = get_resume_manifest_path(output_dir)
+    if not os.path.isfile(manifest_path):
+        return
+
+    raise RuntimeError(
+        "Found an existing gene-alignment resume manifest in "
+        + output_dir
+        + ". Re-run with --resume to continue the previous alignment. "
+        + "To start the sequence alignment again from scratch, delete: "
+        + manifest_path
+        + ", "
+        + os.path.join(output_dir, "aligned_gene_sequences/")
+        + ", "
+        + os.path.join(output_dir, "aligned_protein_sequences/")
+        + ", and "
+        + os.path.join(output_dir, "unaligned_dna_sequences/")
+        + "."
+    )
+
+
+def write_resume_manifest(output_dir, alignment, aligner, codons,
+                          core_threshold, subset=None, resume=False):
+    manifest_path = get_resume_manifest_path(output_dir)
+    existing_manifest = load_resume_manifest(output_dir)
+
+    if resume:
+        if existing_manifest is None:
+            raise RuntimeError(
+                "Cannot resume panaroo-msa: no alignment resume manifest was found."
+            )
+
+        for field, expected_value in [
+            ("alignment", alignment),
+            ("aligner", aligner),
+            ("codons", codons),
+            ("core_threshold", core_threshold),
+            ("subset", subset),
+        ]:
+            if existing_manifest.get(field) != expected_value:
+                raise RuntimeError(
+                    "Cannot resume panaroo-msa: current run does not match the "
+                    + "existing manifest for '" + field + "'."
+                )
+
+        return existing_manifest
+
+    manifest = {
+        "started_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "alignment": alignment,
+        "aligner": aligner,
+        "codons": codons,
+        "core_threshold": core_threshold,
+        "subset": subset,
+    }
+
+    with open(manifest_path, "w") as handle:
+        json.dump(manifest, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+
+    return manifest
+
+
+def is_valid_fasta(path):
+    if not os.path.isfile(path):
+        return False
+    try:
+        with open(path, "r") as handle:
+            records = list(SeqIO.parse(handle, "fasta"))
+        return len(records) > 0
+    except Exception:
+        return False
+
+
+def is_valid_alignment(path):
+    if not os.path.isfile(path):
+        return False
+    try:
+        with open(path, "r") as handle:
+            alignment = AlignIO.read(handle, "fasta")
+        return len(alignment) > 0
+    except Exception:
+        return False
+
+
+def gene_has_valid_final_output(node, output_dir, codons):
+    output_path = get_expected_gene_alignment_path(node, output_dir, codons)
+    if output_path.endswith(".aln.fas"):
+        return is_valid_alignment(output_path)
+    return is_valid_fasta(output_path)
+
+
+def gene_has_valid_protein_output(node, output_dir):
+    return is_valid_alignment(get_expected_protein_alignment_path(node, output_dir))
+
+
+def get_pending_gene_ids(nodes, output_dir, codons, resume):
+    pending_gene_ids = []
+    for node_id, node in nodes:
+        if resume and gene_has_valid_final_output(node, output_dir, codons):
+            continue
+        pending_gene_ids.append(node_id)
+    return pending_gene_ids
+
+
+def get_pending_codon_gene_ids(nodes, output_dir, resume):
+    protein_pending_gene_ids = []
+    reverse_translate_pending_gene_ids = []
+
+    for node_id, node in nodes:
+        if resume and gene_has_valid_final_output(node, output_dir, codons=True):
+            continue
+
+        reverse_translate_pending_gene_ids.append(node_id)
+        if resume and gene_has_valid_protein_output(node, output_dir):
+            continue
+
+        protein_pending_gene_ids.append(node_id)
+
+    return protein_pending_gene_ids, reverse_translate_pending_gene_ids
+
+
+def get_codon_pending_files(nodes, output_dir, gene_ids):
+    gene_id_set = set(gene_ids)
+    selected_nodes = [node for node_id, node in nodes if node_id in gene_id_set]
+
+    protein_alignment_files = [
+        get_expected_protein_alignment_path(node, output_dir)
+        for node in selected_nodes
+    ]
+    dna_sequence_files = [
+        get_expected_unaligned_dna_path(node, output_dir)
+        for node in selected_nodes
+    ]
+
+    return protein_alignment_files, dna_sequence_files
 
 
 def check_aligner_install(aligner):
@@ -85,15 +286,12 @@ def output_sequence(node, isolate_list, temp_directory, outdir):
     output_sequences = (x for x in output_sequences)
     # set filename to gene name, if more than one sequence to be aliged
     if isolate_no > 1:
-        outname = temp_directory + node["name"] + ".fasta"
+        outname = get_temp_dna_input_path(node, temp_directory)
     else:
         # If only one sequence, output it to aliged directory and break
-        outname = outdir + "/aligned_gene_sequences/" + node["name"] + ".fasta"
+        outname = get_expected_gene_alignment_path(node, outdir, codons=False)
         SeqIO.write(output_sequences, outname, "fasta")
         return None
-    # check to see if filename is too long
-    if len(outname) >= 248:
-        outname = outname[:248] + ".fasta"
     # Write them to disk
     SeqIO.write(output_sequences, outname, "fasta")
     return outname
@@ -140,12 +338,8 @@ def output_dna_and_protein(node, isolate_list, temp_directory, outdir,
 
     #only output genes with more than one isolate in them
     if isolate_no > 1:
-        fastafilename = node["name"]
-        #set filename to gene name
-        if len(fastafilename) >= 237: 
-            fastafilename = node["name"][:236]
-        prot_outname = temp_directory + fastafilename + ".fasta"
-        dna_outname = outdir + "unaligned_dna_sequences/" + fastafilename + ".fasta"
+        prot_outname = get_expected_protein_input_path(node, temp_directory)
+        dna_outname = get_expected_unaligned_dna_path(node, outdir)
         #Write them to disk time
         SeqIO.write(output_protein, prot_outname, 'fasta')
         SeqIO.write(output_dna, dna_outname, 'fasta')
@@ -154,7 +348,8 @@ def output_dna_and_protein(node, isolate_list, temp_directory, outdir,
     else:
         output_singleton = output_dna
         #set filename, write
-        singleton_outname = outdir + "aligned_gene_sequences/" + node["name"] +".aln.fas"
+        singleton_outname = get_expected_gene_alignment_path(node, outdir,
+                                                             codons=True)
         SeqIO.write(output_singleton, singleton_outname, 'fasta')
         output_files = (None, None)
         
