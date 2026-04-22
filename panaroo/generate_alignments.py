@@ -16,6 +16,7 @@ from Bio.SeqRecord import SeqRecord
 from Bio.Align import MultipleSeqAlignment
 
 from Bio import BiopythonExperimentalWarning
+from Bio import BiopythonWarning
 import warnings
 with warnings.catch_warnings():
     warnings.simplefilter('ignore', BiopythonExperimentalWarning)
@@ -182,6 +183,13 @@ def gene_has_valid_protein_output(node, output_dir):
     return is_valid_alignment(get_expected_protein_alignment_path(node, output_dir))
 
 
+def node_requires_msa(node):
+    sequence_ids = node["seqIDs"]
+    if isinstance(sequence_ids, str):
+        sequence_ids = [sequence_ids]
+    return len(sequence_ids) > 1
+
+
 def get_pending_gene_ids(nodes, output_dir, codons, resume):
     pending_gene_ids = []
     for node_id, node in nodes:
@@ -197,6 +205,10 @@ def get_pending_codon_gene_ids(nodes, output_dir, resume):
 
     for node_id, node in nodes:
         if resume and gene_has_valid_final_output(node, output_dir, codons=True):
+            continue
+
+        if not node_requires_msa(node):
+            protein_pending_gene_ids.append(node_id)
             continue
 
         reverse_translate_pending_gene_ids.append(node_id)
@@ -560,7 +572,9 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
         for seq_index in range(len(dna)):
             #Need to take protein without proceeding or trailing gaps
             nogapped_protein_seq = str(protein[seq_index].seq).replace("-", "")
-            translated_dna = dna[seq_index].seq.translate()
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore', BiopythonWarning)
+                translated_dna = dna[seq_index].seq.translate()
             
             #fail if the translated sequence isn't the same as the protein
             fail_condition_1 = str(translated_dna).strip("*") != str(nogapped_protein_seq)
