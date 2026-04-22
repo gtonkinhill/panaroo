@@ -58,7 +58,7 @@ def translate(seq):
 
     return translation_table[
         indices[np.arange(0, len(seq), 3)], indices[np.arange(1, len(seq), 3)],
-        indices[np.arange(2, len(seq), 3)]].tostring().decode('ascii')
+        indices[np.arange(2, len(seq), 3)]].tobytes().decode('ascii')
 
 
 def random_codon(strand="+"):
