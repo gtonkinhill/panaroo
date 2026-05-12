@@ -236,6 +236,15 @@ def get_codon_pending_files(nodes, output_dir, gene_ids):
     return protein_alignment_files, dna_sequence_files
 
 
+def print_stage_progress(stage_name, completed, remaining, total=None):
+    if total is None:
+        total = completed + remaining
+    print(
+        f"{stage_name}: {completed} completed alignments found, "
+        f"{remaining} to be aligned out of {total}."
+    )
+
+
 def check_aligner_install(aligner):
     """Checks for the presence of the specified aligned in $PATH
 
@@ -530,7 +539,8 @@ def multithread_codonalign_build(dna, protein, name):
     return(name, codon_alignment)
 
 def reverse_translate_sequences(protein_sequence_files, dna_sequence_files, 
-                                outdir, temp_directory, aligner, threads):
+                                outdir, temp_directory, aligner, threads,
+                                completed_alignments_found=0):
     #Check that the dna and protein files match up
     for index in range(len(protein_sequence_files)):
         gene_id = protein_sequence_files[index].split('/')[-1].split(".")[0]
@@ -558,7 +568,11 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
     clean_proteins = []
     
     reject_dna_files = {}
-    print("Getting sequences...")
+    print_stage_progress(
+        "Getting sequences",
+        completed_alignments_found,
+        len(dna_sequences),
+    )
     for index in tqdm(range(len(dna_sequences))):
         dna = list(dna_sequences[index])
         protein = protein_alignments[index]
@@ -629,7 +643,11 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
     #build codon alignments
 
     #Multithreaded
-    print("Reverse translating DNA...")
+    print_stage_progress(
+        "Reverse translating DNA",
+        completed_alignments_found,
+        len(clean_proteins),
+    )
     completed_codon_alignments = {}
     missing_sequences_codon_alignments = {}
     

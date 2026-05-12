@@ -260,6 +260,7 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
         output_dir=output_dir,
         codons=codons,
         resume=resume)
+    total_gene_count = len(gene_ids)
 
     if codons == True:
         protein_pending_gene_ids, reverse_translate_pending_gene_ids = (
@@ -308,6 +309,10 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
             get_protein_commands(fastafile, output_dir, aligner, threads)
             for fastafile in unaligned_protein_files
         ]
+        print_stage_progress("Protein alignments",
+                             total_gene_count - len(protein_pending_gene_ids),
+                             len(commands),
+                             total_gene_count)
         #Run these commands in a multi-threaded way
         multi_align_sequences(commands, output_dir + "aligned_protein_sequences/",
                               threads, aligner)
@@ -325,12 +330,16 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
         
         #Reverse translate and output codon alignments
         if len(reverse_translate_pending_gene_ids) > 0:
+            completed_final_alignments = (
+                total_gene_count - len(reverse_translate_pending_gene_ids)
+            )
             codon_alignments = reverse_translate_sequences(protein_sequences, 
                                                            unaligned_dna_files,
                                                            output_dir,
                                                            temp_dir,
                                                            aligner,
-                                                           threads)
+                                                           threads,
+                                                           completed_alignments_found=completed_final_alignments)
     else:
         if aligner=='none':
             temp_dir = output_dir + "unaligned_gene_sequences/"
@@ -338,6 +347,10 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
                 os.mkdir(temp_dir)
 
         #Multithread writing gene sequences to disk (temp directory) so aligners can find them
+        print_stage_progress("Gene alignments",
+                             total_gene_count - len(pending_gene_ids),
+                             len(pending_gene_ids),
+                             total_gene_count)
         unaligned_sequence_files = Parallel(n_jobs=threads)(
             delayed(output_sequence)(G.nodes[x], isolates, temp_dir, output_dir)
             for x in tqdm(pending_gene_ids))
@@ -506,6 +519,7 @@ def generate_core_genome_alignment(
         output_dir=output_dir,
         codons=codons,
         resume=resume)
+    total_gene_count = len(core_genes)
 
     if codons == True:
         protein_pending_gene_ids, reverse_translate_pending_gene_ids = (
@@ -554,6 +568,10 @@ def generate_core_genome_alignment(
             get_protein_commands(fastafile, output_dir, aligner, threads)
             for fastafile in unaligned_protein_files
         ]
+        print_stage_progress("Protein alignments",
+                             total_gene_count - len(protein_pending_gene_ids),
+                             len(commands),
+                             total_gene_count)
         #Run these commands in a multi-threaded way
         multi_align_sequences(commands, output_dir + "aligned_protein_sequences/",
                               threads, aligner)
@@ -572,10 +590,14 @@ def generate_core_genome_alignment(
         
         #Reverse translate and output codon alignments
         if len(reverse_translate_pending_gene_ids) > 0:
+            completed_final_alignments = (
+                total_gene_count - len(reverse_translate_pending_gene_ids)
+            )
             codon_alignments = reverse_translate_sequences(protein_sequences, 
                                                            unaligned_dna_files, 
                                                            output_dir, temp_dir,
-                                                           aligner, threads)
+                                                           aligner, threads,
+                                                           completed_alignments_found=completed_final_alignments)
     else:
         if aligner=='none':
             temp_dir = output_dir + "unaligned_gene_sequences/"
@@ -583,6 +605,10 @@ def generate_core_genome_alignment(
                 os.mkdir(temp_dir)
 
         #Output core node sequences
+        print_stage_progress("Gene alignments",
+                             total_gene_count - len(pending_gene_ids),
+                             len(pending_gene_ids),
+                             total_gene_count)
         unaligned_sequence_files = Parallel(n_jobs=threads)(
             delayed(output_sequence)(G.nodes[x], isolates, temp_dir, output_dir)
             for x in tqdm(pending_gene_ids))
