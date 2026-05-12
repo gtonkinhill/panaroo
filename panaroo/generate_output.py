@@ -237,14 +237,14 @@ def generate_common_struct_presence_absence(
 
 
 def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
-                                  codons, isolates):
+                                  codons, strict, isolates):
     #Make a folder for the output alignments
     try:
         os.mkdir(output_dir + "aligned_gene_sequences")
     except FileExistsError:
         None
 
-    if codons == True:
+    if (codons == True) or (strict == True):
         print("Codon alignment is experimental in Panaroo...")
         #Make alternate protein/DNA directories
         try:
@@ -310,6 +310,7 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
         
         codon_alignments = reverse_translate_sequences(protein_sequences, 
                                                        unaligned_dna_files,
+                                                       strict,
                                                        output_dir,
                                                        temp_dir,
                                                        aligner,
@@ -459,7 +460,8 @@ def concatenate_core_genome_alignments(core_names, output_dir, hc_threshold):
 
 
 def generate_core_genome_alignment(
-    G, temp_dir, output_dir, threads, aligner, isolates, threshold, codons, num_isolates, hc_threshold,
+    G, temp_dir, output_dir, threads, aligner, isolates, threshold, codons, strict,
+    num_isolates, hc_threshold,
     subset=None
 ):
     # Make a folder for the output alignments TODO: decide whether or not to keep these
@@ -476,7 +478,7 @@ def generate_core_genome_alignment(
 
     core_gene_names = [G.nodes[x]["name"] for x in core_genes]
 
-    if codons == True:
+    if (codons == True) or (strict ==True):
         print("Codon alignment is experimental in Panaroo...")
         #Make alternate protein/DNA directories
         try:
@@ -537,8 +539,9 @@ def generate_core_genome_alignment(
         #Reverse translate and output codon alignments
         codon_alignments = reverse_translate_sequences(protein_sequences, 
                                                        unaligned_dna_files, 
-                                                       output_dir, temp_dir,
-                                                       aligner, threads)
+                                                       strict, output_dir, 
+                                                       temp_dir, aligner, 
+                                                       threads)
     else:
         if aligner=='none':
             temp_dir = output_dir + "unaligned_gene_sequences/"

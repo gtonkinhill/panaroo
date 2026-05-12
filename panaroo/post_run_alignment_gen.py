@@ -50,6 +50,13 @@ def get_options():
         "Generate codon alignments by aligning sequences at the protein level",
         action='store_true',
         default=False)
+    core.add_argument(
+        "--strict-codons",
+        dest="strict_codons",
+        help=
+        "Only generate condon alignments with well-formed protein sequences",
+        action='store_true',
+        default=False)
     core.add_argument("--core_threshold",
                       dest="core",
                       help="Core-genome sample threshold (default=0.95)",
@@ -108,7 +115,8 @@ def main():
     if args.aln == "pan":
         if args.verbose: print("generating pan genome MSAs...")
         generate_pan_genome_alignment(G, temp_dir, args.output_dir, args.n_cpu,
-                                      args.alr, args.codons, isolate_names)
+                                      args.alr, args.codons, args.strict_codons,
+                                      isolate_names)
         
         if args.alr!='none':
             core_nodes = get_core_gene_nodes(G, args.core, len(isolate_names))
@@ -119,8 +127,9 @@ def main():
         if args.verbose: print("generating core genome MSAs...")
         generate_core_genome_alignment(G, temp_dir, args.output_dir,
                                        args.n_cpu, args.alr, isolate_names,
-                                       args.core, args.codons, len(isolate_names),
-                                       args.hc_threshold, args.subset)
+                                       args.core, args.codons, args.strict_codons,
+                                       len(isolate_names), args.hc_threshold, 
+                                       args.subset)
 
     # remove temporary directory
     shutil.rmtree(temp_dir)

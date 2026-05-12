@@ -322,7 +322,7 @@ def multithread_codonalign_build(dna, protein, name):
         print(protein)
     return(name, codon_alignment)
 
-def reverse_translate_sequences(protein_sequence_files, dna_sequence_files, 
+def reverse_translate_sequences(protein_sequence_files, dna_sequence_files, strict,
                                 outdir, temp_directory, aligner, threads):
     #Check that the dna and protein files match up
     for index in range(len(protein_sequence_files)):
@@ -451,6 +451,18 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
             (completed_codon_alignments[x], 
              outdir + "aligned_gene_sequences/" + x +".aln.fas", 'fasta')
             for x in completed_codon_alignments)
+    
+    if strict == True:
+        #output alignments missing DNA as complete
+        write_success_failures2 = Parallel(n_jobs=threads, prefer="threads")(
+                delayed(AlignIO.write)
+                (missing_sequences_codon_alignments[x], 
+                 outdir + "aligned_gene_sequences/" + x + ".aln.fas", 'fasta')
+                for x in missing_sequences_codon_alignments)
+        
+        all_alignments = os.listdir(outdir + "aligned_gene_sequences/")
+        
+        return all_alignments 
     
     #output alignments missing some DNA sequences to tmpdir
     
