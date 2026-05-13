@@ -3,12 +3,8 @@ name: panaroo-CI
 on:
   push:
     branches:
-    - master
-    - dev
   pull_request:
     branches:
-    - master
-    - dev
   schedule:
     - cron:  '1 1 1 * *'
 
