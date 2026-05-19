@@ -112,9 +112,16 @@ def main():
     #Write out core/pan-genome alignments
     if args.aln == "pan":
         if args.verbose: print("generating pan genome MSAs...")
+        write_resume_manifest(output_dir=args.output_dir,
+                              alignment="pan",
+                              aligner=args.alr,
+                              codons=args.codons,
+                              core_threshold=args.core,
+                              subset=None,
+                              resume=args.resume)
         generate_pan_genome_alignment(G, temp_dir, args.output_dir, args.n_cpu,
                                       args.alr, args.codons, isolate_names,
-                                      args.core, resume=args.resume)
+                                      resume=args.resume)
         
         if args.alr!='none':
             core_nodes = get_core_gene_nodes(G, args.core, len(isolate_names))
@@ -123,11 +130,18 @@ def main():
                                             args.hc_threshold)
     elif args.aln == "core":
         if args.verbose: print("generating core genome MSAs...")
+        write_resume_manifest(output_dir=args.output_dir,
+                              alignment="core",
+                              aligner=args.alr,
+                              codons=args.codons,
+                              core_threshold=args.core,
+                              subset=args.subset,
+                              resume=args.resume)
         generate_core_genome_alignment(G, temp_dir, args.output_dir,
                                        args.n_cpu, args.alr, isolate_names,
                                        args.core, args.codons, len(isolate_names),
                                        args.hc_threshold, args.subset,
-                                       resume=args.resume)
+                                        resume=args.resume)
 
     # remove temporary directory
     shutil.rmtree(temp_dir)

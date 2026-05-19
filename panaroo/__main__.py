@@ -548,6 +548,13 @@ def main():
     #Write out core/pan-genome alignments
     if args.aln == "pan":
         if args.verbose: print("generating pan genome MSAs...")
+        write_resume_manifest(output_dir=args.output_dir,
+                              alignment="pan",
+                              aligner=args.alr,
+                              codons=args.codons,
+                              core_threshold=args.core,
+                              subset=None,
+                              resume=False)
         generate_pan_genome_alignment(G, temp_dir, args.output_dir, args.n_cpu,
                                       args.alr, args.codons, isolate_names)
         if args.alr!='none':
@@ -556,6 +563,13 @@ def main():
             concatenate_core_genome_alignments(core_names, args.output_dir, args.hc_threshold)
     elif args.aln == "core":
         if args.verbose: print("generating core genome MSAs...")
+        write_resume_manifest(output_dir=args.output_dir,
+                              alignment="core",
+                              aligner=args.alr,
+                              codons=args.codons,
+                              core_threshold=args.core,
+                              subset=args.subset,
+                              resume=False)
         generate_core_genome_alignment(G, temp_dir, args.output_dir,
                                        args.n_cpu, args.alr, isolate_names,
                                        args.core, args.codons, len(args.input_files),

@@ -237,8 +237,7 @@ def generate_common_struct_presence_absence(
 
 
 def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
-                                  codons, isolates, core_threshold,
-                                  resume=False):
+                                  codons, isolates, resume=False):
     check_resume_manifest_collision(output_dir, resume)
     #Make a folder for the output alignments
     try:
@@ -247,13 +246,6 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
         None
 
     gene_ids = list(G.nodes())
-    write_resume_manifest(output_dir=output_dir,
-                          alignment="pan",
-                          aligner=aligner,
-                          codons=codons,
-                          core_threshold=core_threshold,
-                          subset=None,
-                          resume=resume)
 
     pending_gene_ids = get_pending_gene_ids(
         [(gene_id, G.nodes[gene_id]) for gene_id in gene_ids],
@@ -501,13 +493,6 @@ def generate_core_genome_alignment(
 
     core_genes = get_core_gene_nodes(G, threshold, num_isolates, subset)
     core_gene_names = [G.nodes[x]["name"] for x in core_genes]
-    write_resume_manifest(output_dir=output_dir,
-                          alignment="core",
-                          aligner=aligner,
-                          codons=codons,
-                          core_threshold=threshold,
-                          subset=subset,
-                          resume=resume)
 
     if len(core_genes) < 1:
         print("No gene clusters were present above the core frequency"

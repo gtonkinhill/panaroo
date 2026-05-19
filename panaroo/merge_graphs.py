@@ -435,12 +435,26 @@ def merge_graphs(directories,
     # #Write out core/pan-genome alignments
     if aln == "pan":
         if not quiet: print("generating pan genome MSAs...")
+        write_resume_manifest(output_dir=output_dir,
+                              alignment="pan",
+                              aligner=alr,
+                              codons=codons,
+                              core_threshold=core,
+                              subset=None,
+                              resume=False)
         generate_pan_genome_alignment(G, temp_dir, output_dir, n_cpu, alr,
                                       codons, isolate_names)
         core_nodes = get_core_gene_nodes(G, core, len(isolate_names))
         concatenate_core_genome_alignments(core_nodes, output_dir, hc_threshold)
     elif aln == "core":
         if not quiet: print("generating core genome MSAs...")
+        write_resume_manifest(output_dir=output_dir,
+                              alignment="core",
+                              aligner=alr,
+                              codons=codons,
+                              core_threshold=core,
+                              subset=subset,
+                              resume=False)
         generate_core_genome_alignment(G, temp_dir, output_dir, n_cpu, alr,
                                        isolate_names, core, codons, len(isolate_names), 
                                        hc_threshold, subset)
