@@ -40,6 +40,7 @@ jobs:
     - name: Install
       run: pip install .
 
+<<<<<<< HEAD
 
     - name: Clean Panaroo alignment resume state
       run: |
@@ -56,3 +57,23 @@ jobs:
     - name: Validation Tests
       run: pytest -W ignore -q --datafolder="${{ github.workspace }}/travis_test_data/"
 
+=======
+    - name: Validation Tests Except MSA
+      run: pytest -W ignore -q --ignore=tests/test_msa.py --datafolder="${{ github.workspace }}/travis_test_data/"
+
+    - name: Clean Panaroo alignment outputs
+      run: |
+          rm -f "${{ github.workspace }}/travis_test_data/alignment_resume_state.json"
+          rm -rf "${{ github.workspace }}/travis_test_data/aligned_gene_sequences"
+          rm -rf "${{ github.workspace }}/travis_test_data/aligned_protein_sequences"
+          rm -rf "${{ github.workspace }}/travis_test_data/unaligned_dna_sequences"
+          rm -f "${{ github.workspace }}/travis_test_data/core_gene_alignment.aln"
+          rm -f "${{ github.workspace }}/travis_test_data/core_gene_alignment_filtered.aln"
+          rm -f "${{ github.workspace }}/travis_test_data/core_alignment_header.embl"
+          rm -f "${{ github.workspace }}/travis_test_data/core_alignment_filtered_header.embl"
+          rm -f "${{ github.workspace }}/travis_test_data/alignment_entropy.csv"
+
+    - name: Validation MSA Test
+      run: pytest -W ignore -q tests/test_msa.py --datafolder="${{ github.workspace }}/travis_test_data/"
+
+>>>>>>> 32b1ce5 (MSA test separately)
