@@ -435,6 +435,7 @@ def merge_graphs(directories,
     # #Write out core/pan-genome alignments
     if aln == "pan":
         if not quiet: print("generating pan genome MSAs...")
+        check_resume_manifest_collision(output_dir, False)
         write_resume_manifest(output_dir=output_dir,
                               alignment="pan",
                               aligner=alr,
@@ -448,6 +449,7 @@ def merge_graphs(directories,
         concatenate_core_genome_alignments(core_nodes, output_dir, hc_threshold)
     elif aln == "core":
         if not quiet: print("generating core genome MSAs...")
+        check_resume_manifest_collision(output_dir, False)
         write_resume_manifest(output_dir=output_dir,
                               alignment="core",
                               aligner=alr,

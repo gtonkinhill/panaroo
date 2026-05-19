@@ -238,7 +238,6 @@ def generate_common_struct_presence_absence(
 
 def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
                                   codons, isolates, resume=False):
-    check_resume_manifest_collision(output_dir, resume)
     #Make a folder for the output alignments
     try:
         os.mkdir(output_dir + "aligned_gene_sequences")
@@ -484,7 +483,6 @@ def generate_core_genome_alignment(
     G, temp_dir, output_dir, threads, aligner, isolates, threshold, codons,
     num_isolates, hc_threshold, subset=None, resume=False
 ):
-    check_resume_manifest_collision(output_dir, resume)
     # Make a folder for the output alignments TODO: decide whether or not to keep these
     try:
         os.mkdir(output_dir + "aligned_gene_sequences")
