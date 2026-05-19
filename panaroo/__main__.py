@@ -241,9 +241,11 @@ Turns off all re-finding steps.'''),
         "--aligner",
         dest="alr",
         help=
-        "Specify an aligner. Options:'prank', 'clustal', and default: 'mafft'",
+        "Specify an aligner. Options: muscle', 'muscle-super5', 'famsa2'," +
+        "'prank', 'clustal', and default: 'mafft'",
         type=str,
-        choices=['prank', 'clustal', 'mafft', 'none'],
+        choices=['muscle', 'muscle-super5', 'famsa2', 'prank', 'clustal', 
+                 'mafft', 'none'],
         default="mafft")
     core.add_argument(
         "--codons",
