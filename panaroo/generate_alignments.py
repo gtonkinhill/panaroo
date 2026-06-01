@@ -40,6 +40,10 @@ def check_aligner_install(aligner):
         command = "prank -help"
     elif aligner == "mafft":
         command = "mafft --help"
+    elif aligner in {"muscle", "muscle-super5"}:
+        command = "muscle -h"
+    elif aligner == "famsa":
+        command = "famsa -h"
     elif aligner == "none":
         return True
     else:
@@ -58,6 +62,11 @@ def check_aligner_install(aligner):
         find_ver = re.search(r"prank v\.\d+\.", p)
     elif aligner == "mafft":
         find_ver = re.search(r"MAFFT v\d+\.\d+", p)
+    elif aligner in {"muscle", "muscle-super5"}:
+        find_ver = re.search(r"muscle\s+\d+\.\d+\.\S+", p, re.IGNORECASE)
+    elif aligner == "famsa":
+        find_ver = re.search(r"FAMSA.*?version\s+\d+\.\d+\.\d+(?:-[A-Za-z0-9]+)?", p, re.IGNORECASE | re.DOTALL)
+    
     if find_ver != None:
         present = True
 
@@ -67,6 +76,19 @@ def check_aligner_install(aligner):
 
     return present
 
+def check_aligner_sanity(aligner, codons, isolate_count):
+    if aligner =="famsa" and codons ==False:
+        raise RuntimeError(
+                "FAMSA2 only supports amino-acid alignment."
+                "Use --codons or --strict-codons to align."
+            )
+    elif aligner == "muscle" and (isolate_count > 300):
+        warnings.warn("MUSCLE is not optimised to run on more than a few"
+                      "hundred isolates. Aligning the core genome may be very"
+                      "slow or fail to complete. Use muscle-super5 for faster"
+                      "alignment on larger datasets",
+                      UserWarning)
+    return True
 
 def output_sequence(node, isolate_list, temp_directory, outdir):
     # Get the name of the sequences for the gene of interest
@@ -182,6 +204,25 @@ def get_alignment_commands(fastafile_name, outdir, aligner, threads):
         command += " --threads 1" 
         command += " -o " + outdir + "aligned_gene_sequences/" + geneName + ".aln.fas"
 
+    elif aligner == "muscle":
+        command = "muscle "
+        command += " -align " + fastafile_name 
+        command += " -nt "
+        command += " -threads 1" 
+        command += " -output " + outdir + "aligned_gene_sequences/" + geneName + ".aln.fas"
+
+    elif aligner == "muscle-super5":
+        command = "muscle "
+        command += " -super5 " + fastafile_name 
+        command += " -nt "
+        command += " -threads 1" 
+        command += " -output " + outdir + "aligned_gene_sequences/" + geneName + ".aln.fas"
+    #FAMSA only supports Amino acids, this should never trigger!
+    elif aligner == "famsa":
+        raise RuntimeError(
+                "FAMSA2 only supports amino-acid alignment."
+                "Use --codons or --strict-codons to align."
+            )
     return (command, fastafile_name)
 
 def get_protein_commands(fastafile_name, outdir, aligner, threads):
@@ -207,14 +248,36 @@ def get_protein_commands(fastafile_name, outdir, aligner, threads):
         command += " --threads 1" 
         command += " -o " + outdir + "aligned_protein_sequences/" + geneName + ".aln.fas"
 
+    elif aligner == "muscle":
+        command = "muscle "
+        command += " -align " + fastafile_name 
+        command += " -amino "
+        command += " -threads 1" 
+        command += " -output " + outdir + "aligned_protein_sequences/" + geneName + ".aln.fas"
+
+    elif aligner == "muscle-super5":
+        command = "muscle "
+        command += " -super5 " + fastafile_name 
+        command += " -amino "
+        command += " -threads 1" 
+        command += " -output " + outdir + "aligned_protein_sequences/" + geneName + ".aln.fas"
+
+    elif aligner == "famsa":
+        command = "famsa "
+        command += " -t 1 " 
+        command += fastafile_name 
+        command += " " + outdir + "aligned_protein_sequences/" + geneName + ".aln.fas"
+
     return (command, fastafile_name)
 
 def get_align_dna_to_alignment_commands(bad_dna_seqs_file, codonalignment_file, 
                                         outdir, aligner):
     geneName = codonalignment_file.split('/')[-1].split('.')[0]
     if aligner == "prank":
-        raise Exception("This is a bug! Panaroo supports codon alignment with MAFFT and Clustal only")
-    elif aligner == "mafft":
+        raise Exception("This is a bug! Panaroo does not supports codon "
+                        "alignment with PRANK")
+    #default to MAFFT for profile alignment (other aligners do not support it)    
+    elif aligner in {"mafft", "muscle", "muscle-super5", "famsa"}:
         command = ["mafft",
                    "--add",
                    bad_dna_seqs_file,
@@ -246,9 +309,11 @@ def align_sequences(command, outdir, aligner):
             handle.write(stdout)
 
     else:
-        result = subprocess.Popen(
+        result = subprocess.run(
             command[0], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr.decode())
     try:
         os.remove(command[1])
     except FileNotFoundError:
@@ -257,17 +322,18 @@ def align_sequences(command, outdir, aligner):
 
 def realign_dna_sequences(command, outdir, aligner):
     if aligner == "prank":
-        raise Exception("This is a bug! Please report it. Panaroo supports " + 
-                        "codon alignment with MAFFT and Clustal only")    
-    elif aligner == "mafft":
+        raise Exception("This is a bug! Please report it. Panaroo does not " + 
+                        "support codon alignment with PRANK")    
+    elif aligner in {"mafft", "muscle", "muscle-super5", "famsa"}:
         result = subprocess.Popen(command[0][:-1], stdout=subprocess.PIPE, 
                                   stderr=subprocess.PIPE)
         mafft_out, mafft_err = result.communicate()
         with open(command[0][-1], 'wb') as outhandle:
             outhandle.write(mafft_out)
     elif aligner == "clustal":
-        result = subprocess.Popen(command[0])
-    
+        result = subprocess.run(command[0])
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr.decode())
     #Delete the bad DNA seqs file
     try:
         os.remove(command[1])
@@ -306,6 +372,21 @@ def read_alignment(handle):
     with open(handle, 'r') as inhandle:
         alignment = AlignIO.read(inhandle, 'fasta')
     return alignment
+
+
+def reorder_protein_alignment_to_match_dna(dna_records, protein_alignment, gene_name):
+    dna_ids = [record.id for record in dna_records]
+    protein_ids = [record.id for record in protein_alignment]
+
+    if len(set(dna_ids)) != len(dna_ids):
+        raise ValueError(f"Duplicate DNA sequence IDs found for gene: {gene_name}")
+    if len(set(protein_ids)) != len(protein_ids):
+        raise ValueError(f"Duplicate protein sequence IDs found for gene: {gene_name}")
+    if set(dna_ids) != set(protein_ids):
+        raise ValueError(f"DNA and protein sequence IDs do not match for gene: {gene_name}")
+
+    protein_by_id = {record.id: record for record in protein_alignment}
+    return MultipleSeqAlignment([protein_by_id[record.id] for record in dna_records])
 
 def multithread_codonalign_build(dna, protein, name):
     try:
@@ -355,6 +436,8 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files, stri
     for index in tqdm(range(len(dna_sequences))):
         dna = list(dna_sequences[index])
         protein = protein_alignments[index]
+        gene_name = dna_sequence_files[index].split('/')[-1].split(".")[0]
+        protein = reorder_protein_alignment_to_match_dna(dna, protein, gene_name)
         seqids_to_remove = []
         
         #set up sequentially checked QC failure variables for each sequence
@@ -408,7 +491,6 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files, stri
             clean_dna.append(clean_nucs)
             clean_proteins.append(clean_alignment)  
             
-            gene_name = dna_sequence_files[index].split('/')[-1].split(".")[0]
             reject_outname = temp_directory + gene_name + "_untrans_dna.fasta"
             SeqIO.write(reject_dna, reject_outname, "fasta")
             reject_dna_files[gene_name] = reject_outname

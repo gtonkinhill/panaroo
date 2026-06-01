@@ -39,10 +39,10 @@ def get_options():
         "--aligner",
         dest="alr",
         help=
-        "Specify an aligner. Options: muscle', 'muscle-super5', 'famsa2'," +
+        "Specify an aligner. Options: muscle', 'muscle-super5', 'famsa'," +
         "'prank', 'clustal', and default: 'mafft'",
         type=str,
-        choices=['muscle', 'muscle-super5', 'famsa2', 'prank', 'clustal', 
+        choices=['muscle', 'muscle-super5', 'famsa', 'prank', 'clustal', 
                  'mafft', 'none'],
         default="mafft")
     core.add_argument(
@@ -100,9 +100,17 @@ def get_options():
 
 def main():
     args = get_options()
-
+    
     # make sure trailing forward slash is present
     args.output_dir = os.path.join(args.output_dir, "")
+    
+    #Check sanity of aligner/codons options
+    #Need to get number of isolates for the MUSCLE sanity check
+    with open(args.output_dir + "gene_presence_absence.Rtab", "r") as f:
+        no_isolates = len(f.readline().rstrip("\n").split("\t")) - 1
+    
+    check_aligner_sanity(args.alr, (args.codons or args.strict_codons), 
+                             no_isolates)
 
     # Create temporary directory
     temp_dir = os.path.join(tempfile.mkdtemp(dir=args.output_dir), "")

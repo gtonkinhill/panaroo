@@ -241,10 +241,10 @@ Turns off all re-finding steps.'''),
         "--aligner",
         dest="alr",
         help=
-        "Specify an aligner. Options: muscle', 'muscle-super5', 'famsa2'," +
+        "Specify an aligner. Options: muscle', 'muscle-super5', 'famsa'," +
         "'prank', 'clustal', and default: 'mafft'",
         type=str,
-        choices=['muscle', 'muscle-super5', 'famsa2', 'prank', 'clustal', 
+        choices=['muscle', 'muscle-super5', 'famsa', 'prank', 'clustal', 
                  'mafft', 'none'],
         default="mafft")
     core.add_argument(
@@ -312,7 +312,17 @@ def main():
     #Make sure aligner is installed if alignment requested
     if args.aln != None:
         check_aligner_install(args.alr)
-
+        #Get number of isolates if input file is provided
+        if len(args.input_files) == 1:
+            no_isolates = 0
+            with open(args.input_files[0], "r") as file:
+                for line in file:
+                    no_isolates += 1
+        else:
+            no_isolates = len(args.input_files)
+        check_aligner_sanity(args.alr, (args.codons or args.strict_codons), 
+                             no_isolates)
+        
     # create directory if it isn't present already
     if not os.path.exists(args.output_dir):
         os.mkdir(args.output_dir)
