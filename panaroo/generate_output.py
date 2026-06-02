@@ -237,7 +237,8 @@ def generate_common_struct_presence_absence(
 
 
 def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
-                                  codons, isolates, resume=False):
+                                  codons, strict, isolates, resume=False):
+
     #Make a folder for the output alignments
     try:
         os.mkdir(output_dir + "aligned_gene_sequences")
@@ -260,6 +261,7 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
                 output_dir=output_dir,
                 resume=resume)
         )
+    if (codons == True) or (strict == True):
         print("Codon alignment is experimental in Panaroo...")
         #Make alternate protein/DNA directories
         try:
@@ -326,11 +328,13 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
             )
             codon_alignments = reverse_translate_sequences(protein_sequences, 
                                                            unaligned_dna_files,
+                                                           strict,
                                                            output_dir,
                                                            temp_dir,
                                                            aligner,
                                                            threads,
                                                            completed_alignments_found=completed_final_alignments)
+
     else:
         if aligner=='none':
             temp_dir = output_dir + "unaligned_gene_sequences/"
@@ -480,7 +484,7 @@ def concatenate_core_genome_alignments(core_names, output_dir, hc_threshold):
 
 
 def generate_core_genome_alignment(
-    G, temp_dir, output_dir, threads, aligner, isolates, threshold, codons,
+    G, temp_dir, output_dir, threads, aligner, isolates, threshold, codons, strict,
     num_isolates, hc_threshold, subset=None, resume=False
 ):
     # Make a folder for the output alignments TODO: decide whether or not to keep these
@@ -504,7 +508,7 @@ def generate_core_genome_alignment(
         resume=resume)
     total_gene_count = len(core_genes)
 
-    if codons == True:
+    if codons == True or (strict ==True):
         protein_pending_gene_ids, reverse_translate_pending_gene_ids = (
             get_pending_codon_gene_ids(
                 [(gene_id, G.nodes[gene_id]) for gene_id in core_genes],
@@ -578,8 +582,8 @@ def generate_core_genome_alignment(
             )
             codon_alignments = reverse_translate_sequences(protein_sequences, 
                                                            unaligned_dna_files, 
-                                                           output_dir, temp_dir,
-                                                           aligner, threads,
+                                                           strict, output_dir, 
+                                                           temp_dir, aligner, threads,
                                                            completed_alignments_found=completed_final_alignments)
     else:
         if aligner=='none':

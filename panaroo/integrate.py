@@ -131,9 +131,11 @@ def get_options(
         "--aligner",
         dest="alr",
         help=
-        "Specify an aligner. Options:'prank', 'clustal', and default: 'mafft'",
+        "Specify an aligner. Options: muscle', 'muscle-super5', 'famsa'," +
+        "'prank', 'clustal', and default: 'mafft'",
         type=str,
-        choices=['prank', 'clustal', 'mafft'],
+        choices=['muscle', 'muscle-super5', 'famsa', 'prank', 'clustal', 
+                 'mafft', 'none'],
         default="mafft")
     core.add_argument(
         "--codons",
@@ -262,6 +264,16 @@ def main():
 
     args.input_dir = os.path.join(args.input_dir, "")
     args.output_dir = os.path.join(args.output_dir, "")
+
+    #Make sure aligner is installed if alignment requested
+    if args.aln != None:
+        check_aligner_install(args.alr)
+        #Need to get number of isolates for the MUSCLE sanity check
+        with open(args.input_dir + "gene_presence_absence.Rtab", "r") as f:
+            no_isolates = len(f.readline().rstrip("\n").split("\t")) - 1
+        
+        check_aligner_sanity(args.alr, (args.codons or args.strict_codons), 
+                                 no_isolates)
 
     # Create temporary directory
     temp_dir = os.path.join(tempfile.mkdtemp(dir=args.output_dir), "")

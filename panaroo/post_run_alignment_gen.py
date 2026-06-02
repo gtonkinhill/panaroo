@@ -39,15 +39,24 @@ def get_options():
         "--aligner",
         dest="alr",
         help=
-        "Specify an aligner. Options:'prank', 'clustal', and default: 'mafft'",
+        "Specify an aligner. Options: muscle', 'muscle-super5', 'famsa'," +
+        "'prank', 'clustal', and default: 'mafft'",
         type=str,
-        choices={'prank', 'clustal', 'mafft', 'none'},
+        choices=['muscle', 'muscle-super5', 'famsa', 'prank', 'clustal', 
+                 'mafft', 'none'],
         default="mafft")
     core.add_argument(
         "--codons",
         dest="codons",
         help=
         "Generate codon alignments by aligning sequences at the protein level",
+        action='store_true',
+        default=False)
+    core.add_argument(
+        "--strict-codons",
+        dest="strict_codons",
+        help=
+        "Only generate condon alignments with well-formed protein sequences",
         action='store_true',
         default=False)
     core.add_argument("--core_threshold",
@@ -96,9 +105,17 @@ def get_options():
 
 def main():
     args = get_options()
-
+    
     # make sure trailing forward slash is present
     args.output_dir = os.path.join(args.output_dir, "")
+    
+    #Check sanity of aligner/codons options
+    #Need to get number of isolates for the MUSCLE sanity check
+    with open(args.output_dir + "gene_presence_absence.Rtab", "r") as f:
+        no_isolates = len(f.readline().rstrip("\n").split("\t")) - 1
+    
+    check_aligner_sanity(args.alr, (args.codons or args.strict_codons), 
+                             no_isolates)
 
     # Create temporary directory
     temp_dir = os.path.join(tempfile.mkdtemp(dir=args.output_dir), "")
@@ -121,8 +138,8 @@ def main():
                               subset=None,
                               resume=args.resume)
         generate_pan_genome_alignment(G, temp_dir, args.output_dir, args.n_cpu,
-                                      args.alr, args.codons, isolate_names,
-                                      resume=args.resume)
+                                      args.alr, args.codons, args.strict_codons,
+                                      isolate_names, resume=args.resume)
         
         if args.alr!='none':
             core_nodes = get_core_gene_nodes(G, args.core, len(isolate_names))
@@ -141,9 +158,9 @@ def main():
                               resume=args.resume)
         generate_core_genome_alignment(G, temp_dir, args.output_dir,
                                        args.n_cpu, args.alr, isolate_names,
-                                       args.core, args.codons, len(isolate_names),
-                                       args.hc_threshold, args.subset,
-                                        resume=args.resume)
+                                       args.core, args.codons, args.strict_codons,
+                                       len(isolate_names), args.hc_threshold, 
+                                       args.subset, resume=args.resume)
 
     # remove temporary directory
     shutil.rmtree(temp_dir)

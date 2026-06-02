@@ -15,8 +15,8 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Align import MultipleSeqAlignment
 
-from Bio import BiopythonExperimentalWarning
-from Bio import BiopythonWarning
+from Bio.Data.CodonTable import generic_by_id
+from Bio import BiopythonExperimentalWarning, BiopythonWarning
 import warnings
 with warnings.catch_warnings():
     warnings.simplefilter('ignore', BiopythonExperimentalWarning)
@@ -24,6 +24,69 @@ with warnings.catch_warnings():
 
 unambiguous_degenerate_codons = {"ACN":"T", "TCN":"S", "CTN":"L", "CCN":"P",
                                  "CGN":"R", "GTN":"V", "GCN":"A", "GGN":"G"}
+
+bact_translation_table = np.array([[[b'K', b'N', b'K', b'N', b'X'],
+                               [b'T', b'T', b'T', b'T', b'T'],
+                               [b'R', b'S', b'R', b'S', b'X'],
+                               [b'I', b'I', b'M', b'I', b'X'],
+                               [b'X', b'X', b'X', b'X', b'X']],
+                              [[b'Q', b'H', b'Q', b'H', b'X'],
+                               [b'P', b'P', b'P', b'P', b'P'],
+                               [b'R', b'R', b'R', b'R', b'R'],
+                               [b'L', b'L', b'L', b'L', b'L'],
+                               [b'X', b'X', b'X', b'X', b'X']],
+                              [[b'E', b'D', b'E', b'D', b'X'],
+                               [b'A', b'A', b'A', b'A', b'A'],
+                               [b'G', b'G', b'G', b'G', b'G'],
+                               [b'V', b'V', b'V', b'V', b'V'],
+                               [b'X', b'X', b'X', b'X', b'X']],
+                              [[b'*', b'Y', b'*', b'Y', b'X'],
+                               [b'S', b'S', b'S', b'S', b'S'],
+                               [b'*', b'C', b'W', b'C', b'X'],
+                               [b'L', b'F', b'L', b'F', b'X'],
+                               [b'X', b'X', b'X', b'X', b'X']],
+                              [[b'X', b'X', b'X', b'X', b'X'],
+                               [b'X', b'X', b'X', b'X', b'X'],
+                               [b'X', b'X', b'X', b'X', b'X'],
+                               [b'X', b'X', b'X', b'X', b'X'],
+                               [b'X', b'X', b'X', b'X', b'X']]])
+
+reduce_array = np.full(200, 4)
+reduce_array[[65, 97]] = 0
+reduce_array[[67, 99]] = 1
+reduce_array[[71, 103]] = 2
+reduce_array[[84, 116]] = 3
+
+
+def get_trans_table(table):
+    # swap to different codon table
+    translation_table = bact_translation_table.copy()
+    tb = generic_by_id[table]
+    if table!=11:
+        if table not in generic_by_id:
+            raise RuntimeError("Invalid codon table! Must be available" +
+                " as a generic table in BioPython")
+        for codon in tb.forward_table:
+            if 'U' in codon: continue
+            ind = reduce_array[np.array(bytearray(codon.encode()), dtype=np.int8)]
+            translation_table[ind[0], ind[1], ind[2]] = tb.forward_table[codon].encode('utf-8')
+        for codon in tb.stop_codons:
+            if 'U' in codon: continue
+            ind = reduce_array[np.array(bytearray(codon.encode()), dtype=np.int8)]
+            translation_table[ind[0], ind[1], ind[2]] = b'*'
+
+    return([translation_table, set(tb.start_codons)])
+
+
+def translate(seq, translation_table):
+    indices = reduce_array[np.array(bytearray(seq.encode()), dtype=np.int8)]
+    pseq = translation_table[0][
+        indices[np.arange(0, len(seq), 3)], indices[np.arange(1, len(seq), 3)],
+        indices[np.arange(2, len(seq), 3)]].tobytes().decode('ascii')
+    # Check for a different start codon.
+    if seq[0:3] in translation_table[1]:
+        return ('M' + pseq[1:])
+    return(pseq)
 
 
 def get_alignment_basename(node):
@@ -262,6 +325,10 @@ def check_aligner_install(aligner):
         command = "prank -help"
     elif aligner == "mafft":
         command = "mafft --help"
+    elif aligner in {"muscle", "muscle-super5"}:
+        command = "muscle -h"
+    elif aligner == "famsa":
+        command = "famsa -h"
     elif aligner == "none":
         return True
     else:
@@ -280,6 +347,11 @@ def check_aligner_install(aligner):
         find_ver = re.search(r"prank v\.\d+\.", p)
     elif aligner == "mafft":
         find_ver = re.search(r"MAFFT v\d+\.\d+", p)
+    elif aligner in {"muscle", "muscle-super5"}:
+        find_ver = re.search(r"muscle\s+\d+\.\d+\.\S+", p, re.IGNORECASE)
+    elif aligner == "famsa":
+        find_ver = re.search(r"FAMSA.*?version\s+\d+\.\d+\.\d+(?:-[A-Za-z0-9]+)?", p, re.IGNORECASE | re.DOTALL)
+    
     if find_ver != None:
         present = True
 
@@ -289,6 +361,19 @@ def check_aligner_install(aligner):
 
     return present
 
+def check_aligner_sanity(aligner, codons, isolate_count):
+    if aligner =="famsa" and codons ==False:
+        raise RuntimeError(
+                "FAMSA2 only supports amino-acid alignment."
+                "Use --codons or --strict-codons to align."
+            )
+    elif aligner == "muscle" and (isolate_count > 300):
+        warnings.warn("MUSCLE is not optimised to run on more than a few"
+                      "hundred isolates. Aligning the core genome may be very"
+                      "slow or fail to complete. Use muscle-super5 for faster"
+                      "alignment on larger datasets",
+                      UserWarning)
+    return True
 
 def output_sequence(node, isolate_list, temp_directory, outdir):
     # Get the name of the sequences for the gene of interest
@@ -398,6 +483,25 @@ def get_alignment_commands(fastafile_name, outdir, aligner, threads):
         command += " --threads 1" 
         command += " -o " + outdir + "aligned_gene_sequences/" + geneName + ".aln.fas"
 
+    elif aligner == "muscle":
+        command = "muscle "
+        command += " -align " + fastafile_name 
+        command += " -nt "
+        command += " -threads 1" 
+        command += " -output " + outdir + "aligned_gene_sequences/" + geneName + ".aln.fas"
+
+    elif aligner == "muscle-super5":
+        command = "muscle "
+        command += " -super5 " + fastafile_name 
+        command += " -nt "
+        command += " -threads 1" 
+        command += " -output " + outdir + "aligned_gene_sequences/" + geneName + ".aln.fas"
+    #FAMSA only supports Amino acids, this should never trigger!
+    elif aligner == "famsa":
+        raise RuntimeError(
+                "FAMSA2 only supports amino-acid alignment."
+                "Use --codons or --strict-codons to align."
+            )
     return (command, fastafile_name)
 
 def get_protein_commands(fastafile_name, outdir, aligner, threads):
@@ -423,14 +527,36 @@ def get_protein_commands(fastafile_name, outdir, aligner, threads):
         command += " --threads 1" 
         command += " -o " + outdir + "aligned_protein_sequences/" + geneName + ".aln.fas"
 
+    elif aligner == "muscle":
+        command = "muscle "
+        command += " -align " + fastafile_name 
+        command += " -amino "
+        command += " -threads 1" 
+        command += " -output " + outdir + "aligned_protein_sequences/" + geneName + ".aln.fas"
+
+    elif aligner == "muscle-super5":
+        command = "muscle "
+        command += " -super5 " + fastafile_name 
+        command += " -amino "
+        command += " -threads 1" 
+        command += " -output " + outdir + "aligned_protein_sequences/" + geneName + ".aln.fas"
+
+    elif aligner == "famsa":
+        command = "famsa "
+        command += " -t 1 " 
+        command += fastafile_name 
+        command += " " + outdir + "aligned_protein_sequences/" + geneName + ".aln.fas"
+
     return (command, fastafile_name)
 
 def get_align_dna_to_alignment_commands(bad_dna_seqs_file, codonalignment_file, 
                                         outdir, aligner):
     geneName = codonalignment_file.split('/')[-1].split('.')[0]
     if aligner == "prank":
-        raise Exception("This is a bug! Panaroo supports codon alignment with MAFFT and Clustal only")
-    elif aligner == "mafft":
+        raise Exception("This is a bug! Panaroo does not supports codon "
+                        "alignment with PRANK")
+    #default to MAFFT for profile alignment (other aligners do not support it)    
+    elif aligner in {"mafft", "muscle", "muscle-super5", "famsa"}:
         command = ["mafft",
                    "--add",
                    bad_dna_seqs_file,
@@ -462,9 +588,11 @@ def align_sequences(command, outdir, aligner):
             handle.write(stdout)
 
     else:
-        result = subprocess.Popen(
+        result = subprocess.run(
             command[0], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr.decode())
     try:
         os.remove(command[1])
     except FileNotFoundError:
@@ -473,17 +601,18 @@ def align_sequences(command, outdir, aligner):
 
 def realign_dna_sequences(command, outdir, aligner):
     if aligner == "prank":
-        raise Exception("This is a bug! Please report it. Panaroo supports " + 
-                        "codon alignment with MAFFT and Clustal only")    
-    elif aligner == "mafft":
+        raise Exception("This is a bug! Please report it. Panaroo does not " + 
+                        "support codon alignment with PRANK")    
+    elif aligner in {"mafft", "muscle", "muscle-super5", "famsa"}:
         result = subprocess.Popen(command[0][:-1], stdout=subprocess.PIPE, 
                                   stderr=subprocess.PIPE)
         mafft_out, mafft_err = result.communicate()
         with open(command[0][-1], 'wb') as outhandle:
             outhandle.write(mafft_out)
     elif aligner == "clustal":
-        result = subprocess.Popen(command[0])
-    
+        result = subprocess.run(command[0])
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr.decode())
     #Delete the bad DNA seqs file
     try:
         os.remove(command[1])
@@ -523,9 +652,26 @@ def read_alignment(handle):
         alignment = AlignIO.read(inhandle, 'fasta')
     return alignment
 
-def multithread_codonalign_build(dna, protein, name):
+
+def reorder_protein_alignment_to_match_dna(dna_records, protein_alignment, gene_name):
+    dna_ids = [record.id for record in dna_records]
+    protein_ids = [record.id for record in protein_alignment]
+
+    if len(set(dna_ids)) != len(dna_ids):
+        raise ValueError(f"Duplicate DNA sequence IDs found for gene: {gene_name}")
+    if len(set(protein_ids)) != len(protein_ids):
+        raise ValueError(f"Duplicate protein sequence IDs found for gene: {gene_name}")
+    if set(dna_ids) != set(protein_ids):
+        raise ValueError(f"DNA and protein sequence IDs do not match for gene: {gene_name}")
+
+    protein_by_id = {record.id: record for record in protein_alignment}
+    return MultipleSeqAlignment([protein_by_id[record.id] for record in dna_records])
+
+def multithread_codonalign_build(protein, dna, name):
     try:
-        codon_alignment = codonalign.build(dna, protein)
+        codon_alignment = codonalign.build(protein, 
+                                    dna, codon_table=generic_by_id[11])            
+
     except RuntimeError as e:
         print(e)
         print(name)
@@ -573,42 +719,51 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
         completed_alignments_found,
         len(dna_sequences),
     )
+    
+    trans_table = get_trans_table(11)
+    
     for index in tqdm(range(len(dna_sequences))):
         dna = list(dna_sequences[index])
         protein = protein_alignments[index]
+        gene_name = dna_sequence_files[index].split('/')[-1].split(".")[0]
+        protein = reorder_protein_alignment_to_match_dna(dna, protein, gene_name)
         seqids_to_remove = []
-        
-        #set up sequentially checked QC failure variables for each sequence
-        fail_condition_1 = False
-        fail_condition_2 = False
-        fail_condition_3 = False
-
+                
         for seq_index in range(len(dna)):
+            #set up sequentially checked QC failure variables for each sequence
+            fail_condition_0 = False
+            fail_condition_1 = False
+            fail_condition_2 = False
+            fail_condition_3 = False
             #Need to take protein without proceeding or trailing gaps
             nogapped_protein_seq = str(protein[seq_index].seq).replace("-", "")
-            with warnings.catch_warnings():
-                warnings.simplefilter('ignore', BiopythonWarning)
-                translated_dna = dna[seq_index].seq.translate()
             
-            #fail if the translated sequence isn't the same as the protein
-            fail_condition_1 = str(translated_dna).strip("*") != str(nogapped_protein_seq)
+            dna_seq = str(dna[seq_index].seq)
+            
+            #fail if the sequence is not divisible by 3
+            fail_condition_0 = (len(dna[seq_index].seq) % 3) != 0
+            
+            if fail_condition_0 == False:
+                translated_dna = translate(dna_seq, 
+                                           trans_table)            
+                #fail if the translated sequence isn't the same as the protein
+                fail_condition_1 = translated_dna.strip("*") != str(nogapped_protein_seq)
             
             #fail if there is a run of > 1 unknown nucleotides
             if fail_condition_1 == False:
                 #only test if it hasn't already failed
-                fail_condition_2 = "NN" in str(dna[seq_index].seq)
+                fail_condition_2 = "NN" in dna_seq
             
             #Fail if the DNA contains degenerate codon, codonalign cannot cope
-            if (fail_condition_1 and fail_condition_2) == False:
+            if not fail_condition_1 and not fail_condition_2:
                 #Most expensive test, only test things passing both
-                fail_condition_3 = False
                 #Such an expensive test, do a cheaper filtering first
-                if "N" in str(dna[seq_index].seq):
+                if "N" in dna_seq:
                     for codon in unambiguous_degenerate_codons.keys():
                         if codon in dna[seq_index].seq:
                             fail_condition_3 = True
             
-            if fail_condition_1 or fail_condition_2 or fail_condition_3:
+            if fail_condition_0 or fail_condition_1 or fail_condition_2 or fail_condition_3:
                 seqids_to_remove = seqids_to_remove + list(set([dna[seq_index].id, 
                                                                 protein[seq_index].id]))
         reject_dna = []        
@@ -631,7 +786,6 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
             clean_dna.append(clean_nucs)
             clean_proteins.append(clean_alignment)  
             
-            gene_name = dna_sequence_files[index].split('/')[-1].split(".")[0]
             reject_outname = temp_directory + gene_name + "_untrans_dna.fasta"
             SeqIO.write(reject_dna, reject_outname, "fasta")
             reject_dna_files[gene_name] = reject_outname
@@ -650,7 +804,16 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
     )
     completed_codon_alignments = {}
     missing_sequences_codon_alignments = {}
-    
+   
+    #codonalign.build() throws warnings for alternate start codons
+    #catch and ignore these warnings
+    warnings.filterwarnings(
+        "ignore",
+          message=r".*\(M 0\) does not correspond to .*\((GTG|TTG|CTG|ATT|ATC|ATA)\)",
+          category=BiopythonWarning,
+          module=r"Bio\.codonalign.*",
+      )
+            
     all_codon_alignments = Parallel(n_jobs = threads, prefer = "threads")(
         delayed(multithread_codonalign_build)
         (clean_proteins[index], clean_dna[index], 
@@ -678,6 +841,18 @@ def reverse_translate_sequences(protein_sequence_files, dna_sequence_files,
             (completed_codon_alignments[x], 
              outdir + "aligned_gene_sequences/" + x +".aln.fas", 'fasta')
             for x in completed_codon_alignments)
+    
+    if strict == True:
+        #output alignments missing DNA as complete
+        write_success_failures2 = Parallel(n_jobs=threads, prefer="threads")(
+                delayed(AlignIO.write)
+                (missing_sequences_codon_alignments[x], 
+                 outdir + "aligned_gene_sequences/" + x + ".aln.fas", 'fasta')
+                for x in missing_sequences_codon_alignments)
+        
+        all_alignments = os.listdir(outdir + "aligned_gene_sequences/")
+        
+        return all_alignments 
     
     #output alignments missing some DNA sequences to tmpdir
     
