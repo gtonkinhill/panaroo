@@ -265,6 +265,7 @@ def merge_graphs(directories,
                  alr,
                  core,
                  codons,
+                 strict_codons,
                  hc_threshold,
                  subset=None,
                  merge_single=False,
@@ -440,11 +441,12 @@ def merge_graphs(directories,
                               alignment="pan",
                               aligner=alr,
                               codons=codons,
+                              codons=strict_codons
                               core_threshold=core,
                               subset=None,
                               resume=False)
         generate_pan_genome_alignment(G, temp_dir, output_dir, n_cpu, alr,
-                                      codons, isolate_names)
+                                      codons, strict_codons, isolate_names)
         core_nodes = get_core_gene_nodes(G, core, len(isolate_names))
         concatenate_core_genome_alignments(core_nodes, output_dir, hc_threshold)
     elif aln == "core":
@@ -458,8 +460,8 @@ def merge_graphs(directories,
                               subset=subset,
                               resume=False)
         generate_core_genome_alignment(G, temp_dir, output_dir, n_cpu, alr,
-                                       isolate_names, core, codons, len(isolate_names), 
-                                       hc_threshold, subset)
+                                       isolate_names, core, codons, strict_codons,
+                                       len(isolate_names), hc_threshold, subset)
         
     return
 
@@ -571,6 +573,13 @@ def get_options():
         "Generate codon alignments by aligning sequences at the protein level",
         action='store_true',
         default=False)
+    core.add_argument(
+        "--strict-codons",
+        dest="strict_codons",
+        help=
+        "Only generate condon alignments with well-formed protein sequences",
+        action='store_true',
+        default=False)
     core.add_argument("--core_threshold",
                       dest="core",
                       help="Core-genome sample threshold (default=0.95)",
@@ -651,6 +660,7 @@ def main():
                  alr=args.alr,
                  core=args.core,
                  codons=args.codons,
+                 codons=args.strict_codons,
                  hc_threshold=args.hc_threshold,
                  subset=args.subset,
                  n_cpu=args.n_cpu,

@@ -171,7 +171,7 @@ def check_resume_manifest_collision(output_dir, resume):
     )
 
 
-def write_resume_manifest(output_dir, alignment, aligner, codons,
+def write_resume_manifest(output_dir, alignment, aligner, codons, strict_codons,
                           core_threshold, subset=None, resume=False):
     manifest_path = get_resume_manifest_path(output_dir)
     existing_manifest = load_resume_manifest(output_dir)
@@ -186,6 +186,7 @@ def write_resume_manifest(output_dir, alignment, aligner, codons,
             ("alignment", alignment),
             ("aligner", aligner),
             ("codons", codons),
+            ("strict_codons", strict_codons),
             ("core_threshold", core_threshold),
             ("subset", subset),
         ]:
@@ -202,6 +203,7 @@ def write_resume_manifest(output_dir, alignment, aligner, codons,
         "alignment": alignment,
         "aligner": aligner,
         "codons": codons,
+        "strict_codons": strict_codons,
         "core_threshold": core_threshold,
         "subset": subset,
     }
@@ -685,8 +687,8 @@ def multithread_codonalign_build(protein, dna, name):
     return(name, codon_alignment)
 
 def reverse_translate_sequences(protein_sequence_files, dna_sequence_files, 
-                                outdir, temp_directory, aligner, threads,
-                                completed_alignments_found=0):
+                                strict, outdir, temp_directory, aligner, 
+                                threads, completed_alignments_found=0):
     #Check that the dna and protein files match up
     for index in range(len(protein_sequence_files)):
         gene_id = protein_sequence_files[index].split('/')[-1].split(".")[0]

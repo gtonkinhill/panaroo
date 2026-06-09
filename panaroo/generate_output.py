@@ -254,7 +254,7 @@ def generate_pan_genome_alignment(G, temp_dir, output_dir, threads, aligner,
         resume=resume)
     total_gene_count = len(gene_ids)
 
-    if codons == True:
+    if codons == True or strict == True:
         protein_pending_gene_ids, reverse_translate_pending_gene_ids = (
             get_pending_codon_gene_ids(
                 [(gene_id, G.nodes[gene_id]) for gene_id in gene_ids],

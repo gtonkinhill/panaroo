@@ -572,6 +572,7 @@ def main():
                               alignment="pan",
                               aligner=args.alr,
                               codons=args.codons,
+                              strict_codons=args.strict_codons,
                               core_threshold=args.core,
                               subset=None,
                               resume=False)
@@ -588,6 +589,7 @@ def main():
                               alignment="core",
                               aligner=args.alr,
                               codons=args.codons,
+                              strict_codons=args.strict_codons,
                               core_threshold=args.core,
                               subset=args.subset,
                               resume=False)
