@@ -441,7 +441,7 @@ def merge_graphs(directories,
                               alignment="pan",
                               aligner=alr,
                               codons=codons,
-                              codons=strict_codons,
+                              strict_codons=strict_codons,
                               core_threshold=core,
                               subset=None,
                               resume=False)
