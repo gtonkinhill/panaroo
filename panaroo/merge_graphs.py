@@ -660,7 +660,7 @@ def main():
                  alr=args.alr,
                  core=args.core,
                  codons=args.codons,
-                 codons=args.strict_codons,
+                 strict_codons=args.strict_codons,
                  hc_threshold=args.hc_threshold,
                  subset=args.subset,
                  n_cpu=args.n_cpu,
