@@ -144,6 +144,13 @@ def get_options(
         "Generate codon alignments by aligning sequences at the protein level",
         action='store_true',
         default=False)
+    core.add_argument(
+        "--strict-codons",
+        dest="strict_codons",
+        help=
+        "Only generate condon alignments with well-formed protein sequences",
+        action='store_true',
+        default=False),
     core.add_argument("--core_threshold",
                       dest="core",
                       help="Core-genome sample threshold (default=0.95)",
@@ -328,6 +335,7 @@ def main():
                  alr=args.alr,
                  core=args.core,
                  codons=args.codons,
+                 strict_codons=args.strict_codons,
                  hc_threshold=args.hc_threshold,
                  subset=args.subset,
                  merge_single=True,
