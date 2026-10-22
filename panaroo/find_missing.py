@@ -58,7 +58,7 @@ def find_missing(G,
         for line in infile:
             line = line.split(",")
             if line[2] in merged_ids:
-                mem = int(sid.split("_")[0])
+                mem = int(line[2].split("_")[0])
                 if merged_ids[line[2]] in merged_nodes[mem]:
                     merged_nodes[mem][merged_ids[line[2]]] = G.nodes[
                         merged_ids[line[2]]]["dna"][G.nodes[merged_ids[
