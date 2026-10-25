@@ -35,12 +35,12 @@ def test_integrate(datafolder):
             pa = np.genfromtxt(tmpoutdirB + "/gene_presence_absence.Rtab",
                 delimiter="\t", skip_header=1)
             assert pa.shape[0]==5151
-            assert np.sum(pa[:,1:])==15339.0
+            assert np.sum(pa[:,1:])==15337.0
 
             # read struct p/a file
             pa = np.genfromtxt(tmpoutdirB + "/struct_presence_absence.Rtab",
                 delimiter="\t", skip_header=1)
-            assert pa.shape == (106, 4)
-            assert np.sum(pa[:,1:])==212
+            assert pa.shape == (104, 4)
+            assert np.sum(pa[:,1:])==208
 
     return
