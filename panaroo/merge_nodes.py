@@ -37,6 +37,30 @@ def del_dups(iterable):
     return (list(seen.keys()))
 
 
+def merge_centroid_sequences(G, nodes):
+    """Combine the 'centroid', 'protein' and 'dna' lists of the given nodes"""
+    aligned = {
+        f: all(len(G.nodes[n][f]) == len(G.nodes[n]['centroid']) for n in nodes)
+        for f in ('protein', 'dna')
+    }
+    centroid = []
+    seqs = {'protein': [], 'dna': []}
+    seen = set()
+    for n in nodes:
+        for i, c in enumerate(G.nodes[n]['centroid']):
+            if c in seen:
+                continue
+            seen.add(c)
+            centroid.append(c)
+            for f in seqs:
+                if aligned[f]:
+                    seqs[f].append(G.nodes[n][f][i])
+    for f in seqs:
+        if not aligned[f]:
+            seqs[f] = iter_del_dups(gen_node_iterables(G, nodes, f))
+    return centroid, seqs['protein'], seqs['dna']
+
+
 def merge_node_cluster(G,
                        nodes,
                        newNode,
@@ -54,7 +78,7 @@ def merge_node_cluster(G,
     nodes = sorted(nodes, key=lambda x: G.nodes[x]['size'])
 
     # First create a new node and combine the attributes
-    dna = iter_del_dups(gen_node_iterables(G, nodes, 'dna'))
+    centroid, protein, dna = merge_centroid_sequences(G, nodes)
     maxLenId = 0
     max_l = 0
     for i, s in enumerate(dna):
@@ -74,12 +98,12 @@ def merge_node_cluster(G,
     G.add_node(
         newNode,
         size=len(members),
-        centroid=iter_del_dups(gen_node_iterables(G, nodes, 'centroid')),
+        centroid=centroid,
         maxLenId=maxLenId,
         members=members,
         seqIDs=set(iter_del_dups(gen_node_iterables(G, nodes, 'seqIDs'))),
         hasEnd=any(gen_node_iterables(G, nodes, 'hasEnd')),
-        protein=iter_del_dups(gen_node_iterables(G, nodes, 'protein')),
+        protein=protein,
         dna=dna,
         annotation=";".join(
             iter_del_dups(gen_node_iterables(G, nodes, 'annotation',
